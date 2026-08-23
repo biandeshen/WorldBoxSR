@@ -5,11 +5,11 @@ import { createWorld, snapshotWorld } from '../engine/core/world.js';
 import { createHuman } from '../engine/model/human.js';
 import {
   addChildToParentalUnion,
-  endParentalUnionsForHuman,
-  ensureParentalUnion
+  ensureParentalUnion,
+  recordParentalUnionPartnerDeath
 } from '../engine/model/parental_union.js';
 
-test('extended union metrics describe repeated parenting, multi-union participation, formation context, and duration', () => {
+test('extended union metrics describe repeated parenting, multi-union participation, formation context, and first-partner death', () => {
   const world = createWorld({ seed: 6701, width: 10, height: 10, population: 0, config: { waterLevel: 0 } });
   const tile = world.tiles.find((candidate) => candidate.passable);
   const mother = createHuman(world, { x: tile.x, y: tile.y, sex: 'F', ageYears: 25, settlementId: 1 });
@@ -24,16 +24,16 @@ test('extended union metrics describe repeated parenting, multi-union participat
   world.counters.births = 3;
 
   world.day = 100;
-  endParentalUnionsForHuman(world, firstFather.id);
+  recordParentalUnionPartnerDeath(world, firstFather.id);
 
   const before = snapshotWorld(world);
   const rngBefore = world.rng.snapshot();
   const summary = summarizeParentalUnions(world);
 
   assert.equal(summary.unionCount, 2);
-  assert.equal(summary.activeUnions, 1);
-  assert.equal(summary.endedUnions, 1);
-  assert.equal(summary.activeUnionShare, 0.5);
+  assert.equal(summary.bothPartnersLivingUnions, 1);
+  assert.equal(summary.partnerDeathRecordedUnions, 1);
+  assert.equal(summary.bothPartnersLivingShare, 0.5);
   assert.equal(summary.singleChildUnions, 1);
   assert.equal(summary.multiChildUnions, 1);
   assert.equal(summary.multiChildUnionShare, 0.5);
@@ -50,7 +50,7 @@ test('extended union metrics describe repeated parenting, multi-union participat
   assert.equal(summary.multiUnionLivingHumans, 1);
   assert.equal(summary.livingUnionParticipantShare, 1);
   assert.equal(summary.multiUnionLivingHumanShare, 1 / 3);
-  assert.deepEqual(summary.endedUnionDurationDays, { count: 1, min: 100, median: 100, mean: 100, p90: 100, max: 100 });
+  assert.deepEqual(summary.firstPartnerDeathDurationDays, { count: 1, min: 100, median: 100, mean: 100, p90: 100, max: 100 });
   assert.equal(summary.unionPerBirthRatio, 2 / 3);
   assert.equal(summary.unionsPerLivingHuman, 2 / 3);
 

@@ -5,8 +5,8 @@ import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../eng
 import { createHuman } from '../engine/model/human.js';
 import {
   addChildToParentalUnion,
-  endParentalUnionsForHuman,
-  ensureParentalUnion
+  ensureParentalUnion,
+  recordParentalUnionPartnerDeath
 } from '../engine/model/parental_union.js';
 
 function makeBirthWorld(seed = 6501) {
@@ -47,7 +47,10 @@ test('first shared child creates one deterministic parental union and later chil
   assert.equal(union.childIds.length, 1);
   assert.equal(union.foundedDay, 0);
   assert.equal(union.lastChildDay, 0);
-  assert.equal(union.active, true);
+  assert.equal(union.firstPartnerDeathDay, null);
+  assert.equal(union.firstDeceasedPartnerId, null);
+  assert.equal(Object.hasOwn(union, 'active'), false);
+  assert.equal(Object.hasOwn(union, 'endedDay'), false);
 
   const firstBorn = world.history.find((event) => event.type === 'human.born');
   assert.ok(firstBorn);
@@ -95,7 +98,7 @@ test('a human can participate in multiple parental unions without exclusivity be
   assert.deepEqual(secondFather.unionIds, [secondUnion.id]);
 });
 
-test('partner death ends active parental unions while preserving historical identity', () => {
+test('partner death records mortality on the historical co-parent edge without ending its identity', () => {
   const world = makeBirthWorld(6503);
   const { mother, father } = addParents(world);
   tickWorld(world, 1);
@@ -106,14 +109,30 @@ test('partner death ends active parental unions while preserving historical iden
   tickWorld(world, 1);
 
   assert.equal(world.entities.some((human) => human.id === father.id), false);
-  assert.equal(union.active, false);
-  assert.equal(union.endReason, 'partner_death');
-  assert.equal(union.endedByHumanId, father.id);
-  assert.equal(union.endedDay, 1);
+  assert.equal(union.firstDeceasedPartnerId, father.id);
+  assert.equal(union.firstPartnerDeathDay, 1);
   assert.deepEqual(union.partnerIds, [mother.id, father.id].sort((a, b) => a - b));
   assert.deepEqual(union.childIds, childIds);
   assert.deepEqual(mother.unionIds, [union.id]);
-  assert.equal(world.history.filter((event) => event.type === 'union.ended').length, 1);
+  assert.equal(world.history.filter((event) => event.type === 'union.partner_died').length, 1);
+  assert.equal(world.history.some((event) => event.type === 'union.ended'), false);
+});
+
+test('second partner death cannot rewrite first-partner-death history', () => {
+  const world = makeBirthWorld(6507);
+  const { mother, father } = addParents(world);
+  const union = ensureParentalUnion(world, mother, father).union;
+
+  world.day = 10;
+  assert.equal(recordParentalUnionPartnerDeath(world, father.id).length, 1);
+  assert.equal(union.firstPartnerDeathDay, 10);
+  assert.equal(union.firstDeceasedPartnerId, father.id);
+
+  world.day = 20;
+  assert.equal(recordParentalUnionPartnerDeath(world, mother.id).length, 0);
+  assert.equal(union.firstPartnerDeathDay, 10);
+  assert.equal(union.firstDeceasedPartnerId, father.id);
+  assert.equal(world.history.filter((event) => event.type === 'union.partner_died').length, 1);
 });
 
 test('parental union state survives deterministic save/load continuation', () => {
@@ -137,11 +156,12 @@ test('union bookkeeping and metrics consume no RNG', () => {
   addChildToParentalUnion(world, union, 999);
   const summaryBefore = snapshotWorld(world);
   const metrics = summarizeParentalUnions(world);
-  endParentalUnionsForHuman(world, father.id);
+  recordParentalUnionPartnerDeath(world, father.id);
 
   assert.deepEqual(world.rng.snapshot(), rngBefore);
   assert.equal(metrics.unionCount, 1);
-  assert.equal(metrics.activeUnions, 1);
+  assert.equal(metrics.bothPartnersLivingUnions, 1);
+  assert.equal(metrics.partnerDeathRecordedUnions, 0);
   assert.equal(metrics.singleChildUnions, 1);
   assert.equal(metrics.livingUnionParticipants, 2);
   assert.deepEqual(summaryBefore.unions[0].childIds, [999]);
@@ -163,8 +183,8 @@ test('parental union metrics are derived-only and expose multi-union structure',
   const summary = summarizeParentalUnions(world);
 
   assert.equal(summary.unionCount, 2);
-  assert.equal(summary.activeUnions, 2);
-  assert.equal(summary.endedUnions, 0);
+  assert.equal(summary.bothPartnersLivingUnions, 2);
+  assert.equal(summary.partnerDeathRecordedUnions, 0);
   assert.equal(summary.singleChildUnions, 1);
   assert.equal(summary.multiChildUnions, 1);
   assert.equal(summary.averageChildrenPerUnion, 1.5);

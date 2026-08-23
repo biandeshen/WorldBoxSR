@@ -27,10 +27,8 @@ export function ensureParentalUnion(world, firstParent, secondParent) {
     foundedDay: world.day,
     lastChildDay: null,
     settlementIdAtFormation: commonSettlementId,
-    active: true,
-    endedDay: null,
-    endReason: null,
-    endedByHumanId: null
+    firstPartnerDeathDay: null,
+    firstDeceasedPartnerId: null
   };
   world.unions.push(union);
   addUnionReference(firstParent, union.id);
@@ -56,25 +54,25 @@ export function addChildToParentalUnion(world, union, childId) {
   return union;
 }
 
-export function endParentalUnionsForHuman(world, humanId, reason = 'partner_death') {
-  const ended = [];
+export function recordParentalUnionPartnerDeath(world, humanId) {
+  const affected = [];
   for (const union of world.unions) {
-    if (!union.active || !union.partnerIds.includes(humanId)) continue;
-    union.active = false;
-    union.endedDay = world.day;
-    union.endReason = reason;
-    union.endedByHumanId = humanId;
+    if (union.kind !== 'parental_union' ||
+        union.firstPartnerDeathDay !== null ||
+        !union.partnerIds.includes(humanId)) continue;
+
+    union.firstPartnerDeathDay = world.day;
+    union.firstDeceasedPartnerId = humanId;
     pushEvent(world, {
-      type: 'union.ended',
+      type: 'union.partner_died',
       subject: entityRef('parental_union', union.id),
       causes: [entityRef('human', humanId)],
       unionId: union.id,
-      reason,
-      endedByHumanId: humanId
+      deceasedPartnerId: humanId
     });
-    ended.push(union);
+    affected.push(union);
   }
-  return ended;
+  return affected;
 }
 
 function addUnionReference(human, unionId) {
