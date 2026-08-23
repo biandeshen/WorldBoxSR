@@ -10,7 +10,7 @@
     #game { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
     #hud {
       position: fixed; left: 16px; top: 16px; padding: 12px 14px; border: 1px solid #ffffff22;
-      background: #111720dd; border-radius: 10px; backdrop-filter: blur(8px); min-width: 290px;
+      background: #111720dd; border-radius: 10px; backdrop-filter: blur(8px); min-width: 310px;
       box-shadow: 0 8px 30px #0008;
     }
     #row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -18,7 +18,8 @@
     button { cursor: pointer; }
     button:hover { background: #273546; }
     #stats { margin-top: 9px; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd6e2; }
-    #hint { margin-top: 7px; font-size: 12px; color: #91a3b7; }
+    #hint { margin-top: 7px; font-size: 12px; color: #91a3b7; max-width: 370px; }
+    #inspector { margin-top: 10px; padding-top: 9px; border-top: 1px solid #ffffff18; white-space: pre-wrap; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: #d9e4ee; }
     strong { color: #fff; }
   </style>
 </head>
@@ -30,6 +31,7 @@
       <input id="seed" value="42" size="7" aria-label="seed" />
       <button id="reset">Reset</button>
       <button id="pause">Pause</button>
+      <button id="reset-camera">Reset view</button>
       <select id="speed" aria-label="simulation speed">
         <option value="1">1 day/frame</option>
         <option value="10" selected>10 days/frame</option>
@@ -38,7 +40,8 @@
       </select>
     </div>
     <div id="stats"></div>
-    <div id="hint">Click a tile to spawn a human. Shift-click spawns 10.</div>
+    <div id="inspector">No selection</div>
+    <div id="hint">Click: spawn · Shift-click: spawn 10 · Drag: pan · Wheel: zoom · Right-click / Alt-click / tap: inspect (repeat to cycle targets).</div>
   </section>
   <script type="module" src="./main.js"></script>
 </body>

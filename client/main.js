@@ -1,17 +1,22 @@
 import { applyCommand } from '../engine/core/commands.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
-import { createWorld, tickWorld } from '../engine/core/world.js';
+import { createWorld, tickWorld, tileAt } from '../engine/core/world.js';
+import { createCamera, panCamera, resetCamera, screenToTile, worldToScreen, zoomCameraAt } from './camera.js';
 
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
 const stats = document.querySelector('#stats');
+const inspector = document.querySelector('#inspector');
 const pauseButton = document.querySelector('#pause');
 const speedSelect = document.querySelector('#speed');
 const seedInput = document.querySelector('#seed');
 
 let world = makeWorld(seedInput.value);
+const camera = createCamera();
+let selection = null;
 let paused = false;
 let lastStatsFrame = 0;
+let pointerDrag = null;
 
 function makeWorld(seedToken) {
   const seed = /^[-+]?\d+$/.test(seedToken) ? Number(seedToken) : seedToken;
@@ -20,26 +25,109 @@ function makeWorld(seedToken) {
 
 function reset() {
   world = makeWorld(seedInput.value.trim() || '42');
+  selection = null;
+  resetCamera(camera);
   updateStats();
+  updateInspector();
 }
 
 document.querySelector('#reset').addEventListener('click', reset);
+document.querySelector('#reset-camera').addEventListener('click', () => resetCamera(camera));
 pauseButton.addEventListener('click', () => {
   paused = !paused;
   pauseButton.textContent = paused ? 'Play' : 'Pause';
 });
 
-canvas.addEventListener('click', (event) => {
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor(((event.clientX - rect.left) / rect.width) * world.width);
-  const y = Math.floor(((event.clientY - rect.top) / rect.height) * world.height);
+canvas.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return;
+  const point = canvasPoint(event);
+  pointerDrag = {
+    id: event.pointerId,
+    pointerType: event.pointerType,
+    startX: point.x,
+    startY: point.y,
+    lastX: point.x,
+    lastY: point.y,
+    moved: false,
+    altKey: event.altKey,
+    shiftKey: event.shiftKey
+  };
+  canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener('pointermove', (event) => {
+  if (!pointerDrag || pointerDrag.id !== event.pointerId) return;
+  const point = canvasPoint(event);
+  const dx = point.x - pointerDrag.lastX;
+  const dy = point.y - pointerDrag.lastY;
+  const total = Math.hypot(point.x - pointerDrag.startX, point.y - pointerDrag.startY);
+  if (total > 5 * deviceScale()) pointerDrag.moved = true;
+  if (pointerDrag.moved) panCamera(camera, dx, dy);
+  pointerDrag.lastX = point.x;
+  pointerDrag.lastY = point.y;
+});
+
+canvas.addEventListener('pointerup', (event) => {
+  if (!pointerDrag || pointerDrag.id !== event.pointerId) return;
+  const drag = pointerDrag;
+  pointerDrag = null;
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  if (drag.moved) return;
+
+  const tile = tileFromScreen(drag.lastX, drag.lastY);
+  if (!tile) return;
+  if (drag.pointerType === 'touch' || drag.altKey) {
+    cycleSelectionAt(tile.x, tile.y);
+    return;
+  }
+  spawnAt(tile.x, tile.y, drag.shiftKey ? 10 : 1);
+});
+
+canvas.addEventListener('pointercancel', () => { pointerDrag = null; });
+canvas.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+  const point = canvasPoint(event);
+  const tile = tileFromScreen(point.x, point.y);
+  if (tile) cycleSelectionAt(tile.x, tile.y);
+});
+
+canvas.addEventListener('wheel', (event) => {
+  event.preventDefault();
+  const point = canvasPoint(event);
+  const factor = Math.exp(-event.deltaY * 0.0015);
+  zoomCameraAt(camera, factor, point.x, point.y);
+}, { passive: false });
+
+function spawnAt(x, y, count) {
   try {
-    applyCommand(world, { type: 'spawn_human', x, y, count: event.shiftKey ? 10 : 1 });
+    applyCommand(world, { type: 'spawn_human', x, y, count });
     updateStats();
+    updateInspector();
   } catch (error) {
     if (!/impassable/.test(String(error?.message))) throw error;
   }
-});
+}
+
+function cycleSelectionAt(x, y) {
+  const candidates = world.entities
+    .filter((entity) => entity.kind === 'human' && entity.x === x && entity.y === y)
+    .sort((a, b) => a.id - b.id)
+    .map((human) => ({ kind: 'human', id: human.id }));
+  candidates.push(...world.settlements
+    .filter((settlement) => settlement.x === x && settlement.y === y)
+    .sort((a, b) => a.id - b.id)
+    .map((settlement) => ({ kind: 'settlement', id: settlement.id })));
+  candidates.push({ kind: 'tile', x, y });
+
+  const currentIndex = candidates.findIndex((candidate) => sameSelection(candidate, selection));
+  selection = candidates[(currentIndex + 1) % candidates.length];
+  updateInspector();
+}
+
+function sameSelection(a, b) {
+  if (!a || !b || a.kind !== b.kind) return false;
+  return a.kind === 'tile' ? a.x === b.x && a.y === b.y : a.id === b.id;
+}
 
 function frame(timestamp) {
   resize();
@@ -47,14 +135,15 @@ function frame(timestamp) {
   drawWorld();
   if (timestamp - lastStatsFrame > 150) {
     updateStats();
+    updateInspector();
     lastStatsFrame = timestamp;
   }
   requestAnimationFrame(frame);
 }
 
 function drawWorld() {
-  const cellW = canvas.width / world.width;
-  const cellH = canvas.height / world.height;
+  const { cellW, cellH } = viewMetrics();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (const tile of world.tiles) {
     if (tile.biome === 'ocean') {
@@ -66,34 +155,48 @@ function drawWorld() {
       const saturation = 32 + tile.fertility * 35;
       ctx.fillStyle = `hsl(112 ${saturation}% ${light}%)`;
     }
-    ctx.fillRect(tile.x * cellW, tile.y * cellH, Math.ceil(cellW), Math.ceil(cellH));
+    const p = worldToScreen(camera, tile.x, tile.y, viewport());
+    ctx.fillRect(p.x, p.y, Math.ceil(cellW), Math.ceil(cellH));
   }
 
   for (const settlement of world.settlements) {
-    const px = (settlement.x + 0.5) * cellW;
-    const py = (settlement.y + 0.5) * cellH;
+    const p = worldToScreen(camera, settlement.x + 0.5, settlement.y + 0.5, viewport());
     const size = Math.max(4, Math.min(cellW, cellH) * 0.8);
     ctx.strokeStyle = '#ffd66b';
     ctx.lineWidth = Math.max(1, Math.min(cellW, cellH) * 0.12);
-    ctx.strokeRect(px - size / 2, py - size / 2, size, size);
+    ctx.strokeRect(p.x - size / 2, p.y - size / 2, size, size);
     if (cellW >= 8 && cellH >= 8) {
       ctx.font = `${Math.max(9, Math.floor(Math.min(cellW, cellH) * 0.8))}px ui-monospace, monospace`;
       ctx.fillStyle = '#fff4c7';
-      ctx.fillText(settlement.name, px + size * 0.65, py - size * 0.65);
+      ctx.fillText(settlement.name, p.x + size * 0.65, p.y - size * 0.65);
     }
   }
 
   const radius = Math.max(1.5, Math.min(cellW, cellH) * 0.25);
   for (const human of world.entities) {
     if (human.kind !== 'human') continue;
+    const p = worldToScreen(camera, human.x + 0.5, human.y + 0.5, viewport());
     ctx.beginPath();
-    ctx.arc((human.x + 0.5) * cellW, (human.y + 0.5) * cellH, radius, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
     ctx.fillStyle = human.sex === 'F' ? '#ffd1dc' : '#d5e8ff';
     ctx.fill();
     ctx.strokeStyle = '#111a';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
+
+  drawSelection(cellW, cellH);
+}
+
+function drawSelection(cellW, cellH) {
+  const target = resolveSelection();
+  if (!target) return;
+  const x = target.x;
+  const y = target.y;
+  const p = worldToScreen(camera, x, y, viewport());
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(1.5, Math.min(cellW, cellH) * 0.12);
+  ctx.strokeRect(p.x + 1, p.y + 1, Math.max(0, cellW - 2), Math.max(0, cellH - 2));
 }
 
 function updateStats() {
@@ -105,8 +208,96 @@ function updateStats() {
     `settlements: <strong>${s.settlements}</strong> · settled: <strong>${s.settledPopulation}</strong>`,
     `avg age: <strong>${s.averageAgeYears.toFixed(1)}</strong>`,
     `food remaining: <strong>${(s.foodUtilization * 100).toFixed(1)}%</strong>`,
+    `zoom: <strong>${camera.zoom.toFixed(2)}×</strong>`,
     `normalized seed: <strong>${s.seed}</strong>`
   ].join('<br>');
+}
+
+function updateInspector() {
+  const target = resolveSelection();
+  if (!target) {
+    inspector.textContent = 'No selection';
+    return;
+  }
+
+  if (target.kind === 'human') {
+    const settlement = target.settlementId === null ? null : world.settlements.find((candidate) => candidate.id === target.settlementId);
+    inspector.textContent = [
+      `HUMAN #${target.id}`,
+      `sex ${target.sex} · age ${(target.ageDays / world.config.daysPerYear).toFixed(1)}y`,
+      `health ${(target.health * 100).toFixed(0)}% · hunger ${(target.hunger * 100).toFixed(0)}%`,
+      `position ${target.x},${target.y}`,
+      `settlement ${settlement ? `${settlement.name} (#${settlement.id})` : 'none'}`
+    ].join('\n');
+    return;
+  }
+
+  if (target.kind === 'settlement') {
+    inspector.textContent = [
+      `${target.name.toUpperCase()} · SETTLEMENT #${target.id}`,
+      `founded year ${(target.foundedDay / world.config.daysPerYear).toFixed(2)}`,
+      `center ${target.x},${target.y}`,
+      `population ${target.population}`,
+      `members ${target.memberIds.length ? target.memberIds.slice(0, 12).join(', ') + (target.memberIds.length > 12 ? '…' : '') : 'none'}`
+    ].join('\n');
+    return;
+  }
+
+  inspector.textContent = [
+    `TILE ${target.x},${target.y}`,
+    `biome ${target.biome} · ${target.passable ? 'passable' : 'impassable'}`,
+    `elevation ${target.elevation.toFixed(3)} · moisture ${target.moisture.toFixed(3)}`,
+    `fertility ${target.fertility.toFixed(3)}`,
+    `food ${target.food.toFixed(2)} / ${target.foodCapacity.toFixed(2)}`,
+    `settlement candidate ${(target.settlementCandidateDays / world.config.daysPerYear).toFixed(2)}y`
+  ].join('\n');
+}
+
+function resolveSelection() {
+  if (!selection) return null;
+  if (selection.kind === 'tile') return { kind: 'tile', ...tileAt(world, selection.x, selection.y) };
+  if (selection.kind === 'human') {
+    const human = world.entities.find((entity) => entity.kind === 'human' && entity.id === selection.id);
+    return human ? { ...human, kind: 'human' } : null;
+  }
+  if (selection.kind === 'settlement') {
+    const settlement = world.settlements.find((candidate) => candidate.id === selection.id);
+    return settlement ? { ...settlement, kind: 'settlement' } : null;
+  }
+  return null;
+}
+
+function tileFromScreen(x, y) {
+  return screenToTile(camera, x, y, viewport());
+}
+
+function viewport() {
+  return {
+    canvasWidth: canvas.width,
+    canvasHeight: canvas.height,
+    worldWidth: world.width,
+    worldHeight: world.height
+  };
+}
+
+function viewMetrics() {
+  return {
+    cellW: (canvas.width / world.width) * camera.zoom,
+    cellH: (canvas.height / world.height) * camera.zoom
+  };
+}
+
+function canvasPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left) * (canvas.width / rect.width),
+    y: (event.clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
+function deviceScale() {
+  const rect = canvas.getBoundingClientRect();
+  return canvas.width / Math.max(1, rect.width);
 }
 
 function resize() {
@@ -120,4 +311,5 @@ function resize() {
 }
 
 updateStats();
+updateInspector();
 requestAnimationFrame(frame);
