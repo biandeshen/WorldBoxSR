@@ -4,15 +4,10 @@ import { summarizeWorld } from '../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../engine/core/world.js';
 
 const seeds = [1,2,3,4,5,6,7,8,9,10,45,98];
-const cases = [
-  { label: 'baseline', supplementalReproductionRadius: 1 },
-  { label: 'r3-m0.01', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.01 },
-  { label: 'r3-m0.03', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.03 },
-  { label: 'r3-m0.10', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.10 }
-];
+const multipliers = [0.015, 0.020, 0.025];
 
-test('temporary low-rate supplemental reproduction 100-year distribution scan', () => {
-  for (const candidate of cases) {
+test('temporary narrow supplemental reproduction multiplier scan', () => {
+  for (const multiplier of multipliers) {
     const rows = [];
     for (const seed of seeds) {
       const world = createWorld({
@@ -21,10 +16,8 @@ test('temporary low-rate supplemental reproduction 100-year distribution scan', 
         height: 24,
         population: 30,
         config: {
-          supplementalReproductionRadius: candidate.supplementalReproductionRadius,
-          ...(candidate.supplementalReproductionChanceMultiplier === undefined
-            ? {}
-            : { supplementalReproductionChanceMultiplier: candidate.supplementalReproductionChanceMultiplier })
+          supplementalReproductionRadius: 3,
+          supplementalReproductionChanceMultiplier: multiplier
         }
       });
       tickWorld(world, 100 * world.config.daysPerYear);
@@ -39,15 +32,12 @@ test('temporary low-rate supplemental reproduction 100-year distribution scan', 
       });
     }
 
-    console.log(`SUPPLEMENTAL_REPRO_LOW_RATE ${JSON.stringify({
-      label: candidate.label,
-      radius: candidate.supplementalReproductionRadius,
-      multiplier: candidate.supplementalReproductionChanceMultiplier ?? 0,
+    console.log(`SUPPLEMENTAL_REPRO_NARROW ${JSON.stringify({
+      multiplier,
       population: stat(rows.map((row) => row.population)),
       births: stat(rows.map((row) => row.births)),
       deaths: stat(rows.map((row) => row.deaths)),
       foodRemaining: stat(rows.map((row) => row.foodRemaining)),
-      activeSettlements: stat(rows.map((row) => row.activeSettlements)),
       seed45: rows.find((row) => row.seed === 45),
       seed98: rows.find((row) => row.seed === 98),
       rows
