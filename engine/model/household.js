@@ -1,25 +1,23 @@
-export function createHousehold(world, { settlementId = null } = {}) {
+export function createHousehold(world, { settlementId = null, founderIds = [] } = {}) {
   const household = {
     id: world.nextHouseholdId++,
     kind: 'household',
     settlementId,
     memberIds: [],
-    founderIds: [],
+    founderIds: [...founderIds],
     foundedDay: world.day,
-    emptyDay: null
+    maxGeneration: 0
   };
 
   world.households.push(household);
   return household;
 }
 
-export function addHouseholdMember(household, humanId) {
+export function addHouseholdMember(household, humanId, generation = 0) {
   if (!household.memberIds.includes(humanId)) household.memberIds.push(humanId);
+  household.maxGeneration = Math.max(household.maxGeneration, generation);
 }
 
-export function removeHouseholdMember(household, humanId) {
-  household.memberIds = household.memberIds.filter((id) => id !== humanId);
-  if (household.memberIds.length === 0 && household.emptyDay === null) {
-    household.emptyDay = true;
-  }
+export function householdById(world, householdId) {
+  return world.households.find((household) => household.id === householdId) ?? null;
 }
