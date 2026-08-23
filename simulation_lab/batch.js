@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { createWorld, tickWorld } from '../engine/core/world.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
+import { aggregateRuns } from './aggregate.js';
+import { runBatchIsolated } from './isolated.js';
 
 export function runBatch({
   startSeed = 1,
@@ -21,35 +23,8 @@ export function runBatch({
   return { parameters: { startSeed, seeds, years, width, height, population }, aggregate: aggregateRuns(runs), runs };
 }
 
-export function aggregateRuns(runs) {
-  if (runs.length === 0) {
-    return { runCount: 0, extinctionRate: 0, population: stats([]), births: stats([]), deaths: stats([]), foodUtilization: stats([]) };
-  }
-  return {
-    runCount: runs.length,
-    extinctionRate: runs.filter((run) => run.population === 0).length / runs.length,
-    population: stats(runs.map((run) => run.population)),
-    births: stats(runs.map((run) => run.births)),
-    deaths: stats(runs.map((run) => run.deaths)),
-    foodUtilization: stats(runs.map((run) => run.foodUtilization))
-  };
-}
-
-function stats(values) {
-  if (values.length === 0) return { min: 0, max: 0, mean: 0, median: 0 };
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  return {
-    min: sorted[0],
-    max: sorted[sorted.length - 1],
-    mean: values.reduce((sum, value) => sum + value, 0) / values.length,
-    median
-  };
-}
-
 function parseCli(argv) {
-  const out = { startSeed: 1, seeds: 20, years: 100, width: 24, height: 24, population: 30, json: false };
+  const out = { startSeed: 1, seeds: 20, years: 100, width: 24, height: 24, population: 30, json: false, workers: null, timeoutMs: 30000 };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--json') out.json = true;
@@ -59,6 +34,8 @@ function parseCli(argv) {
     else if (arg === '--population') out.population = int(argv[++i], 'population');
     else if (arg === '--width') out.width = int(argv[++i], 'width');
     else if (arg === '--height') out.height = int(argv[++i], 'height');
+    else if (arg === '--workers') out.workers = int(argv[++i], 'workers');
+    else if (arg === '--timeout-ms') out.timeoutMs = int(argv[++i], 'timeout-ms');
     else throw new Error(`Unknown argument: ${arg}`);
   }
   return out;
@@ -82,7 +59,15 @@ function printHuman(result) {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const cli = parseCli(process.argv.slice(2));
-  const result = runBatch(cli);
+  const result = cli.workers === null
+    ? runBatch(cli)
+    : await runBatchIsolated({ ...cli, workers: cli.workers, timeoutMs: cli.timeoutMs });
   if (cli.json) console.log(JSON.stringify(result, null, 2));
-  else printHuman(result);
+  else {
+    printHuman(result);
+    if (result.failures?.length) {
+      console.log(`failures:   ${result.failures.length}`);
+      for (const failure of result.failures) console.log(`  seed ${failure.seed}: ${failure.error.code} ${failure.error.message}`);
+    }
+  }
 }
