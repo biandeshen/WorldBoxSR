@@ -5,9 +5,9 @@ import { summarizeWorld } from '../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../engine/core/world.js';
 
 const seeds = [1,2,3,4,5,6,7,8,9,10,45,98];
-const chances = [0, 0.4, 0.8];
+const chances = [0, 0.4];
 
-test('temporary dependent-kin distribution scan', () => {
+test('temporary dependent-kin 200-year A/B', () => {
   for (const dependentKinBiasChance of chances) {
     const rows = [];
     for (const seed of seeds) {
@@ -18,7 +18,7 @@ test('temporary dependent-kin distribution scan', () => {
         population: 30,
         config: { dependentKinBiasChance }
       });
-      tickWorld(world, 100 * world.config.daysPerYear);
+      tickWorld(world, 200 * world.config.daysPerYear);
       const s = summarizeWorld(world);
       const k = summarizeSpatialKin(world);
       rows.push({
@@ -26,6 +26,8 @@ test('temporary dependent-kin distribution scan', () => {
         population: s.population,
         births: s.births,
         deaths: s.deaths,
+        foodRemaining: s.foodUtilization,
+        activeSettlements: s.activeSettlements,
         parentWithin3: k.parentChildWithin3Share,
         minorWithin1: k.minorsParentWithin1Share,
         minorWithin3: k.minorsParentWithin3Share,
@@ -38,14 +40,17 @@ test('temporary dependent-kin distribution scan', () => {
       population: stat(rows.map((row) => row.population)),
       births: stat(rows.map((row) => row.births)),
       deaths: stat(rows.map((row) => row.deaths)),
+      foodRemaining: stat(rows.map((row) => row.foodRemaining)),
+      activeSettlements: stat(rows.map((row) => row.activeSettlements)),
       parentWithin3: stat(rows.map((row) => row.parentWithin3)),
       minorWithin1: stat(rows.map((row) => row.minorWithin1)),
       minorWithin3: stat(rows.map((row) => row.minorWithin3)),
       parentDistance: stat(rows.map((row) => row.parentDistance)),
       seed45: rows.find((row) => row.seed === 45),
-      seed98: rows.find((row) => row.seed === 98)
+      seed98: rows.find((row) => row.seed === 98),
+      rows
     };
-    console.log(`KIN_DISTRIBUTION ${JSON.stringify(result)}`);
+    console.log(`KIN_200Y_AB ${JSON.stringify(result)}`);
     assert.equal(rows.length, seeds.length);
   }
 });
