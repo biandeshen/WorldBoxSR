@@ -9,6 +9,7 @@
     "sim": "node tools/simulate.js",
     "smoke": "node tools/simulate.js --seed 42 --years 20 --population 20 --quiet",
     "lab": "node simulation_lab/batch.js",
+    "lab:parallel": "node simulation_lab/batch.js --workers 4",
     "dev": "node tools/serve.js"
   },
   "engines": {
