@@ -5,7 +5,9 @@ import { keyedChance, keyedIndex } from '../core/keyed_random.js';
 
 export function updateHumans(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
-  const livingById = new Map(humans.map((human) => [human.id, human]));
+  const livingById = world.config.dependentKinBiasChance > 0
+    ? new Map(humans.map((human) => [human.id, human]))
+    : null;
 
   for (const human of humans) {
     updateNeeds(world, human);
@@ -78,7 +80,7 @@ function randomMove(world, human, livingById) {
   const baseline = candidates[world.rng.int(candidates.length)];
 
   const ageYears = human.ageDays / world.config.daysPerYear;
-  if (ageYears < world.config.dependentKinCohesionEndYears) {
+  if (livingById && ageYears < world.config.dependentKinCohesionEndYears) {
     const parent = nearestLivingParent(human, livingById);
     if (parent) {
       const currentDistance = chebyshevDistance(human.x, human.y, parent.x, parent.y);
