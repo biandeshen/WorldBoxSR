@@ -68,6 +68,33 @@ test('settled drought distinguishes intra-settlement spatial dispersion from zer
   assert.equal(summary.nearestEligibleMaleRelation.sameSettlement.share, 1);
 });
 
+test('post-settlement participation rates exclude pre-settlement drought days', () => {
+  const world = makeWorld();
+  const female = createHuman(world, {
+    x: 1, y: 1, sex: 'F', ageYears: 24, hunger: 0.1, birthCooldownDays: 0
+  });
+  const male = createHuman(world, {
+    x: 5, y: 1, sex: 'M', ageYears: 25, hunger: 0.1, birthCooldownDays: 0
+  });
+  const tracker = createReproductionSpatialIsolationTracker();
+
+  tracker.observe(world); // drought before any active settlement exists
+
+  addSettlement(world, 1, 2, 2);
+  female.settlementId = 1;
+  male.settlementId = 1;
+  tracker.observe(world); // drought after settlement exists, both are socially settled
+
+  const summary = tracker.summarize();
+  assert.equal(summary.droughtFemaleDays, 2);
+  assert.equal(summary.preSettlementShareOfDroughtDays, 0.5);
+  assert.equal(summary.settledEligibleFemaleShare, 0.5);
+  assert.equal(summary.settledEligibleFemaleShareWhenSettlementsExist, 1);
+  assert.equal(summary.unsettledEligibleFemaleShareWhenSettlementsExist, 0);
+  assert.equal(summary.settledShareOfDroughtDaysWhenSettlementsExist, 1);
+  assert.equal(summary.unsettledShareOfDroughtDaysWhenSettlementsExist, 0);
+});
+
 test('full impassable barrier identifies true cross-component-only drought', () => {
   const world = makeWorld();
   createHuman(world, { x: 1, y: 3, sex: 'F', ageYears: 24, hunger: 0.1, birthCooldownDays: 0 });
