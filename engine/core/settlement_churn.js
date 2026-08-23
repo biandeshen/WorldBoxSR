@@ -1,4 +1,5 @@
 const EPISODE_THRESHOLDS = Object.freeze([30, 90, 180, 360, 720]);
+const RETENTION_RADII = Object.freeze([4, 5, 6]);
 
 /**
  * Derived-only observer for settlement membership churn and home-distance
@@ -136,21 +137,13 @@ export function createSettlementChurnTracker() {
     }
 
     if (previousSettlementId !== null && currentSettlementId !== null) {
-      const oldDistance = previousSettlement ? distanceToSettlement(human, previousSettlement) : null;
       const newDistance = currentSettlement ? distanceToSettlement(human, currentSettlement) : null;
       const settledDuration = state.settledEpisodeStartDay === null
         ? null
         : world.day - state.settledEpisodeStartDay;
 
-      recordSwitchAggregate(adults, state.lastHomeDistance ?? oldDistance, oldDistance, settledDuration);
-      if (femaleTransition) {
-        recordSwitchAggregate(
-          reproductiveFemales,
-          state.lastHomeDistance ?? oldDistance,
-          oldDistance,
-          settledDuration
-        );
-      }
+      recordSwitchAggregate(adults, settledDuration);
+      if (femaleTransition) recordSwitchAggregate(reproductiveFemales, settledDuration);
 
       state.adultLastNonNullSettlementId = currentSettlementId;
       state.settledEpisodeStartDay = world.day;
@@ -299,10 +292,8 @@ function recordLeaveAggregate(aggregate, cause, preLossDistance, currentDistance
   if (settledDuration !== null) addEpisode(aggregate.settledEpisodes, settledDuration);
 }
 
-function recordSwitchAggregate(aggregate, preSwitchDistance, oldDistance, settledDuration) {
+function recordSwitchAggregate(aggregate, settledDuration) {
   aggregate.switchEvents += 1;
-  recordDistance(aggregate.preLossDistanceHistogram, preSwitchDistance);
-  recordDistance(aggregate.lossDistanceHistogram, oldDistance);
   if (settledDuration !== null) addEpisode(aggregate.settledEpisodes, settledDuration);
 }
 
@@ -398,6 +389,9 @@ function summarizeAggregate(aggregate, daysPerYear) {
     ),
     preLossDistance: summarizeHistogramFromCounts(aggregate.preLossDistanceHistogram),
     lossDistance: summarizeHistogramFromCounts(aggregate.lossDistanceHistogram),
+    leaveRetentionCounterfactual: Object.fromEntries(
+      RETENTION_RADII.map((radius) => [radius, histogramShareAtOrBelow(aggregate.lossDistanceHistogram, radius)])
+    ),
     settledEpisodes: summarizeEpisodes(aggregate.settledEpisodes),
     unsettledEpisodesAfterJoin: summarizeEpisodes(aggregate.unsettledEpisodesAfterJoin)
   };
@@ -438,6 +432,18 @@ function summarizeHistogramFromCounts(histogram) {
     max = distance;
   }
   return summarizeHistogram(histogram, count, sum, max);
+}
+
+function histogramShareAtOrBelow(histogram, radius) {
+  if (!histogram) return 0;
+  let total = 0;
+  let retained = 0;
+  for (let distance = 0; distance < histogram.length; distance += 1) {
+    const frequency = histogram[distance];
+    total += frequency;
+    if (distance <= radius) retained += frequency;
+  }
+  return ratio(retained, total);
 }
 
 function histogramPercentile(histogram, count, fraction) {
