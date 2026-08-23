@@ -1,0 +1,19 @@
+name: Feature slice
+description: A scoped implementation task
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / outcome
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Determinism / invariants to protect

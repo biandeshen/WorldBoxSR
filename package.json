@@ -1,0 +1,15 @@
+{
+  "name": "worldboxsr",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "A deterministic, headless-first emergent world simulation sandbox.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "sim": "node tools/simulate.js",
+    "smoke": "node tools/simulate.js --seed 42 --years 20 --population 20 --quiet"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
