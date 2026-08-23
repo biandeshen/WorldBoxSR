@@ -22,7 +22,8 @@ export const DEFAULT_CONFIG = Object.freeze({
   settlementFormationDays: 90,
   settlementMinSpacing: 6,
   settlementMembershipRadius: 3,
-  settlementHomeBiasChance: 0.05
+  settlementHomeBiasChance: 0.05,
+  settlementAbandonmentDays: 360
 });
 
 export function mergeConfig(overrides = {}) {
