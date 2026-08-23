@@ -1,5 +1,5 @@
 import { isTilePassable } from '../world/biomes.js';
-import { addHouseholdMember, createHousehold, householdById } from './household.js';
+import { addLineageMember, createLineage, lineageById } from './lineage.js';
 
 export function createHuman(world, overrides = {}, { passableTiles = null } = {}) {
   const { x, y } = resolveSpawnPosition(world, overrides, passableTiles);
@@ -19,32 +19,32 @@ export function createHuman(world, overrides = {}, { passableTiles = null } = {}
     bornDay: overrides.bornDay ?? world.day,
     causeOfDeath: null,
     settlementId: overrides.settlementId ?? null,
-    householdId: null,
+    lineageId: null,
     parentIds: [...(overrides.parentIds ?? [])],
     childIds: [...(overrides.childIds ?? [])],
     generation: overrides.generation ?? 0
   };
   world.entities.push(human);
 
-  if (overrides.householdId === null) return human;
+  if (overrides.lineageId === null) return human;
 
-  let household = overrides.householdId === undefined
+  let lineage = overrides.lineageId === undefined
     ? null
-    : householdById(world, overrides.householdId);
+    : lineageById(world, overrides.lineageId);
 
-  if (overrides.householdId !== undefined && !household) {
-    throw new Error(`unknown household: ${overrides.householdId}`);
+  if (overrides.lineageId !== undefined && !lineage) {
+    throw new Error(`unknown lineage: ${overrides.lineageId}`);
   }
 
-  if (!household) {
-    household = createHousehold(world, {
+  if (!lineage) {
+    lineage = createLineage(world, {
       settlementId: human.settlementId,
       founderIds: [human.id]
     });
   }
 
-  human.householdId = household.id;
-  addHouseholdMember(household, human.id, human.generation);
+  human.lineageId = lineage.id;
+  addLineageMember(lineage, human.id, human.generation);
   return human;
 }
 

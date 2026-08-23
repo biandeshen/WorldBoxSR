@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, runScenario } from '../simulation_lab/scenarios.js';
 
-test('household history layer preserves the post-cohesion seed 45 demographic sentinel', () => {
+test('lineage history layer preserves the post-cohesion seed 45 demographic sentinel', () => {
   const result = runScenario(SCENARIOS.seed45DemographicCollapse);
   const final = result.checkpoints.at(-1);
 
