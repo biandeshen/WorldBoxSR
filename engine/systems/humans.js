@@ -71,9 +71,6 @@ function randomMove(world, human) {
   const candidates = passableNeighbors8(world, human.x, human.y);
   if (candidates.length === 0) return;
 
-  // Preserve the baseline sequential RNG draw even when an optional social
-  // mechanic overrides the destination. This keeps the mechanic from shifting
-  // unrelated future birth/death random sequences merely by being enabled.
   const baseline = candidates[world.rng.int(candidates.length)];
   const home = human.settlementId === null
     ? null
@@ -162,6 +159,7 @@ function reproduce(world) {
   }
 
   for (const { mother, father } of births) {
+    const generation = Math.max(mother.generation ?? 0, father.generation ?? 0) + 1;
     const child = createHuman(world, {
       x: mother.x,
       y: mother.y,
@@ -169,8 +167,13 @@ function reproduce(world) {
       hunger: 0.1,
       health: 1,
       birthCooldownDays: world.config.birthCooldownDays,
-      bornDay: world.day
+      bornDay: world.day,
+      householdId: mother.householdId,
+      parentIds: [mother.id, father.id],
+      generation
     });
+    mother.childIds.push(child.id);
+    father.childIds.push(child.id);
     world.counters.births += 1;
     pushEvent(world, {
       type: 'human.born',
@@ -178,7 +181,9 @@ function reproduce(world) {
       causes: [entityRef('human', mother.id), entityRef('human', father.id)],
       entityId: child.id,
       motherId: mother.id,
-      fatherId: father.id
+      fatherId: father.id,
+      householdId: child.householdId,
+      generation: child.generation
     });
   }
 }
