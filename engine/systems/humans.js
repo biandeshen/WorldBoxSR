@@ -3,10 +3,6 @@ import { entityRef, pushEvent } from '../model/events.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 import { keyedChance, keyedIndex } from '../core/keyed_random.js';
 
-const SUPPLEMENTAL_BIRTH_ATTEMPT_SALT = 0x510e527f;
-const SUPPLEMENTAL_FATHER_SALT = 0x9b05688c;
-const SUPPLEMENTAL_CHILD_SEX_SALT = 0x1f83d9ab;
-
 export function updateHumans(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
 
@@ -143,56 +139,28 @@ function reproduce(world) {
   }
 
   const births = [];
-  const supplementalRadius = Math.max(1, Math.floor(world.config.supplementalReproductionRadius ?? 1));
-  const supplementalChanceMultiplier = clamp01(world.config.supplementalReproductionChanceMultiplier ?? 1);
-
   for (const mother of eligibleFemales) {
-    const nearbyMales = collectNearbyMales(world, adultsByCell, mother.x, mother.y, 1);
-
-    if (nearbyMales.length > 0) {
-      if (!world.rng.chance(world.config.birthChancePerEligiblePairPerDay)) continue;
-      const father = nearbyMales[world.rng.int(nearbyMales.length)];
-      births.push({ mother, father, supplementalRadius: null, childSex: null });
-      applyParentCooldowns(world, mother, father);
-      continue;
+    const nearbyMales = [];
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const x = mother.x + dx;
+        const y = mother.y + dy;
+        if (x < 0 || y < 0 || x >= world.width || y >= world.height) continue;
+        const group = adultsByCell.get(`${x},${y}`);
+        if (group) nearbyMales.push(...group.males);
+      }
     }
-
-    if (supplementalRadius <= 1 || supplementalChanceMultiplier <= 0) continue;
-    const supplementalMales = collectNearbyMales(world, adultsByCell, mother.x, mother.y, supplementalRadius);
-    if (supplementalMales.length === 0) continue;
-
-    const supplementalChance = world.config.birthChancePerEligiblePairPerDay * supplementalChanceMultiplier;
-    if (!keyedChance(
-      world.seed,
-      mother.id,
-      world.day,
-      SUPPLEMENTAL_BIRTH_ATTEMPT_SALT,
-      supplementalChance
-    )) continue;
-
-    const fatherIndex = keyedIndex(
-      world.seed,
-      mother.id,
-      world.day,
-      SUPPLEMENTAL_FATHER_SALT,
-      supplementalMales.length
-    );
-    const father = supplementalMales[fatherIndex];
-    const childSex = keyedChance(
-      world.seed,
-      mother.id,
-      world.day,
-      SUPPLEMENTAL_CHILD_SEX_SALT,
-      0.5
-    ) ? 'F' : 'M';
-
-    births.push({ mother, father, supplementalRadius, childSex });
-    applyParentCooldowns(world, mother, father);
+    if (nearbyMales.length === 0) continue;
+    if (!world.rng.chance(world.config.birthChancePerEligiblePairPerDay)) continue;
+    const father = nearbyMales[world.rng.int(nearbyMales.length)];
+    births.push({ mother, father });
+    mother.birthCooldownDays = world.config.birthCooldownDays;
+    father.birthCooldownDays = Math.max(father.birthCooldownDays, 30);
   }
 
-  for (const { mother, father, supplementalRadius: birthRadius, childSex } of births) {
+  for (const { mother, father } of births) {
     const generation = Math.max(mother.generation ?? 0, father.generation ?? 0) + 1;
-    const childOverrides = {
+    const child = createHuman(world, {
       x: mother.x,
       y: mother.y,
       ageYears: 0,
@@ -203,15 +171,11 @@ function reproduce(world) {
       lineageId: mother.lineageId,
       parentIds: [mother.id, father.id],
       generation
-    };
-    if (childSex !== null) childOverrides.sex = childSex;
-
-    const child = createHuman(world, childOverrides);
+    });
     mother.childIds.push(child.id);
     father.childIds.push(child.id);
     world.counters.births += 1;
-
-    const event = {
+    pushEvent(world, {
       type: 'human.born',
       subject: entityRef('human', child.id),
       causes: [entityRef('human', mother.id), entityRef('human', father.id)],
@@ -220,29 +184,8 @@ function reproduce(world) {
       fatherId: father.id,
       lineageId: child.lineageId,
       generation: child.generation
-    };
-    if (birthRadius !== null) event.supplementalReproductionRadius = birthRadius;
-    pushEvent(world, event);
+    });
   }
-}
-
-function collectNearbyMales(world, adultsByCell, x, y, radius) {
-  const males = [];
-  for (let dy = -radius; dy <= radius; dy += 1) {
-    for (let dx = -radius; dx <= radius; dx += 1) {
-      const nx = x + dx;
-      const ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= world.width || ny >= world.height) continue;
-      const group = adultsByCell.get(`${nx},${ny}`);
-      if (group) males.push(...group.males);
-    }
-  }
-  return males;
-}
-
-function applyParentCooldowns(world, mother, father) {
-  mother.birthCooldownDays = world.config.birthCooldownDays;
-  father.birthCooldownDays = Math.max(father.birthCooldownDays, 30);
 }
 
 function kill(world, human, cause) {
