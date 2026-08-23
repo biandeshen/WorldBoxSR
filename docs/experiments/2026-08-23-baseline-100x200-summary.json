@@ -1,0 +1,12 @@
+{
+  "parameters": {"startSeed": 1, "seeds": 100, "years": 200, "width": 24, "height": 24, "population": 30, "waterLevel": 0.28},
+  "extinctionRate": 0,
+  "population": {"min": 8, "p25": 376, "median": 483, "mean": 495.7, "p75": 608, "max": 856},
+  "births": {"min": 41, "p25": 2553, "median": 2968, "mean": 2877.12, "p75": 3229, "max": 3899},
+  "deaths": {"min": 63, "p25": 2137, "median": 2488.5, "mean": 2411.42, "p75": 2701, "max": 3187},
+  "foodRemainingFraction": {"min": 0.013870884219105283, "p25": 0.016445253312375188, "median": 0.019645164085741997, "mean": 0.04638981561205499, "p75": 0.04364114829022604, "max": 0.9986282616018498},
+  "landFraction": {"min": 0.203125, "p25": 0.3524305555555556, "median": 0.42708333333333337, "mean": 0.44274305555555565, "p75": 0.5225694444444444, "max": 0.7621527777777778},
+  "runtimeSecondsParallelMeasurement": {"min": 1.764372022, "p25": 9.051961763000001, "median": 12.112306997000001, "mean": 12.073431480310001, "p75": 14.959546086, "max": 20.363716071},
+  "correlations": {"landFractionVsPopulation": 0.8720998867679214, "landFractionVsRuntime": 0.23583003019676985},
+  "regressionSeeds": {"demographicCollapse": 45, "largestPopulation": 80, "slowestParallelMeasurement": 5}
+}
