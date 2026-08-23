@@ -8,7 +8,7 @@ import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 3;
+export const SNAPSHOT_VERSION = 4;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -55,7 +55,8 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
         fertility,
         foodCapacity: capacity,
         food: capacity * initialFoodRatio,
-        settlementCandidateDays: 0
+        settlementCandidateDays: 0,
+        ownerSettlementId: null
       });
     }
   }

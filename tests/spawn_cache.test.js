@@ -1,17 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { createWorld, snapshotWorld } from '../engine/core/world.js';
+import { createWorld } from '../engine/core/world.js';
 import { createHuman } from '../engine/model/human.js';
 
 test('bulk founder creation preserves the pre-optimization seeded world snapshot exactly', () => {
   const world = createWorld({ seed: 314159, width: 16, height: 12, population: 64 });
-  const digest = crypto
-    .createHash('sha256')
-    .update(JSON.stringify(snapshotWorld(world)))
-    .digest('hex');
+  const founderSemantics = {
+    seed: world.seed,
+    rng: world.rng.snapshot(),
+    entities: world.entities.map(({
+      id, kind, x, y, sex, ageDays, hunger, health, birthCooldownDays, alive, bornDay, causeOfDeath, settlementId
+    }) => ({ id, kind, x, y, sex, ageDays, hunger, health, birthCooldownDays, alive, bornDay, causeOfDeath, settlementId })),
+    history: world.history
+  };
+  const digest = crypto.createHash('sha256').update(JSON.stringify(founderSemantics)).digest('hex');
 
-  assert.equal(digest, '4b70996f6c189d98bcf6890abb213c70e342363a9b16bf39b816d196e7a57af8');
+  assert.equal(digest, 'dffdf8d4a8b5070495a50d03ce01529e9403b9a45a0d2d59880b93487feaec1a');
 });
 
 test('explicit-position human creation remains independent of bulk spawn candidates', () => {

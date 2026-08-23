@@ -53,6 +53,7 @@ export function updateSettlements(world) {
 
   updateSettlementMembership(world);
   updateSettlementLifecycle(world, interval);
+  updateSettlementTerritory(world);
 }
 
 export function updateSettlementMembership(world) {
@@ -94,6 +95,41 @@ export function updateSettlementLifecycle(world, interval = world.config.settlem
       name: settlement.name,
       emptyDays: settlement.emptyDays
     });
+  }
+}
+
+export function updateSettlementTerritory(world) {
+  const radius = world.config.settlementTerritoryRadius;
+  if (!Number.isInteger(radius) || radius < 0) {
+    throw new RangeError('settlementTerritoryRadius must be a non-negative integer');
+  }
+
+  for (const tile of world.tiles) tile.ownerSettlementId = null;
+  const bestDistance = new Int16Array(world.tiles.length);
+  bestDistance.fill(0x7fff);
+  const active = world.settlements.filter((settlement) => settlement.active).sort((a, b) => a.id - b.id);
+
+  for (const settlement of active) {
+    const minX = Math.max(0, settlement.x - radius);
+    const maxX = Math.min(world.width - 1, settlement.x + radius);
+    const minY = Math.max(0, settlement.y - radius);
+    const maxY = Math.min(world.height - 1, settlement.y + radius);
+
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
+        const distance = Math.max(Math.abs(x - settlement.x), Math.abs(y - settlement.y));
+        if (distance > radius) continue;
+        const index = y * world.width + x;
+        const tile = world.tiles[index];
+        if (!tile.passable) continue;
+        const currentDistance = bestDistance[index];
+        if (distance < currentDistance ||
+          (distance === currentDistance && (tile.ownerSettlementId === null || settlement.id < tile.ownerSettlementId))) {
+          bestDistance[index] = distance;
+          tile.ownerSettlementId = settlement.id;
+        }
+      }
+    }
   }
 }
 
