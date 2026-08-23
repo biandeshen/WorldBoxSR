@@ -5,14 +5,11 @@ import { keyedChance, keyedIndex } from '../core/keyed_random.js';
 
 export function updateHumans(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
-  const livingById = world.config.dependentKinBiasChance > 0
-    ? new Map(humans.map((human) => [human.id, human]))
-    : null;
 
   for (const human of humans) {
     updateNeeds(world, human);
     if (!human.alive) continue;
-    chooseAndPerformAction(world, human, livingById);
+    chooseAndPerformAction(world, human);
     updateAgeAndHealth(world, human);
   }
 
@@ -26,7 +23,7 @@ function updateNeeds(world, human) {
   human.birthCooldownDays = Math.max(0, human.birthCooldownDays - 1);
 }
 
-function chooseAndPerformAction(world, human, livingById) {
+function chooseAndPerformAction(world, human) {
   const current = tileAt(world, human.x, human.y);
 
   if (human.hunger >= world.config.hungryThreshold && current.food >= 0.2) {
@@ -41,7 +38,7 @@ function chooseAndPerformAction(world, human, livingById) {
     return;
   }
 
-  if (world.rng.chance(world.config.passiveMoveChance)) randomMove(world, human, livingById);
+  if (world.rng.chance(world.config.passiveMoveChance)) randomMove(world, human);
 }
 
 function eat(world, human, tile) {
@@ -70,34 +67,11 @@ function moveTowardFood(world, human) {
   human.y = chosen.y;
 }
 
-function randomMove(world, human, livingById) {
+function randomMove(world, human) {
   const candidates = passableNeighbors8(world, human.x, human.y);
   if (candidates.length === 0) return;
 
-  // Always consume the original sequential destination draw. Optional social
-  // overrides use keyed randomness so merely enabling them cannot shift the
-  // authoritative RNG stream by adding extra draws.
   const baseline = candidates[world.rng.int(candidates.length)];
-
-  const ageYears = human.ageDays / world.config.daysPerYear;
-  if (livingById && ageYears < world.config.dependentKinCohesionEndYears) {
-    const parent = nearestLivingParent(human, livingById);
-    if (parent) {
-      const currentDistance = chebyshevDistance(human.x, human.y, parent.x, parent.y);
-      if (currentDistance > world.config.dependentKinCohesionRadius &&
-          keyedChance(world.seed, human.id, world.day, 0x9c6ef372, world.config.dependentKinBiasChance)) {
-        const closer = candidates.filter((cell) => chebyshevDistance(cell.x, cell.y, parent.x, parent.y) < currentDistance);
-        if (closer.length > 0) {
-          const index = keyedIndex(world.seed, human.id, world.day, 0xbb67ae85, closer.length);
-          const chosen = closer[index];
-          human.x = chosen.x;
-          human.y = chosen.y;
-        }
-        return;
-      }
-    }
-  }
-
   const home = human.settlementId === null
     ? null
     : world.settlements.find((settlement) => settlement.id === human.settlementId && settlement.active);
@@ -116,21 +90,6 @@ function randomMove(world, human, livingById) {
 
   human.x = baseline.x;
   human.y = baseline.y;
-}
-
-function nearestLivingParent(human, livingById) {
-  let best = null;
-  let bestDistance = Infinity;
-  for (const parentId of human.parentIds) {
-    const parent = livingById.get(parentId);
-    if (!parent?.alive) continue;
-    const distance = chebyshevDistance(human.x, human.y, parent.x, parent.y);
-    if (distance < bestDistance || (distance === bestDistance && parent.id < best.id)) {
-      best = parent;
-      bestDistance = distance;
-    }
-  }
-  return best;
 }
 
 function chebyshevDistance(ax, ay, bx, by) {
