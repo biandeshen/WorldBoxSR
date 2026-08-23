@@ -29,19 +29,20 @@ export function createDyadicEncounterTracker({
   function observe(world) {
     observations += 1;
     const adultMalesByCell = new Map();
-    const livingFemaleIds = new Set();
     const focalFemales = [];
+    const focalFemaleIds = new Set();
 
     for (const human of world.entities) {
       if (human.kind !== 'human' || !human.alive) continue;
-      if (human.sex === 'F') livingFemaleIds.add(human.id);
       if (isAdultMale(world, human)) addMaleToCell(world, adultMalesByCell, human);
-      if (isFocalFemale(world, human)) focalFemales.push(human);
+      if (isFocalFemale(world, human)) {
+        focalFemales.push(human);
+        focalFemaleIds.add(human.id);
+      }
     }
 
     for (const [femaleId, state] of femaleStates) {
-      const human = world.entities.find((entity) => entity.kind === 'human' && entity.alive && entity.id === femaleId);
-      if (human && isFocalFemale(world, human)) continue;
+      if (focalFemaleIds.has(femaleId)) continue;
       finalizeFemaleState(completed, state);
       femaleStates.delete(femaleId);
       femaleStatesFinalized += 1;
@@ -56,14 +57,13 @@ export function createDyadicEncounterTracker({
 
       refreshCoParentMaleIds(world, female, state);
       state.trackedDays += 1;
-      const maleIds = collectNearbyAdultMaleIds(world, adultMalesByCell, female.x, female.y);
-      if (maleIds.length === 0) continue;
+      const males = collectNearbyAdultMales(world, adultMalesByCell, female.x, female.y);
+      if (males.length === 0) continue;
 
       state.encounterDays += 1;
-      state.pairDays += maleIds.length;
-      for (const maleId of maleIds) {
-        const male = findLivingHumanById(world, maleId);
-        if (!male) continue;
+      state.pairDays += males.length;
+      for (const male of males) {
+        const maleId = male.id;
         let pair = state.partners.get(maleId);
         if (!pair) {
           pair = createPairRecord(maleId, world.day, state.coParentMaleIds.has(maleId));
@@ -323,10 +323,7 @@ function addPair(aggregate, pair) {
   addStat(aggregate.spanDays, pairSpanDays(pair));
   addStat(aggregate.sameSettlementShare, ratio(pair.sameSettlementDays, pair.encounterDays));
   addStat(aggregate.recurrenceCount, pair.recurrenceCount);
-  addStat(
-    aggregate.recurrenceGapMean,
-    ratio(pair.recurrenceGapSum, pair.recurrenceCount)
-  );
+  addStat(aggregate.recurrenceGapMean, ratio(pair.recurrenceGapSum, pair.recurrenceCount));
   addStat(aggregate.recurrenceGapMax, pair.recurrenceGapMax);
 }
 
@@ -440,27 +437,23 @@ function rememberEvictedTopCount(state, count) {
 
 function addMaleToCell(world, cells, male) {
   const index = male.y * world.width + male.x;
-  let ids = cells.get(index);
-  if (!ids) cells.set(index, ids = []);
-  ids.push(male.id);
+  let males = cells.get(index);
+  if (!males) cells.set(index, males = []);
+  males.push(male);
 }
 
-function collectNearbyAdultMaleIds(world, cells, x, y) {
-  const ids = [];
+function collectNearbyAdultMales(world, cells, x, y) {
+  const males = [];
   for (let dy = -1; dy <= 1; dy += 1) {
     for (let dx = -1; dx <= 1; dx += 1) {
       const nx = x + dx;
       const ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= world.width || ny >= world.height) continue;
-      const cellIds = cells.get(ny * world.width + nx);
-      if (cellIds) ids.push(...cellIds);
+      const cellMales = cells.get(ny * world.width + nx);
+      if (cellMales) males.push(...cellMales);
     }
   }
-  return ids;
-}
-
-function findLivingHumanById(world, id) {
-  return world.entities.find((entity) => entity.kind === 'human' && entity.alive && entity.id === id) ?? null;
+  return males;
 }
 
 function isFocalFemale(world, human) {
