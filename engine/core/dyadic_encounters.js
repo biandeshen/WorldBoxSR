@@ -1,4 +1,4 @@
-const DEFAULT_MAX_PARTNERS_PER_FEMALE = 64;
+const DEFAULT_MAX_PARTNERS_PER_FEMALE = 256;
 const PERSISTENCE_WINDOWS = Object.freeze([30, 90, 180, 360]);
 
 /**
@@ -234,10 +234,12 @@ function createFemaleAggregate() {
   return {
     count: 0,
     withEncounters: 0,
+    withCapEvictions: 0,
     trackedDays: createStats(),
     encounterDays: createStats(),
     pairDays: createStats(),
-    distinctPartnerRecords: createStats(),
+    partnerRecordSegmentsObserved: createStats(),
+    distinctPartnersAmongUntruncated: createStats(),
     topPartnerShare: createStats(),
     top2PartnerShare: createStats(),
     hhi: createStats(),
@@ -268,10 +270,12 @@ function finalizeFemaleState(aggregate, state) {
   const femaleAgg = aggregate.females;
   femaleAgg.count += 1;
   if (state.encounterDays > 0) femaleAgg.withEncounters += 1;
+  if (state.evictedRecords > 0) femaleAgg.withCapEvictions += 1;
   addStat(femaleAgg.trackedDays, state.trackedDays);
   addStat(femaleAgg.encounterDays, state.encounterDays);
   addStat(femaleAgg.pairDays, state.pairDays);
-  addStat(femaleAgg.distinctPartnerRecords, state.partners.size + state.evictedRecords);
+  addStat(femaleAgg.partnerRecordSegmentsObserved, state.partners.size + state.evictedRecords);
+  if (state.evictedRecords === 0) addStat(femaleAgg.distinctPartnersAmongUntruncated, state.partners.size);
 
   const retained = [...state.partners.values()];
   const counts = retained.map((pair) => pair.encounterDays);
@@ -337,10 +341,13 @@ function summarizeFemaleAggregate(aggregate) {
     count: aggregate.count,
     withEncounters: aggregate.withEncounters,
     encounterParticipationShare: ratio(aggregate.withEncounters, aggregate.count),
+    femalesWithCapEvictions: aggregate.withCapEvictions,
+    capTruncatedFemaleShare: ratio(aggregate.withCapEvictions, aggregate.count),
     trackedDays: summarizeStats(aggregate.trackedDays),
     encounterDays: summarizeStats(aggregate.encounterDays),
     pairDays: summarizeStats(aggregate.pairDays),
-    distinctPartnerRecords: summarizeStats(aggregate.distinctPartnerRecords),
+    partnerRecordSegmentsObserved: summarizeStats(aggregate.partnerRecordSegmentsObserved),
+    distinctPartnersAmongUntruncated: summarizeStats(aggregate.distinctPartnersAmongUntruncated),
     topPartnerPairDayShare: summarizeStats(aggregate.topPartnerShare),
     top2PartnerPairDayShare: summarizeStats(aggregate.top2PartnerShare),
     encounterHhi: summarizeStats(aggregate.hhi),
@@ -398,10 +405,12 @@ function cloneFemaleAggregate(source) {
   return {
     count: source.count,
     withEncounters: source.withEncounters,
+    withCapEvictions: source.withCapEvictions,
     trackedDays: { ...source.trackedDays },
     encounterDays: { ...source.encounterDays },
     pairDays: { ...source.pairDays },
-    distinctPartnerRecords: { ...source.distinctPartnerRecords },
+    partnerRecordSegmentsObserved: { ...source.partnerRecordSegmentsObserved },
+    distinctPartnersAmongUntruncated: { ...source.distinctPartnersAmongUntruncated },
     topPartnerShare: { ...source.topPartnerShare },
     top2PartnerShare: { ...source.top2PartnerShare },
     hhi: { ...source.hhi },
