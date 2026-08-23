@@ -8,7 +8,7 @@ const seeds = [1, 4, 9, 45, 80, 98];
 test('temporary 6-seed 100-year dyadic encounter concentration probe', () => {
   for (const seed of seeds) {
     const world = createWorld({ seed, width: 24, height: 24, population: 30 });
-    const tracker = createDyadicEncounterTracker({ maxPartnersPerFemale: 64 });
+    const tracker = createDyadicEncounterTracker();
     const days = 100 * world.config.daysPerYear;
 
     for (let day = 0; day < days; day += 1) {
@@ -25,7 +25,8 @@ test('temporary 6-seed 100-year dyadic encounter concentration probe', () => {
       deaths: world.counters.deaths,
       focalFemales: s.focalFemales.count,
       encounterParticipation: round(s.focalFemales.encounterParticipationShare),
-      distinctPartnersMean: round(s.focalFemales.distinctPartnerRecords.mean),
+      capTruncatedFemaleShare: round(s.focalFemales.capTruncatedFemaleShare),
+      distinctPartnersMean: round(s.focalFemales.distinctPartnersAmongUntruncated.mean),
       topPartnerShareMean: round(s.focalFemales.topPartnerPairDayShare.mean),
       top2ShareMean: round(s.focalFemales.top2PartnerPairDayShare.mean),
       hhiMean: round(s.focalFemales.encounterHhi.mean),
@@ -57,6 +58,8 @@ test('temporary 6-seed 100-year dyadic encounter concentration probe', () => {
     })}`);
 
     assert.ok(s.focalFemales.count > 0);
+    assert.equal(s.storage.partnerRecordEvictions, 0);
+    assert.equal(s.focalFemales.capTruncatedFemaleShare, 0);
   }
 });
 
