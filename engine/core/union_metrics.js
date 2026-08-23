@@ -6,7 +6,8 @@
  */
 export function summarizeParentalUnions(world) {
   const unions = world.unions.filter((union) => union.kind === 'parental_union');
-  const activeUnions = unions.filter((union) => union.active).length;
+  const bothPartnersLivingUnions = unions.filter((union) => union.firstPartnerDeathDay === null).length;
+  const partnerDeathRecordedUnions = unions.length - bothPartnersLivingUnions;
   const childCounts = unions.map((union) => union.childIds.length);
   const livingHumans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
   const livingUnionParticipants = livingHumans.filter((human) => human.unionIds.length > 0).length;
@@ -20,17 +21,17 @@ export function summarizeParentalUnions(world) {
   }
 
   const historicalUnionCounts = [...partnerUnionCounts.values()];
-  const endedDurations = unions
-    .filter((union) => !union.active && Number.isFinite(union.endedDay))
-    .map((union) => Math.max(0, union.endedDay - union.foundedDay));
+  const firstPartnerDeathDurations = unions
+    .filter((union) => Number.isFinite(union.firstPartnerDeathDay))
+    .map((union) => Math.max(0, union.firstPartnerDeathDay - union.foundedDay));
   const formedInSettlement = unions.filter((union) => union.settlementIdAtFormation !== null).length;
   const multiChildUnions = childCounts.filter((count) => count >= 2).length;
 
   return {
     unionCount: unions.length,
-    activeUnions,
-    endedUnions: unions.length - activeUnions,
-    activeUnionShare: ratio(activeUnions, unions.length),
+    bothPartnersLivingUnions,
+    partnerDeathRecordedUnions,
+    bothPartnersLivingShare: ratio(bothPartnersLivingUnions, unions.length),
     singleChildUnions: childCounts.filter((count) => count === 1).length,
     multiChildUnions,
     multiChildUnionShare: ratio(multiChildUnions, unions.length),
@@ -53,7 +54,7 @@ export function summarizeParentalUnions(world) {
     multiUnionLivingHumans,
     livingUnionParticipantShare: ratio(livingUnionParticipants, livingHumans.length),
     multiUnionLivingHumanShare: ratio(multiUnionLivingHumans, livingHumans.length),
-    endedUnionDurationDays: stats(endedDurations),
+    firstPartnerDeathDurationDays: stats(firstPartnerDeathDurations),
     unionPerBirthRatio: ratio(unions.length, world.counters.births),
     unionsPerLivingHuman: ratio(unions.length, livingHumans.length)
   };
