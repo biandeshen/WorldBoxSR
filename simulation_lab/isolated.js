@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { aggregateRuns } from './aggregate.js';
+import { aggregateRuns, stats } from './aggregate.js';
 
 const WORKER_PATH = fileURLToPath(new URL('./seed_worker.js', import.meta.url));
 
@@ -14,16 +14,24 @@ export async function runBatchIsolated({
   config = {},
   workers = Math.max(1, Math.min(4, seeds)),
   timeoutMs = 30_000
-} = {}, { executeSeed = executeSeedProcess } = {}) {
+} = {}, { executeSeed = executeSeedProcess, initialResults = [], onResult = null } = {}) {
   requirePositiveInteger(seeds, 'seeds');
   requirePositiveInteger(workers, 'workers');
   requirePositiveInteger(timeoutMs, 'timeoutMs');
 
+  const batchStarted = process.hrtime.bigint();
+  const slots = new Array(seeds);
+  let reusedSeeds = 0;
+  for (const result of initialResults) {
+    const index = result.seed - startSeed;
+    if (!Number.isInteger(index) || index < 0 || index >= seeds || slots[index]) continue;
+    slots[index] = structuredClone(result);
+    reusedSeeds += 1;
+  }
   const tasks = Array.from({ length: seeds }, (_, index) => ({
     index,
     payload: { seed: startSeed + index, years, width, height, population, config }
-  }));
-  const slots = new Array(seeds);
+  })).filter((task) => !slots[task.index]);
   let cursor = 0;
 
   async function workerLoop() {
@@ -40,6 +48,7 @@ export async function runBatchIsolated({
           elapsedMs: Number(process.hrtime.bigint() - started) / 1e6,
           summary
         };
+        if (onResult) await onResult(structuredClone(slots[task.index]));
       } catch (error) {
         slots[task.index] = {
           ok: false,
@@ -47,6 +56,7 @@ export async function runBatchIsolated({
           elapsedMs: Number(process.hrtime.bigint() - started) / 1e6,
           error: normalizeError(error)
         };
+        if (onResult) await onResult(structuredClone(slots[task.index]));
       }
     }
   }
@@ -56,13 +66,22 @@ export async function runBatchIsolated({
   const runs = slots.filter((result) => result.ok).map((result) => result.summary);
   const failures = slots.filter((result) => !result.ok).map(({ seed, elapsedMs, error }) => ({ seed, elapsedMs, error }));
   const timings = slots.filter((result) => result.ok).map(({ seed, elapsedMs }) => ({ seed, elapsedMs }));
+  const wallClockMs = Number(process.hrtime.bigint() - batchStarted) / 1e6;
 
   return {
     parameters: { startSeed, seeds, years, width, height, population, workers, timeoutMs },
     aggregate: aggregateRuns(runs),
     runs,
     failures,
-    timings
+    timings,
+    execution: {
+      wallClockMs,
+      successfulSeeds: runs.length,
+      failedSeeds: failures.length,
+      reusedSeeds,
+      executedSeeds: tasks.length,
+      perSeedElapsedMs: stats(timings.map((timing) => timing.elapsedMs))
+    }
   };
 }
 
