@@ -11,6 +11,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   eatAmount: 0.58,
   foodPerMeal: 0.65,
   adultAgeYears: 18,
+  dependentKinCohesionEndYears: 12,
   femaleFertilityEndYears: 45,
   birthChancePerEligiblePairPerDay: 0.0010,
   birthCooldownDays: 300,
