@@ -5,6 +5,7 @@ export function summarizeWorld(world) {
   const foodTotal = world.tiles.reduce((sum, tile) => sum + tile.food, 0);
   const capacityTotal = world.tiles.reduce((sum, tile) => sum + tile.foodCapacity, 0);
   const settledPopulation = humans.filter((human) => human.settlementId !== null).length;
+  const activeSettlements = world.settlements.filter((settlement) => settlement.active).length;
 
   return {
     seed: world.seed,
@@ -15,6 +16,8 @@ export function summarizeWorld(world) {
     deaths: world.counters.deaths,
     meals: world.counters.meals,
     settlements: world.settlements.length,
+    activeSettlements,
+    abandonedSettlements: world.settlements.length - activeSettlements,
     settledPopulation,
     averageAgeYears: humans.length ? ageTotal / humans.length : 0,
     averageHunger: humans.length ? hungerTotal / humans.length : 0,
