@@ -10,11 +10,11 @@ Last updated: 2026-08-23
 - smooth elevation/moisture fields plus deterministic land/ocean classification;
 - passability-aware human movement, food, hunger, aging, reproduction, and death;
 - stable causal event IDs and serialized command/entity/event references;
-- settlements that form from persistent adult clusters, attract members weakly, and can be abandoned while remaining in history;
+- settlements that form from persistent adult clusters, attract members weakly, can be abandoned while remaining in history, and claim deterministic nearby territory;
 - God-command boundary with deterministic human spawning;
 - headless CLI, isolated bounded-parallel Simulation Lab, reusable regression scenarios, and machine-readable benchmarking;
 - browser Canvas observer with pan/zoom and tile/human/settlement inspection;
-- 45 automated tests covering determinism, invariants, social lifecycle, client transforms, regressions, lab isolation, and performance contracts.
+- 50 automated tests covering determinism, invariants, social lifecycle/territory, client transforms, regressions, lab isolation, and performance contracts.
 
 ## Empirical checkpoints
 
@@ -39,6 +39,10 @@ Settlements can now become abandoned after one empty year. Historical settlement
 ### 10k-agent performance
 
 The authoritative headless simulation benchmarks at roughly 6 ms/tick for 10,000 agents in the recorded hosted environment. A measured founder-creation hotspot was then removed while preserving an exact pre-optimization world-snapshot hash: 10k world creation improved from ~361 ms to ~4.23 ms median-of-medians in fresh-process comparison (~85×).
+
+### Territory v0
+
+Active settlements now own nearby passable cells using bounded-radius deterministic competition. Radius 3 was selected after a coverage scan: it claims roughly 71–76% of passable land in the five 60-year sample worlds, while radius 5 erased almost all wilderness. A paired 5-seed × 60-year check produced byte-identical non-territory state and RNG history between radius 0 and radius 3.
 
 ## Sprint 001
 
