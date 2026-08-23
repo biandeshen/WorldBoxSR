@@ -54,8 +54,9 @@ test('dyadic tracker measures dominant-partner concentration and co-parent ident
   const summary = tracker.summarize(world);
   assert.equal(summary.focalFemales.count, 1);
   assert.equal(summary.focalFemales.withEncounters, 1);
+  assert.equal(summary.focalFemales.capTruncatedFemaleShare, 0);
   assert.equal(summary.focalFemales.pairDays.mean, 12);
-  assert.equal(summary.focalFemales.distinctPartnerRecords.mean, 2);
+  assert.equal(summary.focalFemales.distinctPartnersAmongUntruncated.mean, 2);
   assert.ok(Math.abs(summary.focalFemales.topPartnerPairDayShare.mean - (10 / 12)) < 1e-12);
   assert.equal(summary.focalFemales.top2PartnerPairDayShare.mean, 1);
   assert.ok(Math.abs(summary.focalFemales.encounterHhi.mean - (104 / 144)) < 1e-12);
@@ -122,7 +123,10 @@ test('partner cap evicts weak records deterministically and exposes truncation',
   assert.equal(summary.storage.partnerRecordsCreated, 3);
   assert.equal(summary.storage.partnerRecordEvictions, 1);
   assert.equal(summary.storage.pairRecordsExcludedByCap, 1);
-  assert.equal(summary.focalFemales.distinctPartnerRecords.mean, 3);
+  assert.equal(summary.focalFemales.femalesWithCapEvictions, 1);
+  assert.equal(summary.focalFemales.capTruncatedFemaleShare, 1);
+  assert.equal(summary.focalFemales.partnerRecordSegmentsObserved.mean, 3);
+  assert.equal(summary.focalFemales.distinctPartnersAmongUntruncated.count, 0);
   assert.equal(summary.repeatedPairs.count, 0);
 
   // Equal-strength ties evict the highest stable ID, leaving the two lower IDs.
