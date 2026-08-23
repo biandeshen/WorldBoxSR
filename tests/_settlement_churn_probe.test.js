@@ -62,6 +62,7 @@ function project(view) {
     homeDistance: view.homeDistance,
     preLossDistance: view.preLossDistance,
     lossDistance: view.lossDistance,
+    leaveRetentionCounterfactual: view.leaveRetentionCounterfactual,
     settledEpisodes: view.settledEpisodes,
     unsettledEpisodesAfterJoin: view.unsettledEpisodesAfterJoin
   };
