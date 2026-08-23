@@ -1,7 +1,7 @@
 import { isTilePassable } from '../world/biomes.js';
 
-export function createHuman(world, overrides = {}) {
-  const { x, y } = resolveSpawnPosition(world, overrides);
+export function createHuman(world, overrides = {}, { passableTiles = null } = {}) {
+  const { x, y } = resolveSpawnPosition(world, overrides, passableTiles);
   const ageYears = overrides.ageYears ?? world.rng.range(18, 35);
   const human = {
     id: world.nextEntityId++,
@@ -22,7 +22,7 @@ export function createHuman(world, overrides = {}) {
   return human;
 }
 
-function resolveSpawnPosition(world, overrides) {
+function resolveSpawnPosition(world, overrides, passableTiles) {
   const hasX = overrides.x !== undefined;
   const hasY = overrides.y !== undefined;
   if (hasX !== hasY) throw new TypeError('x and y must be provided together');
@@ -37,7 +37,7 @@ function resolveSpawnPosition(world, overrides) {
     return { x: overrides.x, y: overrides.y };
   }
 
-  const passable = world.tiles.filter(isTilePassable);
+  const passable = passableTiles ?? world.tiles.filter(isTilePassable);
   if (passable.length === 0) throw new Error('world has no passable tiles for humans');
   const tile = passable[world.rng.int(passable.length)];
   return { x: tile.x, y: tile.y };
