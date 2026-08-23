@@ -4,10 +4,15 @@ import { summarizeWorld } from '../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../engine/core/world.js';
 
 const seeds = [1,2,3,4,5,6,7,8,9,10,45,98];
-const radii = [1,2,3];
+const cases = [
+  { label: 'baseline', supplementalReproductionRadius: 1 },
+  { label: 'r3-m0.01', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.01 },
+  { label: 'r3-m0.03', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.03 },
+  { label: 'r3-m0.10', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.10 }
+];
 
-test('temporary supplemental reproduction 100-year distribution scan', () => {
-  for (const supplementalReproductionRadius of radii) {
+test('temporary low-rate supplemental reproduction 100-year distribution scan', () => {
+  for (const candidate of cases) {
     const rows = [];
     for (const seed of seeds) {
       const world = createWorld({
@@ -15,30 +20,34 @@ test('temporary supplemental reproduction 100-year distribution scan', () => {
         width: 24,
         height: 24,
         population: 30,
-        config: { supplementalReproductionRadius }
+        config: {
+          supplementalReproductionRadius: candidate.supplementalReproductionRadius,
+          ...(candidate.supplementalReproductionChanceMultiplier === undefined
+            ? {}
+            : { supplementalReproductionChanceMultiplier: candidate.supplementalReproductionChanceMultiplier })
+        }
       });
       tickWorld(world, 100 * world.config.daysPerYear);
       const s = summarizeWorld(world);
-      const supplementalBirths = world.history.filter((event) =>
-        event.type === 'human.born' && event.supplementalReproductionRadius !== undefined
-      ).length;
       rows.push({
         seed,
         population: s.population,
         births: s.births,
         deaths: s.deaths,
         foodRemaining: s.foodUtilization,
-        activeSettlements: s.activeSettlements,
-        supplementalBirths
+        activeSettlements: s.activeSettlements
       });
     }
 
-    console.log(`SUPPLEMENTAL_REPRO_SCAN ${JSON.stringify({
-      radius: supplementalReproductionRadius,
+    console.log(`SUPPLEMENTAL_REPRO_LOW_RATE ${JSON.stringify({
+      label: candidate.label,
+      radius: candidate.supplementalReproductionRadius,
+      multiplier: candidate.supplementalReproductionChanceMultiplier ?? 0,
       population: stat(rows.map((row) => row.population)),
       births: stat(rows.map((row) => row.births)),
       deaths: stat(rows.map((row) => row.deaths)),
-      supplementalBirths: stat(rows.map((row) => row.supplementalBirths)),
+      foodRemaining: stat(rows.map((row) => row.foodRemaining)),
+      activeSettlements: stat(rows.map((row) => row.activeSettlements)),
       seed45: rows.find((row) => row.seed === 45),
       seed98: rows.find((row) => row.seed === 98),
       rows
