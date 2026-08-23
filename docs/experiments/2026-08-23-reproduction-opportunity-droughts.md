@@ -21,7 +21,7 @@ For every reproduction-eligible female-day it records:
 - time since the last radius-1 opportunity;
 - whether 30 / 90 / 180 day recent-opportunity memory would cover that no-opportunity day.
 
-The tracker builds one eligible-male tile grid per observation and scans bounded local windows per female. It keeps all longitudinal state outside the world and consumes no simulation RNG.
+The tracker builds and reuses one eligible-male tile-count grid and scans bounded local windows per female. It keeps all longitudinal state outside the world and consumes no simulation RNG.
 
 Probe worlds: seeds 1, 4, 9, 45, 80, and 98; 24×24; population 30; 100 years; daily observations.
 
