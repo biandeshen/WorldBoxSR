@@ -4,10 +4,13 @@ import { summarizeWorld } from '../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../engine/core/world.js';
 
 const seeds = [1,2,3,4,5,6,7,8,9,10,45,98];
-const multipliers = [0.015, 0.020, 0.025];
+const cases = [
+  { label: 'baseline', supplementalReproductionRadius: 1 },
+  { label: 'r3-m0.02', supplementalReproductionRadius: 3, supplementalReproductionChanceMultiplier: 0.02 }
+];
 
-test('temporary narrow supplemental reproduction multiplier scan', () => {
-  for (const multiplier of multipliers) {
+test('temporary supplemental reproduction 200-year candidate A/B', () => {
+  for (const candidate of cases) {
     const rows = [];
     for (const seed of seeds) {
       const world = createWorld({
@@ -16,11 +19,13 @@ test('temporary narrow supplemental reproduction multiplier scan', () => {
         height: 24,
         population: 30,
         config: {
-          supplementalReproductionRadius: 3,
-          supplementalReproductionChanceMultiplier: multiplier
+          supplementalReproductionRadius: candidate.supplementalReproductionRadius,
+          ...(candidate.supplementalReproductionChanceMultiplier === undefined
+            ? {}
+            : { supplementalReproductionChanceMultiplier: candidate.supplementalReproductionChanceMultiplier })
         }
       });
-      tickWorld(world, 100 * world.config.daysPerYear);
+      tickWorld(world, 200 * world.config.daysPerYear);
       const s = summarizeWorld(world);
       rows.push({
         seed,
@@ -28,16 +33,21 @@ test('temporary narrow supplemental reproduction multiplier scan', () => {
         births: s.births,
         deaths: s.deaths,
         foodRemaining: s.foodUtilization,
-        activeSettlements: s.activeSettlements
+        activeSettlements: s.activeSettlements,
+        abandonedSettlements: s.abandonedSettlements
       });
     }
 
-    console.log(`SUPPLEMENTAL_REPRO_NARROW ${JSON.stringify({
-      multiplier,
+    console.log(`SUPPLEMENTAL_REPRO_200Y ${JSON.stringify({
+      label: candidate.label,
+      radius: candidate.supplementalReproductionRadius,
+      multiplier: candidate.supplementalReproductionChanceMultiplier ?? 0,
       population: stat(rows.map((row) => row.population)),
       births: stat(rows.map((row) => row.births)),
       deaths: stat(rows.map((row) => row.deaths)),
       foodRemaining: stat(rows.map((row) => row.foodRemaining)),
+      activeSettlements: stat(rows.map((row) => row.activeSettlements)),
+      abandonedSettlements: stat(rows.map((row) => row.abandonedSettlements)),
       seed45: rows.find((row) => row.seed === 45),
       seed98: rows.find((row) => row.seed === 98),
       rows
