@@ -1,14 +1,14 @@
 import { SeededRng } from './rng.js';
 import { mergeConfig } from '../model/config.js';
 import { createHuman } from '../model/human.js';
-import { pushEvent } from '../model/events.js';
+import { pushEvent, worldSubject } from '../model/events.js';
 import { regenerateFood } from '../systems/environment.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 2;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -22,6 +22,8 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     day: 0,
     nextEntityId: 1,
     nextSettlementId: 1,
+    nextEventId: 1,
+    nextCommandId: 1,
     config: mergeConfig(config),
     tiles: [],
     entities: [],
@@ -59,7 +61,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
   }
 
   for (let i = 0; i < population; i += 1) createHuman(world);
-  pushEvent(world, { type: 'world.created', seed: world.seed, population });
+  pushEvent(world, { type: 'world.created', subject: worldSubject(), seed: world.seed, population });
   return world;
 }
 
@@ -107,6 +109,8 @@ export function snapshotWorld(world) {
     day: world.day,
     nextEntityId: world.nextEntityId,
     nextSettlementId: world.nextSettlementId,
+    nextEventId: world.nextEventId,
+    nextCommandId: world.nextCommandId,
     config: { ...world.config },
     tiles: world.tiles.map((tile) => ({ ...tile })),
     entities: world.entities.map((entity) => ({ ...entity })),
@@ -129,6 +133,8 @@ export function worldFromSnapshot(snapshot) {
     day: snapshot.day,
     nextEntityId: snapshot.nextEntityId,
     nextSettlementId: snapshot.nextSettlementId,
+    nextEventId: snapshot.nextEventId,
+    nextCommandId: snapshot.nextCommandId,
     config: mergeConfig(snapshot.config),
     tiles: snapshot.tiles.map((tile) => ({ ...tile })),
     entities: snapshot.entities.map((entity) => ({ ...entity })),

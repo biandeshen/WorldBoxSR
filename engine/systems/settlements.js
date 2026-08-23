@@ -1,5 +1,5 @@
 import { createSettlement } from '../model/settlement.js';
-import { pushEvent } from '../model/events.js';
+import { entityRef, pushEvent } from '../model/events.js';
 import { tileAt } from '../core/world.js';
 
 export function updateSettlements(world) {
@@ -43,6 +43,7 @@ export function updateSettlements(world) {
     tile.settlementCandidateDays = 0;
     pushEvent(world, {
       type: 'settlement.founded',
+      subject: entityRef('settlement', settlement.id),
       settlementId: settlement.id,
       name: settlement.name,
       x: settlement.x,

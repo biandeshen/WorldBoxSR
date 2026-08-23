@@ -1,5 +1,5 @@
 import { createHuman } from '../model/human.js';
-import { pushEvent } from '../model/events.js';
+import { entityRef, pushEvent } from '../model/events.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 
 export function updateHumans(world) {
@@ -147,7 +147,14 @@ function reproduce(world) {
       bornDay: world.day
     });
     world.counters.births += 1;
-    pushEvent(world, { type: 'human.born', entityId: child.id, motherId: mother.id, fatherId: father.id });
+    pushEvent(world, {
+      type: 'human.born',
+      subject: entityRef('human', child.id),
+      causes: [entityRef('human', mother.id), entityRef('human', father.id)],
+      entityId: child.id,
+      motherId: mother.id,
+      fatherId: father.id
+    });
   }
 }
 
@@ -158,6 +165,7 @@ function kill(world, human, cause) {
   world.counters.deaths += 1;
   pushEvent(world, {
     type: 'human.died',
+    subject: entityRef('human', human.id),
     entityId: human.id,
     cause,
     ageYears: human.ageDays / world.config.daysPerYear

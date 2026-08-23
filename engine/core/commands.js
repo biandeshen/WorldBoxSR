@@ -1,5 +1,5 @@
 import { createHuman } from '../model/human.js';
-import { pushEvent } from '../model/events.js';
+import { commandRef, pushEvent, worldSubject } from '../model/events.js';
 
 export function applyCommand(world, command) {
   if (!command || typeof command.type !== 'string') throw new TypeError('command.type is required');
@@ -18,11 +18,22 @@ function spawnHumans(world, command) {
   const count = command.count ?? 1;
   if (!Number.isInteger(count) || count < 1 || count > 1000) throw new RangeError('count must be an integer from 1 to 1000');
 
+  // Allocate command identity only after validation. Rejected input must not
+  // perturb the deterministic command sequence.
+  const commandId = world.nextCommandId++;
   const ids = [];
   for (let i = 0; i < count; i += 1) {
     ids.push(createHuman(world, { x, y }).id);
   }
-  pushEvent(world, { type: 'god.spawn_human', x, y, count, entityIds: ids });
+  pushEvent(world, {
+    type: 'god.spawn_human',
+    subject: worldSubject(),
+    causes: [commandRef(commandId, command.type)],
+    x,
+    y,
+    count,
+    entityIds: ids
+  });
   return ids;
 }
 
