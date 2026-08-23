@@ -1,0 +1,89 @@
+{
+  "experimentVersion": 1,
+  "parameters": {
+    "startSeed": 1,
+    "seeds": 100,
+    "years": 200,
+    "width": 24,
+    "height": 24,
+    "population": 30
+  },
+  "collection": {
+    "mode": "checkpointed-isolated-shards",
+    "successfulSeeds": 100,
+    "failedSeeds": 0,
+    "perSeedElapsedMs": {
+      "min": 1259.701082,
+      "median": 6746.4295215,
+      "mean": 7051.26212403,
+      "max": 12173.282486
+    },
+    "note": "Long-lived parent batches were host-throttled, so identical simulation parameters were collected in short resumable isolated shards."
+  },
+  "aggregate": {
+    "runCount": 100,
+    "extinctionRate": 0,
+    "population": { "min": 128, "max": 871, "mean": 496.68, "median": 489 },
+    "births": { "min": 184, "max": 3961, "mean": 2903.23, "median": 2950 },
+    "deaths": { "min": 86, "max": 3347, "mean": 2436.55, "median": 2497 },
+    "foodUtilization": { "min": 0.01469388400070335, "max": 0.9644936500576548, "mean": 0.04798662935478308, "median": 0.020042926355741418 },
+    "settlements": { "min": 3, "max": 13, "mean": 6.56, "median": 7 },
+    "activeSettlements": { "min": 3, "max": 12, "mean": 6.53, "median": 7 },
+    "abandonedSettlements": { "min": 0, "max": 1, "mean": 0.03, "median": 0 },
+    "settledPopulation": { "min": 104, "max": 744, "mean": 424.7, "median": 409.5 },
+    "settledPopulationShare": { "min": 0.6978131212723658, "max": 1, "mean": 0.8574721753853781, "median": 0.8598372566114502 },
+    "abandonedSettlementShare": { "min": 0, "max": 0.14285714285714285, "mean": 0.0034478021978021976, "median": 0 },
+    "claimedTerritoryCells": { "min": 99, "max": 376, "mean": 210.15, "median": 203 },
+    "territoryCoverage": { "min": 0.6653543307086615, "max": 0.9364161849710982, "mean": 0.8252769698531179, "median": 0.8331831119544593 }
+  },
+  "comparisonToPreSocial": {
+    "population": {
+      "pre": { "min": 8, "p25": 376, "median": 483, "mean": 495.7, "p75": 608, "max": 856 },
+      "post": { "min": 128, "p25": 380.25, "median": 489, "mean": 496.68, "p75": 604.5, "max": 871 }
+    },
+    "birthsMedian": { "pre": 2968, "post": 2950 },
+    "deathsMedian": { "pre": 2488.5, "post": 2497 },
+    "foodRemainingMedian": { "pre": 0.019645164085741997, "post": 0.020042926355741418 }
+  },
+  "correlations": {
+    "landFractionVsPopulation": 0.9063038597169857,
+    "landFractionVsActiveSettlements": 0.8215254289335434,
+    "activeSettlementsVsPopulation": 0.8004197256818664,
+    "territoryCoverageVsPopulation": 0.03509332426455839,
+    "settledPopulationShareVsPopulation": -0.14000070517086477
+  },
+  "outliers": {
+    "population": { "min": { "seed": 45, "value": 128 }, "max": { "seed": 80, "value": 871 } },
+    "territoryCoverage": { "min": { "seed": 67, "value": 0.6653543307086615 }, "max": { "seed": 16, "value": 0.9364161849710982 } },
+    "settledPopulationShare": { "min": { "seed": 67, "value": 0.6978131212723658 }, "max": { "seed": 32, "value": 1 } },
+    "historicalSettlements": { "min": { "seed": 2, "value": 3 }, "max": { "seed": 62, "value": 13 } },
+    "activeSettlements": { "min": { "seed": 2, "value": 3 }, "max": { "seed": 62, "value": 12 } },
+    "foodRemainingFraction": { "min": { "seed": 82, "value": 0.01469388400070335 }, "max": { "seed": 45, "value": 0.9644936500576548 } },
+    "abandonmentSeeds": [
+      { "seed": 49, "abandonedSettlements": 1, "settlements": 8 },
+      { "seed": 62, "abandonedSettlements": 1, "settlements": 13 },
+      { "seed": 98, "abandonedSettlements": 1, "settlements": 7 }
+    ]
+  },
+  "seed45": {
+    "seed": 45,
+    "day": 72000,
+    "year": 200,
+    "population": 128,
+    "births": 184,
+    "deaths": 86,
+    "meals": 123093,
+    "settlements": 7,
+    "activeSettlements": 7,
+    "abandonedSettlements": 0,
+    "claimedTerritoryCells": 270,
+    "unclaimedLandCells": 106,
+    "territoryCoverage": 0.7180851063829787,
+    "settledPopulation": 104,
+    "averageAgeYears": 28.9773654513889,
+    "averageHunger": 0.180375,
+    "food": 2393.154906947267,
+    "foodCapacity": 2481.2552231984223,
+    "foodUtilization": 0.9644936500576548
+  }
+}

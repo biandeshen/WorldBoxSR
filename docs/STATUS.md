@@ -14,7 +14,7 @@ Last updated: 2026-08-23
 - God-command boundary with deterministic human spawning;
 - headless CLI, isolated bounded-parallel Simulation Lab, reusable regression scenarios, and machine-readable benchmarking;
 - browser Canvas observer with pan/zoom and tile/human/settlement inspection;
-- 50 automated tests covering determinism, invariants, social lifecycle/territory, client transforms, regressions, lab isolation, and performance contracts.
+- 51 automated tests covering determinism, invariants, social lifecycle/territory, client transforms, regressions, lab checkpoint/resume isolation, and performance contracts.
 
 ## Empirical checkpoints
 
@@ -44,6 +44,10 @@ The authoritative headless simulation benchmarks at roughly 6 ms/tick for 10,000
 
 Active settlements now own nearby passable cells using bounded-radius deterministic competition. Radius 3 was selected after a coverage scan: it claims roughly 71–76% of passable land in the five 60-year sample worlds, while radius 5 erased almost all wilderness. A paired 5-seed × 60-year check produced byte-identical non-territory state and RNG history between radius 0 and radius 3.
 
+### Post-social 100-seed / 200-year baseline
+
+All 100 seeds completed successfully. Population median/mean are 489 / 496.68 versus 483 / 495.7 in the pre-social baseline, while the minimum rose from 8 to 128 because seed 45 no longer collapses after cohesion. Year-200 median active settlements are 7, median settled-population share is ~86%, and median territory coverage is ~83%. Only 3/100 worlds have any abandoned settlement at year 200. Territory coverage is essentially uncorrelated with population (~0.035), confirming the ownership layer remains behavior-neutral. Next simulation work is evidence-first settlement resource accounting, not kingdoms/war.
+
 ## Sprint 001
 
 Complete. Geography, land/water movement, large baseline, Settlement v0, causal history contract, and client inspection have all shipped through Issue → branch → PR → CI → merge.
@@ -52,8 +56,8 @@ Complete. Geography, land/water movement, large baseline, Settlement v0, causal 
 
 | Priority | Owner lane | Task | Acceptance signal |
 | --- | --- | --- | --- |
-| P0 | Simulation + World | settlement territory cells v0 | active settlements claim deterministic nearby land; abandoned sites release it |
-| P0 | Test/Research | post-social 100-seed / 200-year baseline | distribution report after cohesion + lifecycle + territory |
+| ✅ | Simulation + World | settlement territory cells v0 | shipped: deterministic radius-3 ownership + lifecycle release |
+| ✅ | Test/Research | post-social 100-seed / 200-year baseline | shipped: 100/100 success + social distribution report |
 | P1 | Client | territory/ownership inspection | ownership visible without becoming authoritative client state |
 | P1 | History/Client | timeline/event inspector v0 | inspect major founded/abandoned/command events and causal refs |
 | P1 | Simulation | settlement resource accounting spike | evidence-driven decision on whether shared food/storage is the next social mechanic |
