@@ -168,7 +168,7 @@ function reproduce(world) {
       health: 1,
       birthCooldownDays: world.config.birthCooldownDays,
       bornDay: world.day,
-      householdId: mother.householdId,
+      lineageId: mother.lineageId,
       parentIds: [mother.id, father.id],
       generation
     });
@@ -182,7 +182,7 @@ function reproduce(world) {
       entityId: child.id,
       motherId: mother.id,
       fatherId: father.id,
-      householdId: child.householdId,
+      lineageId: child.lineageId,
       generation: child.generation
     });
   }
