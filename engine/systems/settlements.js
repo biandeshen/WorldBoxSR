@@ -57,6 +57,12 @@ export function updateSettlements(world) {
 }
 
 export function updateSettlementMembership(world) {
+  const joinRadius = world.config.settlementMembershipRadius;
+  const retentionRadius = world.config.settlementMembershipRetentionRadius ?? joinRadius;
+  if (!Number.isInteger(retentionRadius) || retentionRadius < joinRadius) {
+    throw new RangeError('settlementMembershipRetentionRadius must be an integer >= settlementMembershipRadius');
+  }
+
   for (const settlement of world.settlements) {
     settlement.population = 0;
     settlement.memberIds = [];
@@ -64,7 +70,21 @@ export function updateSettlementMembership(world) {
 
   for (const human of world.entities) {
     if (human.kind !== 'human' || !human.alive) continue;
-    const settlement = nearestSettlement(world, human.x, human.y);
+    const previousSettlementId = human.settlementId;
+    let settlement = nearestSettlement(world, human.x, human.y);
+
+    // Conservative hysteresis: normal radius-based join/switch resolution wins.
+    // Only intercept the baseline S -> null case, retaining the previous active
+    // settlement while the member is inside the larger experimental radius.
+    if (!settlement && retentionRadius > joinRadius && previousSettlementId !== null) {
+      const previous = world.settlements.find((candidate) =>
+        candidate.id === previousSettlementId && candidate.active
+      );
+      if (previous && settlementDistance(human.x, human.y, previous) <= retentionRadius) {
+        settlement = previous;
+      }
+    }
+
     human.settlementId = settlement?.id ?? null;
     if (settlement) {
       settlement.population += 1;
@@ -138,7 +158,7 @@ function nearestSettlement(world, x, y) {
   let bestDistance = Infinity;
   for (const settlement of world.settlements) {
     if (!settlement.active) continue;
-    const distance = Math.max(Math.abs(x - settlement.x), Math.abs(y - settlement.y));
+    const distance = settlementDistance(x, y, settlement);
     if (distance > world.config.settlementMembershipRadius) continue;
     if (distance < bestDistance || (distance === bestDistance && settlement.id < best.id)) {
       best = settlement;
@@ -146,6 +166,10 @@ function nearestSettlement(world, x, y) {
     }
   }
   return best;
+}
+
+function settlementDistance(x, y, settlement) {
+  return Math.max(Math.abs(x - settlement.x), Math.abs(y - settlement.y));
 }
 
 function countNearbyAdults(world, adultsPerTile, x, y) {
