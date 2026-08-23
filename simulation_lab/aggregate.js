@@ -17,15 +17,15 @@ export function aggregateRuns(runs) {
     abandonedSettlementShare: stats(runs.map((run) => run.settlements ? numberOrZero(run.abandonedSettlements) / run.settlements : 0)),
     claimedTerritoryCells: metricStats(runs, 'claimedTerritoryCells'),
     territoryCoverage: metricStats(runs, 'territoryCoverage'),
-    households: metricStats(runs, 'households'),
-    emptyHouseholds: metricStats(runs, 'emptyHouseholds'),
-    emptyHouseholdShare: stats(runs.map((run) => run.households ? numberOrZero(run.emptyHouseholds) / run.households : 0)),
+    lineages: metricStats(runs, 'lineages'),
+    extinctLineages: metricStats(runs, 'extinctLineages'),
+    extinctLineageShare: stats(runs.map((run) => run.lineages ? numberOrZero(run.extinctLineages) / run.lineages : 0)),
     orphanedHumans: metricStats(runs, 'orphanedHumans'),
     orphanShare: stats(runs.map((run) => run.population ? numberOrZero(run.orphanedHumans) / run.population : 0)),
     maxGeneration: metricStats(runs, 'maxGeneration'),
-    averageLivingHouseholdSize: metricStats(runs, 'averageLivingHouseholdSize'),
-    averageHistoricalHouseholdSize: metricStats(runs, 'averageHistoricalHouseholdSize'),
-    maxLivingHouseholdSize: metricStats(runs, 'maxLivingHouseholdSize')
+    averageLivingLineageSize: metricStats(runs, 'averageLivingLineageSize'),
+    averageHistoricalLineageSize: metricStats(runs, 'averageHistoricalLineageSize'),
+    maxLivingLineageSize: metricStats(runs, 'maxLivingLineageSize')
   };
 }
 
@@ -66,14 +66,14 @@ function emptyAggregate() {
     abandonedSettlementShare: stats([]),
     claimedTerritoryCells: stats([]),
     territoryCoverage: stats([]),
-    households: stats([]),
-    emptyHouseholds: stats([]),
-    emptyHouseholdShare: stats([]),
+    lineages: stats([]),
+    extinctLineages: stats([]),
+    extinctLineageShare: stats([]),
     orphanedHumans: stats([]),
     orphanShare: stats([]),
     maxGeneration: stats([]),
-    averageLivingHouseholdSize: stats([]),
-    averageHistoricalHouseholdSize: stats([]),
-    maxLivingHouseholdSize: stats([])
+    averageLivingLineageSize: stats([]),
+    averageHistoricalLineageSize: stats([]),
+    maxLivingLineageSize: stats([])
   };
 }
