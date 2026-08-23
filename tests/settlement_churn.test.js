@@ -91,6 +91,7 @@ test('tracker records first join, stale outside-radius membership, distance leav
       p90: 4,
       max: 4
     });
+    assert.deepEqual(view.leaveRetentionCounterfactual, { 4: 1, 5: 1, 6: 1 });
     assert.equal(view.settledEpisodes.count, 1);
     assert.equal(view.settledEpisodes.mean, 2);
     assert.equal(view.unsettledEpisodesAfterJoin.count, 1);
@@ -137,6 +138,7 @@ test('direct settlement switch is not miscounted as a leave plus rejoin', () => 
   assert.equal(adults.switchEvents, 1);
   assert.equal(adults.leaveEvents, 0);
   assert.equal(adults.joinEvents, 0);
+  assert.equal(adults.lossDistance.count, 0);
 });
 
 test('settlement churn observation is snapshot and RNG neutral', () => {
