@@ -8,7 +8,8 @@
     "test": "node --test tests/*.test.js",
     "sim": "node tools/simulate.js",
     "smoke": "node tools/simulate.js --seed 42 --years 20 --population 20 --quiet",
-    "lab": "node simulation_lab/batch.js"
+    "lab": "node simulation_lab/batch.js",
+    "dev": "node tools/serve.js"
   },
   "engines": {
     "node": ">=22"

@@ -27,6 +27,7 @@ Requires Node.js 22+ and no third-party runtime dependencies.
 ```bash
 npm test
 npm run sim -- --seed 42 --years 100 --population 30
+npm run dev   # open http://127.0.0.1:8080
 ```
 
 Example machine-readable run:
