@@ -54,8 +54,8 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === '--json') result.json = true;
     else if (arg === '--quiet') result.quiet = true;
-    else if (arg.startsWith('--seed=')) result.seed = value(arg);
-    else if (arg === '--seed') result.seed = argv[++i];
+    else if (arg.startsWith('--seed=')) result.seed = seedValue(value(arg));
+    else if (arg === '--seed') result.seed = seedValue(argv[++i]);
     else if (arg.startsWith('--years=')) result.years = numberValue(arg, 'years');
     else if (arg === '--years') result.years = numberToken(argv[++i], 'years');
     else if (arg.startsWith('--population=')) result.population = integerValue(arg, 'population');
@@ -74,6 +74,9 @@ function parseArgs(argv) {
 }
 
 function value(token) { return token.slice(token.indexOf('=') + 1); }
+function seedValue(token) {
+  return /^[-+]?\d+$/.test(String(token)) ? Number(token) : String(token);
+}
 function numberValue(token, name) { return numberToken(value(token), name); }
 function integerValue(token, name) { return integerToken(value(token), name); }
 function numberToken(token, name) {

@@ -11,7 +11,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   foodPerMeal: 0.65,
   adultAgeYears: 18,
   femaleFertilityEndYears: 45,
-  birthChancePerEligiblePairPerDay: 0.0012,
+  birthChancePerEligiblePairPerDay: 0.0010,
   birthCooldownDays: 300,
   oldAgeYears: 75,
   hardMaxAgeYears: 105,

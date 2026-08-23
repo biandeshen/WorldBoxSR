@@ -102,6 +102,7 @@ function updateAgeAndHealth(world, human) {
 
 function reproduce(world) {
   const adultsByCell = new Map();
+  const eligibleFemales = [];
   const daysPerYear = world.config.daysPerYear;
 
   for (const human of world.entities) {
@@ -112,20 +113,27 @@ function reproduce(world) {
     let group = adultsByCell.get(key);
     if (!group) adultsByCell.set(key, group = { females: [], males: [] });
     (human.sex === 'F' ? group.females : group.males).push(human);
+    if (human.sex === 'F' && ageYears <= world.config.femaleFertilityEndYears) eligibleFemales.push(human);
   }
 
   const births = [];
-  for (const group of adultsByCell.values()) {
-    if (group.males.length === 0) continue;
-    for (const mother of group.females) {
-      const motherAgeYears = mother.ageDays / daysPerYear;
-      if (motherAgeYears > world.config.femaleFertilityEndYears) continue;
-      if (!world.rng.chance(world.config.birthChancePerEligiblePairPerDay)) continue;
-      const father = group.males[world.rng.int(group.males.length)];
-      births.push({ mother, father });
-      mother.birthCooldownDays = world.config.birthCooldownDays;
-      father.birthCooldownDays = Math.max(father.birthCooldownDays, 30);
+  for (const mother of eligibleFemales) {
+    const nearbyMales = [];
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const x = mother.x + dx;
+        const y = mother.y + dy;
+        if (x < 0 || y < 0 || x >= world.width || y >= world.height) continue;
+        const group = adultsByCell.get(`${x},${y}`);
+        if (group) nearbyMales.push(...group.males);
+      }
     }
+    if (nearbyMales.length === 0) continue;
+    if (!world.rng.chance(world.config.birthChancePerEligiblePairPerDay)) continue;
+    const father = nearbyMales[world.rng.int(nearbyMales.length)];
+    births.push({ mother, father });
+    mother.birthCooldownDays = world.config.birthCooldownDays;
+    father.birthCooldownDays = Math.max(father.birthCooldownDays, 30);
   }
 
   for (const { mother, father } of births) {
