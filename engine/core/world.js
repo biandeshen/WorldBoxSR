@@ -60,7 +60,8 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     }
   }
 
-  for (let i = 0; i < population; i += 1) createHuman(world);
+  const founderSpawnTiles = population > 0 ? world.tiles.filter(isTilePassable) : null;
+  for (let i = 0; i < population; i += 1) createHuman(world, {}, { passableTiles: founderSpawnTiles });
   pushEvent(world, { type: 'world.created', subject: worldSubject(), seed: world.seed, population });
   return world;
 }
