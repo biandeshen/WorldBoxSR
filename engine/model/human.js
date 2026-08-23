@@ -22,6 +22,7 @@ export function createHuman(world, overrides = {}, { passableTiles = null } = {}
     lineageId: null,
     parentIds: [...(overrides.parentIds ?? [])],
     childIds: [...(overrides.childIds ?? [])],
+    unionIds: [...(overrides.unionIds ?? [])],
     generation: overrides.generation ?? 0
   };
   world.entities.push(human);

@@ -1,5 +1,10 @@
 import { createHuman } from '../model/human.js';
 import { entityRef, pushEvent } from '../model/events.js';
+import {
+  addChildToParentalUnion,
+  endParentalUnionsForHuman,
+  ensureParentalUnion
+} from '../model/parental_union.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 import { keyedChance, keyedIndex } from '../core/keyed_random.js';
 
@@ -174,6 +179,12 @@ function reproduce(world) {
     });
     mother.childIds.push(child.id);
     father.childIds.push(child.id);
+
+    // Social bookkeeping happens only after the existing conception/father/child
+    // RNG path has completed, and it consumes no RNG itself.
+    const { union } = ensureParentalUnion(world, mother, father);
+    addChildToParentalUnion(world, union, child.id);
+
     world.counters.births += 1;
     pushEvent(world, {
       type: 'human.born',
@@ -182,6 +193,7 @@ function reproduce(world) {
       entityId: child.id,
       motherId: mother.id,
       fatherId: father.id,
+      unionId: union.id,
       lineageId: child.lineageId,
       generation: child.generation
     });
@@ -200,6 +212,7 @@ function kill(world, human, cause) {
     cause,
     ageYears: human.ageDays / world.config.daysPerYear
   });
+  endParentalUnionsForHuman(world, human.id, 'partner_death');
 }
 
 function clamp01(value) {

@@ -8,7 +8,7 @@ import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 6;
+export const SNAPSHOT_VERSION = 7;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -23,6 +23,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     nextEntityId: 1,
     nextSettlementId: 1,
     nextLineageId: 1,
+    nextUnionId: 1,
     nextEventId: 1,
     nextCommandId: 1,
     config: mergeConfig(config),
@@ -30,6 +31,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     entities: [],
     settlements: [],
     lineages: [],
+    unions: [],
     history: [],
     counters: { births: 0, deaths: 0, meals: 0 }
   };
@@ -114,6 +116,7 @@ export function snapshotWorld(world) {
     nextEntityId: world.nextEntityId,
     nextSettlementId: world.nextSettlementId,
     nextLineageId: world.nextLineageId,
+    nextUnionId: world.nextUnionId,
     nextEventId: world.nextEventId,
     nextCommandId: world.nextCommandId,
     config: { ...world.config },
@@ -121,13 +124,19 @@ export function snapshotWorld(world) {
     entities: world.entities.map((entity) => ({
       ...entity,
       parentIds: [...entity.parentIds],
-      childIds: [...entity.childIds]
+      childIds: [...entity.childIds],
+      unionIds: [...entity.unionIds]
     })),
     settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     lineages: world.lineages.map((lineage) => ({
       ...lineage,
       memberIds: [...lineage.memberIds],
       founderIds: [...lineage.founderIds]
+    })),
+    unions: world.unions.map((union) => ({
+      ...union,
+      partnerIds: [...union.partnerIds],
+      childIds: [...union.childIds]
     })),
     history: world.history.map((event) => ({ ...event })),
     counters: { ...world.counters }
@@ -148,6 +157,7 @@ export function worldFromSnapshot(snapshot) {
     nextEntityId: snapshot.nextEntityId,
     nextSettlementId: snapshot.nextSettlementId,
     nextLineageId: snapshot.nextLineageId,
+    nextUnionId: snapshot.nextUnionId,
     nextEventId: snapshot.nextEventId,
     nextCommandId: snapshot.nextCommandId,
     config: mergeConfig(snapshot.config),
@@ -155,13 +165,19 @@ export function worldFromSnapshot(snapshot) {
     entities: snapshot.entities.map((entity) => ({
       ...entity,
       parentIds: [...entity.parentIds],
-      childIds: [...entity.childIds]
+      childIds: [...entity.childIds],
+      unionIds: [...entity.unionIds]
     })),
     settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     lineages: snapshot.lineages.map((lineage) => ({
       ...lineage,
       memberIds: [...lineage.memberIds],
       founderIds: [...lineage.founderIds]
+    })),
+    unions: snapshot.unions.map((union) => ({
+      ...union,
+      partnerIds: [...union.partnerIds],
+      childIds: [...union.childIds]
     })),
     history: snapshot.history.map((event) => ({ ...event })),
     counters: { ...snapshot.counters }
