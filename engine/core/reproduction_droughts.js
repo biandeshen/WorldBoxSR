@@ -19,6 +19,7 @@ export function createReproductionDroughtTracker({ memoryWindows = DEFAULT_MEMOR
   let eligibleFemaleDays = 0;
   let radius1OpportunityFemaleDays = 0;
   let radius3OpportunityFemaleDays = 0;
+  let radius3WhileRadius1MissingFemaleDays = 0;
   let radius1NoOpportunityFemaleDays = 0;
   let radius1NoOpportunityWithPriorEncounterDays = 0;
   let daysSinceLastOpportunitySum = 0;
@@ -64,6 +65,7 @@ export function createReproductionDroughtTracker({ memoryWindows = DEFAULT_MEMOR
       }
 
       radius1NoOpportunityFemaleDays += 1;
+      if (hasRadius3) radius3WhileRadius1MissingFemaleDays += 1;
       activeNoOpportunityStreaks.set(female.id, (activeNoOpportunityStreaks.get(female.id) ?? 0) + 1);
 
       const lastOpportunityDay = lastRadius1OpportunityDay.get(female.id);
@@ -89,9 +91,14 @@ export function createReproductionDroughtTracker({ memoryWindows = DEFAULT_MEMOR
       radius1OpportunityFemaleDays,
       radius1NoOpportunityFemaleDays,
       radius3OpportunityFemaleDays,
+      radius3WhileRadius1MissingFemaleDays,
       radius1OpportunityShare: ratio(radius1OpportunityFemaleDays, eligibleFemaleDays),
       radius1NoOpportunityShare: ratio(radius1NoOpportunityFemaleDays, eligibleFemaleDays),
       radius3OpportunityShare: ratio(radius3OpportunityFemaleDays, eligibleFemaleDays),
+      radius3RescueShareOfRadius1NoOpportunityDays: ratio(
+        radius3WhileRadius1MissingFemaleDays,
+        radius1NoOpportunityFemaleDays
+      ),
       radius1NoOpportunityWithPriorEncounterDays,
       priorEncounterShareOfNoOpportunityDays: ratio(
         radius1NoOpportunityWithPriorEncounterDays,
@@ -106,6 +113,12 @@ export function createReproductionDroughtTracker({ memoryWindows = DEFAULT_MEMOR
         windows.map((window) => [
           window,
           ratio(memoryCoveredNoOpportunityDays.get(window), radius1NoOpportunityFemaleDays)
+        ])
+      ),
+      memoryCoverageOfPriorEncounterNoOpportunityDays: Object.fromEntries(
+        windows.map((window) => [
+          window,
+          ratio(memoryCoveredNoOpportunityDays.get(window), radius1NoOpportunityWithPriorEncounterDays)
         ])
       ),
       noOpportunityStreaks: summarizeStreaks(streaks)
