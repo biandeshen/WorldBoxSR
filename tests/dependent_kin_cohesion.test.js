@@ -14,6 +14,7 @@ function makeParentChildWorld(dependentKinBiasChance, { childAge = 10, childHung
       passiveMoveChance: 1,
       settlementHomeBiasChance: 0,
       dependentKinBiasChance,
+      dependentKinCohesionRadius: 1,
       hungerPerDay: 0,
       birthChancePerEligiblePairPerDay: 0,
       settlementCheckIntervalDays: 0
@@ -38,7 +39,7 @@ function distance(a, b) {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 
-test('dependent minor takes a homeward passive step when kin bias is certain', () => {
+test('dependent minor takes a homeward passive step when beyond the care radius', () => {
   const { world, parent, child } = makeParentChildWorld(1);
   const before = distance(parent, child);
   tickWorld(world, 1);
@@ -48,7 +49,6 @@ test('dependent minor takes a homeward passive step when kin bias is certain', (
 test('hunger-driven food movement overrides dependent kin bias', () => {
   const { world, parent, child } = makeParentChildWorld(1, { childHunger: 0.4 });
   for (const tile of world.tiles) tile.food = 0;
-  // Away from the parent, but deliberately the best adjacent food target.
   const away = world.tiles.find((tile) => tile.x === 6 && tile.y === 6);
   away.food = 10;
   const before = distance(parent, child);
