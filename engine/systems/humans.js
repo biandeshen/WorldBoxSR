@@ -80,16 +80,19 @@ function randomMove(world, human, livingById) {
   const ageYears = human.ageDays / world.config.daysPerYear;
   if (ageYears < world.config.adultAgeYears) {
     const parent = nearestLivingParent(human, livingById);
-    if (parent && keyedChance(world.seed, human.id, world.day, 0x9c6ef372, world.config.dependentKinBiasChance)) {
+    if (parent) {
       const currentDistance = chebyshevDistance(human.x, human.y, parent.x, parent.y);
-      const closer = candidates.filter((cell) => chebyshevDistance(cell.x, cell.y, parent.x, parent.y) < currentDistance);
-      if (closer.length > 0) {
-        const index = keyedIndex(world.seed, human.id, world.day, 0xbb67ae85, closer.length);
-        const chosen = closer[index];
-        human.x = chosen.x;
-        human.y = chosen.y;
+      if (currentDistance > world.config.dependentKinCohesionRadius &&
+          keyedChance(world.seed, human.id, world.day, 0x9c6ef372, world.config.dependentKinBiasChance)) {
+        const closer = candidates.filter((cell) => chebyshevDistance(cell.x, cell.y, parent.x, parent.y) < currentDistance);
+        if (closer.length > 0) {
+          const index = keyedIndex(world.seed, human.id, world.day, 0xbb67ae85, closer.length);
+          const chosen = closer[index];
+          human.x = chosen.x;
+          human.y = chosen.y;
+        }
+        return;
       }
-      return;
     }
   }
 
