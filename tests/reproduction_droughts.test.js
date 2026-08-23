@@ -59,11 +59,14 @@ test('drought tracker measures streaks, wider opportunity, and recent encounter 
   assert.equal(summary.radius1OpportunityFemaleDays, 2);
   assert.equal(summary.radius1NoOpportunityFemaleDays, 3);
   assert.equal(summary.radius3OpportunityFemaleDays, 5);
+  assert.equal(summary.radius3RescueShareOfRadius1NoOpportunityDays, 1);
   assert.equal(summary.priorEncounterShareOfNoOpportunityDays, 1);
   assert.equal(summary.averageDaysSinceLastRadius1Opportunity, 2);
   assert.equal(summary.maxDaysSinceLastRadius1Opportunity, 3);
   assert.equal(summary.memoryCoverageOfNoOpportunityDays[2], 2 / 3);
   assert.equal(summary.memoryCoverageOfNoOpportunityDays[3], 1);
+  assert.equal(summary.memoryCoverageOfPriorEncounterNoOpportunityDays[2], 2 / 3);
+  assert.equal(summary.memoryCoverageOfPriorEncounterNoOpportunityDays[3], 1);
   assert.deepEqual(summary.noOpportunityStreaks, {
     count: 1,
     mean: 3,
