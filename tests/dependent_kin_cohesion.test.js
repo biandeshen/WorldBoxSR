@@ -15,6 +15,7 @@ function makeParentChildWorld(dependentKinBiasChance, { childAge = 10, childHung
       settlementHomeBiasChance: 0,
       dependentKinBiasChance,
       dependentKinCohesionRadius: 1,
+      dependentKinCohesionEndYears: 12,
       hungerPerDay: 0,
       birthChancePerEligiblePairPerDay: 0,
       settlementCheckIntervalDays: 0
@@ -39,7 +40,7 @@ function distance(a, b) {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 
-test('dependent minor takes a homeward passive step when beyond the care radius', () => {
+test('young dependent takes a homeward passive step when beyond the care radius', () => {
   const { world, parent, child } = makeParentChildWorld(1);
   const before = distance(parent, child);
   tickWorld(world, 1);
@@ -58,13 +59,15 @@ test('hunger-driven food movement overrides dependent kin bias', () => {
   assert.ok(distance(parent, child) > before);
 });
 
-test('adult humans are unaffected by dependent kin bias', () => {
-  const a = makeParentChildWorld(0, { childAge: 20 });
-  const b = makeParentChildWorld(1, { childAge: 20 });
-  tickWorld(a.world, 1);
-  tickWorld(b.world, 1);
-  assert.deepEqual(a.world.entities, b.world.entities);
-  assert.deepEqual(a.world.rng.snapshot(), b.world.rng.snapshot());
+test('older minors and adults are unaffected by dependent kin bias', () => {
+  for (const childAge of [15, 20]) {
+    const a = makeParentChildWorld(0, { childAge });
+    const b = makeParentChildWorld(1, { childAge });
+    tickWorld(a.world, 1);
+    tickWorld(b.world, 1);
+    assert.deepEqual(a.world.entities, b.world.entities);
+    assert.deepEqual(a.world.rng.snapshot(), b.world.rng.snapshot());
+  }
 });
 
 test('dependent kin override preserves the sequential RNG stream', () => {
