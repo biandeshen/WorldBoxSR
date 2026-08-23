@@ -4,6 +4,7 @@ import { createHuman } from '../model/human.js';
 import { pushEvent } from '../model/events.js';
 import { regenerateFood } from '../systems/environment.js';
 import { updateHumans } from '../systems/humans.js';
+import { generateWorldFields } from '../world/fields.js';
 
 export const SNAPSHOT_VERSION = 1;
 
@@ -25,13 +26,18 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     counters: { births: 0, deaths: 0, meals: 0 }
   };
 
+  const fields = generateWorldFields({ seed: world.seed, width, height });
+
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const fertility = rng.range(0.2, 1.0);
       const capacity = 1.5 + fertility * 8.5;
+      const index = y * width + x;
       world.tiles.push({
         x,
         y,
+        elevation: fields.elevation[index],
+        moisture: fields.moisture[index],
         fertility,
         foodCapacity: capacity,
         food: capacity * rng.range(0.35, 1.0)
