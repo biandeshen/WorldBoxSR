@@ -10,6 +10,7 @@
     "smoke": "node tools/simulate.js --seed 42 --years 20 --population 20 --quiet",
     "lab": "node simulation_lab/batch.js",
     "lab:parallel": "node simulation_lab/batch.js --workers 4",
+    "scenario": "node simulation_lab/scenario_cli.js",
     "dev": "node tools/serve.js"
   },
   "engines": {
