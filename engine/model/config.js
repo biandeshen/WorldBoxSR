@@ -24,6 +24,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   settlementMembershipRadius: 3,
   settlementHomeBiasChance: 0.05,
   dependentKinBiasChance: 0,
+  dependentKinCohesionRadius: 3,
   settlementAbandonmentDays: 360,
   settlementTerritoryRadius: 3
 });
