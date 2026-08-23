@@ -4,12 +4,13 @@ import { summarizeSpatialKin } from '../engine/core/kin_metrics.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../engine/core/world.js';
 
-const seeds = [1, 45, 98];
-const chances = [0, 0.05, 0.1, 0.2, 0.4, 0.8];
+const seeds = [1,2,3,4,5,6,7,8,9,10,45,98];
+const chances = [0, 0.4, 0.8];
 
-test('temporary dependent-kin parameter scan', () => {
-  for (const seed of seeds) {
-    for (const dependentKinBiasChance of chances) {
+test('temporary dependent-kin distribution scan', () => {
+  for (const dependentKinBiasChance of chances) {
+    const rows = [];
+    for (const seed of seeds) {
       const world = createWorld({
         seed,
         width: 24,
@@ -20,20 +21,42 @@ test('temporary dependent-kin parameter scan', () => {
       tickWorld(world, 100 * world.config.daysPerYear);
       const s = summarizeWorld(world);
       const k = summarizeSpatialKin(world);
-      console.log(`KIN_SCAN ${JSON.stringify({
+      rows.push({
         seed,
-        chance: dependentKinBiasChance,
         population: s.population,
         births: s.births,
         deaths: s.deaths,
-        parentChildWithin1Share: k.parentChildWithin1Share,
-        parentChildWithin3Share: k.parentChildWithin3Share,
-        medianParentChildDistance: k.medianParentChildDistance,
-        minorsParentWithin1Share: k.minorsParentWithin1Share,
-        minorsParentWithin3Share: k.minorsParentWithin3Share,
-        dependentMinors: k.dependentMinors
-      })}`);
-      assert.ok(s.population >= 0);
+        parentWithin3: k.parentChildWithin3Share,
+        minorWithin1: k.minorsParentWithin1Share,
+        minorWithin3: k.minorsParentWithin3Share,
+        parentDistance: k.medianParentChildDistance
+      });
     }
+
+    const result = {
+      chance: dependentKinBiasChance,
+      population: stat(rows.map((row) => row.population)),
+      births: stat(rows.map((row) => row.births)),
+      deaths: stat(rows.map((row) => row.deaths)),
+      parentWithin3: stat(rows.map((row) => row.parentWithin3)),
+      minorWithin1: stat(rows.map((row) => row.minorWithin1)),
+      minorWithin3: stat(rows.map((row) => row.minorWithin3)),
+      parentDistance: stat(rows.map((row) => row.parentDistance)),
+      seed45: rows.find((row) => row.seed === 45),
+      seed98: rows.find((row) => row.seed === 98)
+    };
+    console.log(`KIN_DISTRIBUTION ${JSON.stringify(result)}`);
+    assert.equal(rows.length, seeds.length);
   }
 });
+
+function stat(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return {
+    min: sorted[0],
+    median: sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
+    mean: values.reduce((sum, value) => sum + value, 0) / values.length,
+    max: sorted.at(-1)
+  };
+}
