@@ -162,6 +162,11 @@ function drawWorld() {
   for (const settlement of world.settlements) {
     const p = worldToScreen(camera, settlement.x + 0.5, settlement.y + 0.5, viewport());
     const size = Math.max(4, Math.min(cellW, cellH) * 0.8);
+    ctx.save();
+    if (!settlement.active) {
+      ctx.globalAlpha = 0.38;
+      ctx.setLineDash([Math.max(2, size * 0.25), Math.max(2, size * 0.18)]);
+    }
     ctx.strokeStyle = '#ffd66b';
     ctx.lineWidth = Math.max(1, Math.min(cellW, cellH) * 0.12);
     ctx.strokeRect(p.x - size / 2, p.y - size / 2, size, size);
@@ -170,6 +175,7 @@ function drawWorld() {
       ctx.fillStyle = '#fff4c7';
       ctx.fillText(settlement.name, p.x + size * 0.65, p.y - size * 0.65);
     }
+    ctx.restore();
   }
 
   const radius = Math.max(1.5, Math.min(cellW, cellH) * 0.25);
@@ -191,8 +197,8 @@ function drawWorld() {
 function drawSelection(cellW, cellH) {
   const target = resolveSelection();
   if (!target) return;
-  const x = target.x;
-  const y = target.y;
+  const x = target.kind === 'tile' ? target.x : target.x;
+  const y = target.kind === 'tile' ? target.y : target.y;
   const p = worldToScreen(camera, x, y, viewport());
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = Math.max(1.5, Math.min(cellW, cellH) * 0.12);
@@ -205,7 +211,7 @@ function updateStats() {
     `year: <strong>${s.year.toFixed(2)}</strong>`,
     `population: <strong>${s.population}</strong>`,
     `births / deaths: <strong>${s.births} / ${s.deaths}</strong>`,
-    `settlements: <strong>${s.settlements}</strong> · settled: <strong>${s.settledPopulation}</strong>`,
+    `settlements: <strong>${s.activeSettlements}/${s.settlements} active</strong> · settled: <strong>${s.settledPopulation}</strong>`,
     `avg age: <strong>${s.averageAgeYears.toFixed(1)}</strong>`,
     `food remaining: <strong>${(s.foodUtilization * 100).toFixed(1)}%</strong>`,
     `zoom: <strong>${camera.zoom.toFixed(2)}×</strong>`,
@@ -236,6 +242,7 @@ function updateInspector() {
     inspector.textContent = [
       `${target.name.toUpperCase()} · SETTLEMENT #${target.id}`,
       `founded year ${(target.foundedDay / world.config.daysPerYear).toFixed(2)}`,
+      `state ${target.active ? 'active' : `abandoned year ${(target.abandonedDay / world.config.daysPerYear).toFixed(2)}`}`,
       `center ${target.x},${target.y}`,
       `population ${target.population}`,
       `members ${target.memberIds.length ? target.memberIds.slice(0, 12).join(', ') + (target.memberIds.length > 12 ? '…' : '') : 'none'}`

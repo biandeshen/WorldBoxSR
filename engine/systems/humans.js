@@ -77,7 +77,7 @@ function randomMove(world, human) {
   const baseline = candidates[world.rng.int(candidates.length)];
   const home = human.settlementId === null
     ? null
-    : world.settlements.find((settlement) => settlement.id === human.settlementId);
+    : world.settlements.find((settlement) => settlement.id === human.settlementId && settlement.active);
 
   if (home && keyedChance(world.seed, human.id, world.day, 0x51ed270b, world.config.settlementHomeBiasChance)) {
     const currentDistance = chebyshevDistance(human.x, human.y, home.x, home.y);
