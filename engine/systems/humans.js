@@ -144,6 +144,7 @@ function reproduce(world) {
 
   const births = [];
   const supplementalRadius = Math.max(1, Math.floor(world.config.supplementalReproductionRadius ?? 1));
+  const supplementalChanceMultiplier = clamp01(world.config.supplementalReproductionChanceMultiplier ?? 1);
 
   for (const mother of eligibleFemales) {
     const nearbyMales = collectNearbyMales(world, adultsByCell, mother.x, mother.y, 1);
@@ -156,16 +157,17 @@ function reproduce(world) {
       continue;
     }
 
-    if (supplementalRadius <= 1) continue;
+    if (supplementalRadius <= 1 || supplementalChanceMultiplier <= 0) continue;
     const supplementalMales = collectNearbyMales(world, adultsByCell, mother.x, mother.y, supplementalRadius);
     if (supplementalMales.length === 0) continue;
 
+    const supplementalChance = world.config.birthChancePerEligiblePairPerDay * supplementalChanceMultiplier;
     if (!keyedChance(
       world.seed,
       mother.id,
       world.day,
       SUPPLEMENTAL_BIRTH_ATTEMPT_SALT,
-      world.config.birthChancePerEligiblePairPerDay
+      supplementalChance
     )) continue;
 
     const fatherIndex = keyedIndex(
