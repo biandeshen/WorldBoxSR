@@ -16,8 +16,17 @@ export function createReproductionSpatialIsolationTracker() {
   let distanceMax = 0;
 
   let observations = 0;
+  let observationsWithActiveSettlement = 0;
   let eligibleFemaleDays = 0;
+  let eligibleFemaleDaysWithActiveSettlement = 0;
+  let settledEligibleFemaleDays = 0;
+  let unsettledEligibleFemaleDays = 0;
+  let eligibleMaleDays = 0;
+  let settledEligibleMaleDays = 0;
+  let unsettledEligibleMaleDays = 0;
   let droughtFemaleDays = 0;
+  let droughtDaysWithActiveSettlement = 0;
+  let droughtDaysWithoutActiveSettlement = 0;
   let settledDroughtDays = 0;
   let unsettledDroughtDays = 0;
   let noEligibleMaleAnywhereDays = 0;
@@ -51,7 +60,9 @@ export function createReproductionSpatialIsolationTracker() {
     const activeSettlementIds = new Set(
       world.settlements.filter((settlement) => settlement.active).map((settlement) => settlement.id)
     );
-    const livingById = new Map();
+    const hasActiveSettlement = activeSettlementIds.size > 0;
+    if (hasActiveSettlement) observationsWithActiveSettlement += 1;
+
     const eligibleMales = [];
     const eligibleMaleById = new Map();
     const eligibleMalesByCell = new Map();
@@ -61,14 +72,19 @@ export function createReproductionSpatialIsolationTracker() {
 
     for (const human of world.entities) {
       if (human.kind !== 'human' || !human.alive) continue;
-      livingById.set(human.id, human);
 
       if (isEligibleMale(world, human)) {
         eligibleMales.push(human);
         eligibleMaleById.set(human.id, human);
-        addToMapArray(eligibleMalesByCell, human.y * world.width + human.x, human);
+        eligibleMaleDays += 1;
         const settlementId = activeSettlementIds.has(human.settlementId) ? human.settlementId : null;
-        if (settlementId !== null) addToMapArray(eligibleMalesBySettlement, settlementId, human);
+        if (settlementId === null) {
+          unsettledEligibleMaleDays += 1;
+        } else {
+          settledEligibleMaleDays += 1;
+          addToMapArray(eligibleMalesBySettlement, settlementId, human);
+        }
+        addToMapArray(eligibleMalesByCell, human.y * world.width + human.x, human);
         addToMapArray(eligibleMalesByComponent, topology.componentByTile[human.y * world.width + human.x], human);
       }
 
@@ -82,10 +98,16 @@ export function createReproductionSpatialIsolationTracker() {
 
       if (!isEligibleFemale(world, female)) continue;
       eligibleFemaleDays += 1;
+      const femaleSettlementId = activeSettlementIds.has(female.settlementId) ? female.settlementId : null;
+      if (hasActiveSettlement) eligibleFemaleDaysWithActiveSettlement += 1;
+      if (femaleSettlementId === null) unsettledEligibleFemaleDays += 1;
+      else settledEligibleFemaleDays += 1;
+
       if (localMales.length > 0) continue;
 
       droughtFemaleDays += 1;
-      const femaleSettlementId = activeSettlementIds.has(female.settlementId) ? female.settlementId : null;
+      if (hasActiveSettlement) droughtDaysWithActiveSettlement += 1;
+      else droughtDaysWithoutActiveSettlement += 1;
       const femaleComponent = topology.componentByTile[female.y * world.width + female.x];
 
       if (femaleSettlementId === null) {
@@ -122,9 +144,6 @@ export function createReproductionSpatialIsolationTracker() {
       );
       if (remembered) {
         rememberedEligiblePartnerDays += 1;
-        const maleSettlementId = activeSettlementIds.has(remembered.male.settlementId)
-          ? remembered.male.settlementId
-          : null;
         const relation = classifySettlementRelation(femaleSettlementId, remembered.male, activeSettlementIds);
         if (relation === 'sameSettlement') rememberedSameSettlementDays += 1;
         else if (relation === 'otherSettlement') rememberedOtherSettlementDays += 1;
@@ -141,7 +160,7 @@ export function createReproductionSpatialIsolationTracker() {
   }
 
   function ensureTopology(world) {
-    if (topology && topology.width === world.width && topology.height === world.height) return;
+    if (topology && topology.seed === world.seed && topology.width === world.width && topology.height === world.height) return;
     topology = buildPassableComponents(world);
     distanceHistogram = new Uint32Array(Math.max(world.width, world.height));
   }
@@ -220,15 +239,54 @@ export function createReproductionSpatialIsolationTracker() {
   }
 
   function summarize() {
+    const unsettledEligibleFemaleDaysWhenSettlementsExist = Math.max(
+      0,
+      eligibleFemaleDaysWithActiveSettlement - settledEligibleFemaleDays
+    );
+    const unsettledDroughtDaysWhenSettlementsExist = Math.max(
+      0,
+      droughtDaysWithActiveSettlement - settledDroughtDays
+    );
+
     return {
       observations,
+      observationsWithActiveSettlement,
       eligibleFemaleDays,
+      eligibleFemaleDaysWithActiveSettlement,
+      settledEligibleFemaleDays,
+      unsettledEligibleFemaleDays,
+      settledEligibleFemaleShare: ratio(settledEligibleFemaleDays, eligibleFemaleDays),
+      settledEligibleFemaleShareWhenSettlementsExist: ratio(
+        settledEligibleFemaleDays,
+        eligibleFemaleDaysWithActiveSettlement
+      ),
+      unsettledEligibleFemaleShareWhenSettlementsExist: ratio(
+        unsettledEligibleFemaleDaysWhenSettlementsExist,
+        eligibleFemaleDaysWithActiveSettlement
+      ),
+      eligibleMaleDays,
+      settledEligibleMaleDays,
+      unsettledEligibleMaleDays,
+      settledEligibleMaleShare: ratio(settledEligibleMaleDays, eligibleMaleDays),
       droughtFemaleDays,
       droughtShare: ratio(droughtFemaleDays, eligibleFemaleDays),
+      droughtDaysWithActiveSettlement,
+      droughtDaysWithoutActiveSettlement,
+      preSettlementShareOfDroughtDays: ratio(droughtDaysWithoutActiveSettlement, droughtFemaleDays),
       settledDroughtDays,
       unsettledDroughtDays,
       settledShareOfDroughtDays: ratio(settledDroughtDays, droughtFemaleDays),
       unsettledShareOfDroughtDays: ratio(unsettledDroughtDays, droughtFemaleDays),
+      settledShareOfDroughtDaysWhenSettlementsExist: ratio(
+        settledDroughtDays,
+        droughtDaysWithActiveSettlement
+      ),
+      unsettledShareOfDroughtDaysWhenSettlementsExist: ratio(
+        unsettledDroughtDaysWhenSettlementsExist,
+        droughtDaysWithActiveSettlement
+      ),
+      settledFemaleDroughtRate: ratio(settledDroughtDays, settledEligibleFemaleDays),
+      unsettledFemaleDroughtRate: ratio(unsettledDroughtDays, unsettledEligibleFemaleDays),
       noEligibleMaleAnywhereDays,
       noEligibleMaleAnywhereShare: ratio(noEligibleMaleAnywhereDays, droughtFemaleDays),
       sameComponentMaleDays,
@@ -330,6 +388,7 @@ function buildPassableComponents(world) {
   }
 
   return {
+    seed: world.seed,
     width: world.width,
     height: world.height,
     componentByTile,
