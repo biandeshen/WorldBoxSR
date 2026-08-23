@@ -33,8 +33,12 @@ canvas.addEventListener('click', (event) => {
   const rect = canvas.getBoundingClientRect();
   const x = Math.floor(((event.clientX - rect.left) / rect.width) * world.width);
   const y = Math.floor(((event.clientY - rect.top) / rect.height) * world.height);
-  applyCommand(world, { type: 'spawn_human', x, y, count: event.shiftKey ? 10 : 1 });
-  updateStats();
+  try {
+    applyCommand(world, { type: 'spawn_human', x, y, count: event.shiftKey ? 10 : 1 });
+    updateStats();
+  } catch (error) {
+    if (!/impassable/.test(String(error?.message))) throw error;
+  }
 });
 
 function frame(timestamp) {
@@ -53,10 +57,15 @@ function drawWorld() {
   const cellH = canvas.height / world.height;
 
   for (const tile of world.tiles) {
-    const foodRatio = tile.food / tile.foodCapacity;
-    const light = 18 + tile.fertility * 16 + foodRatio * 10;
-    const saturation = 32 + tile.fertility * 35;
-    ctx.fillStyle = `hsl(112 ${saturation}% ${light}%)`;
+    if (tile.biome === 'ocean') {
+      const depth = 1 - tile.elevation / world.config.waterLevel;
+      ctx.fillStyle = `hsl(205 58% ${24 + (1 - depth) * 12}%)`;
+    } else {
+      const foodRatio = tile.foodCapacity ? tile.food / tile.foodCapacity : 0;
+      const light = 18 + tile.fertility * 16 + foodRatio * 10;
+      const saturation = 32 + tile.fertility * 35;
+      ctx.fillStyle = `hsl(112 ${saturation}% ${light}%)`;
+    }
     ctx.fillRect(tile.x * cellW, tile.y * cellH, Math.ceil(cellW), Math.ceil(cellH));
   }
 
