@@ -97,6 +97,7 @@ test('same-pair return interval records reunion after a real local separation', 
 test('per-female partner memory is capped deterministically', () => {
   const { world } = makeStaticPair();
   createHuman(world, { x: 2, y: 3, sex: 'M', ageYears: 26, hunger: 0.1, birthCooldownDays: 0 });
+  createHuman(world, { x: 1, y: 2, sex: 'M', ageYears: 27, hunger: 0.1, birthCooldownDays: 0 });
   const tracker = createPartnerPersistenceTracker({ maxPartnersPerFemale: 2 });
 
   tracker.observe(world);
