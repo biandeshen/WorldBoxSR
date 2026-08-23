@@ -51,21 +51,13 @@ export function createFormerHomeRecoveryTracker() {
       if (state.adultTrackingStarted && adult) {
         processTransition(
           world,
-          human,
           state,
           state.lastSettlementId,
           currentSettlementId,
           settlementById,
           reproductiveFemale
         );
-        recordActiveLeaveDay(
-          world,
-          human,
-          state,
-          currentSettlementId,
-          settlementById,
-          reproductiveFemale
-        );
+        recordActiveLeaveDay(world, human, state, currentSettlementId, settlementById);
       }
 
       state.lastSettlementId = currentSettlementId;
@@ -74,9 +66,14 @@ export function createFormerHomeRecoveryTracker() {
     for (const [humanId, state] of humanStates) {
       if (livingIds.has(humanId)) continue;
       if (state.activeLeave) {
-        finishEpisode(adults, state.activeLeave, 'human_lost', null);
+        finishEpisode(adults, state.activeLeave.adultEpisode, 'human_lost', null);
         if (state.activeLeave.reproductiveFemaleAtLeave) {
-          finishEpisode(reproductiveFemales, state.activeLeave, 'human_lost', null);
+          finishEpisode(
+            reproductiveFemales,
+            state.activeLeave.reproductiveFemaleEpisode,
+            'human_lost',
+            null
+          );
         }
       }
       humanStates.delete(humanId);
@@ -86,7 +83,6 @@ export function createFormerHomeRecoveryTracker() {
 
   function processTransition(
     world,
-    human,
     state,
     previousSettlementId,
     currentSettlementId,
@@ -96,14 +92,13 @@ export function createFormerHomeRecoveryTracker() {
     if (previousSettlementId !== null && currentSettlementId === null) {
       const previous = settlementById.get(previousSettlementId);
       if (previous?.active) {
-        const leave = {
+        state.activeLeave = {
           formerSettlementId: previousSettlementId,
           leaveDay: world.day,
           reproductiveFemaleAtLeave: reproductiveFemale,
-          personDays: 0,
-          within6Days: 0
+          adultEpisode: createEpisodeView(),
+          reproductiveFemaleEpisode: createEpisodeView()
         };
-        state.activeLeave = leave;
         adults.distanceDrivenLeavesTracked += 1;
         if (reproductiveFemale) reproductiveFemales.distanceDrivenLeavesTracked += 1;
       }
@@ -114,30 +109,34 @@ export function createFormerHomeRecoveryTracker() {
 
     const sameFormer = currentSettlementId === state.activeLeave.formerSettlementId;
     const duration = Math.max(0, world.day - state.activeLeave.leaveDay);
-    finishEpisode(adults, state.activeLeave, sameFormer ? 'same_rejoin' : 'other_join', duration);
+    const outcome = sameFormer ? 'same_rejoin' : 'other_join';
+    finishEpisode(adults, state.activeLeave.adultEpisode, outcome, duration);
     if (state.activeLeave.reproductiveFemaleAtLeave) {
-      finishEpisode(reproductiveFemales, state.activeLeave, sameFormer ? 'same_rejoin' : 'other_join', duration);
+      finishEpisode(
+        reproductiveFemales,
+        state.activeLeave.reproductiveFemaleEpisode,
+        outcome,
+        duration
+      );
     }
     state.activeLeave = null;
   }
 
-  function recordActiveLeaveDay(
-    world,
-    human,
-    state,
-    currentSettlementId,
-    settlementById,
-    reproductiveFemale
-  ) {
+  function recordActiveLeaveDay(world, human, state, currentSettlementId, settlementById) {
     const leave = state.activeLeave;
     if (!leave || currentSettlementId !== null) return;
 
     const former = settlementById.get(leave.formerSettlementId);
     if (!former?.active) {
       const duration = Math.max(0, world.day - leave.leaveDay);
-      finishEpisode(adults, leave, 'former_abandoned', duration);
+      finishEpisode(adults, leave.adultEpisode, 'former_abandoned', duration);
       if (leave.reproductiveFemaleAtLeave) {
-        finishEpisode(reproductiveFemales, leave, 'former_abandoned', duration);
+        finishEpisode(
+          reproductiveFemales,
+          leave.reproductiveFemaleEpisode,
+          'former_abandoned',
+          duration
+        );
       }
       state.activeLeave = null;
       return;
@@ -147,9 +146,15 @@ export function createFormerHomeRecoveryTracker() {
     const distance = chebyshevDistance(human.x, human.y, former.x, former.y);
     const nonHungry = human.hunger < world.config.hungryThreshold;
 
-    recordPersonDay(adults, leave, daysSinceLeave, distance, nonHungry);
-    if (reproductiveFemale) {
-      recordPersonDay(reproductiveFemales, leave, daysSinceLeave, distance, nonHungry);
+    recordPersonDay(adults, leave.adultEpisode, daysSinceLeave, distance, nonHungry);
+    if (leave.reproductiveFemaleAtLeave) {
+      recordPersonDay(
+        reproductiveFemales,
+        leave.reproductiveFemaleEpisode,
+        daysSinceLeave,
+        distance,
+        nonHungry
+      );
     }
   }
 
@@ -170,11 +175,14 @@ export function createFormerHomeRecoveryTracker() {
   return { observe, summarize };
 }
 
+function createEpisodeView() {
+  return { personDays: 0, within6Days: 0 };
+}
+
 function createAggregate() {
   return {
     distanceDrivenLeavesTracked: 0,
     postLeaveUnsettledPersonDays: 0,
-    formerHomeActivePersonDays: 0,
     nonHungryPersonDays: 0,
     exactlyDistance4Days: 0,
     withinRadiusDays: Object.fromEntries(RECOVERY_RADII.map((radius) => [radius, 0])),
@@ -204,10 +212,9 @@ function createWindowAggregate() {
   };
 }
 
-function recordPersonDay(aggregate, leave, daysSinceLeave, distance, nonHungry) {
+function recordPersonDay(aggregate, episodeView, daysSinceLeave, distance, nonHungry) {
   ensureDistanceHistogram(aggregate, distance);
   aggregate.postLeaveUnsettledPersonDays += 1;
-  aggregate.formerHomeActivePersonDays += 1;
   if (nonHungry) aggregate.nonHungryPersonDays += 1;
   if (distance === 4) aggregate.exactlyDistance4Days += 1;
   for (const radius of RECOVERY_RADII) {
@@ -215,8 +222,8 @@ function recordPersonDay(aggregate, leave, daysSinceLeave, distance, nonHungry) 
   }
   aggregate.distanceHistogram[distance] += 1;
 
-  leave.personDays += 1;
-  if (distance <= 6) leave.within6Days += 1;
+  episodeView.personDays += 1;
+  if (distance <= 6) episodeView.within6Days += 1;
 
   const window = elapsedWindow(daysSinceLeave);
   const bucket = aggregate.windows[window.key];
@@ -230,7 +237,7 @@ function recordPersonDay(aggregate, leave, daysSinceLeave, distance, nonHungry) 
   bucket.distanceMax = Math.max(bucket.distanceMax, distance);
 }
 
-function finishEpisode(aggregate, leave, outcome, duration) {
+function finishEpisode(aggregate, episodeView, outcome, duration) {
   if (outcome === 'same_rejoin') {
     aggregate.sameRejoins += 1;
     if (duration !== null) aggregate.rejoinDurations.push(duration);
@@ -243,28 +250,24 @@ function finishEpisode(aggregate, leave, outcome, duration) {
   }
 
   aggregate.completedEpisodes += 1;
-  if (leave.personDays > 0) {
-    aggregate.completedNearHomeShareSum += leave.within6Days / leave.personDays;
+  if (episodeView.personDays > 0) {
+    aggregate.completedNearHomeShareSum += episodeView.within6Days / episodeView.personDays;
     aggregate.completedNearHomeShareCount += 1;
   }
 }
 
 function summarizeAggregate(aggregate, daysPerYear) {
   const personDays = aggregate.postLeaveUnsettledPersonDays;
-  const distance = summarizeHistogram(aggregate.distanceHistogram);
-  const rejoinDurations = summarizeValues(aggregate.rejoinDurations);
-
   return {
     distanceDrivenLeavesTracked: aggregate.distanceDrivenLeavesTracked,
     postLeaveUnsettledPersonDays: personDays,
     postLeaveUnsettledPersonYears: personDays / daysPerYear,
-    formerHomeActiveShare: ratio(aggregate.formerHomeActivePersonDays, personDays),
     nonHungryShare: ratio(aggregate.nonHungryPersonDays, personDays),
     exactlyDistance4Share: ratio(aggregate.exactlyDistance4Days, personDays),
     withinFormerHomeRadiusShare: Object.fromEntries(
       RECOVERY_RADII.map((radius) => [radius, ratio(aggregate.withinRadiusDays[radius], personDays)])
     ),
-    distance,
+    distance: summarizeHistogram(aggregate.distanceHistogram),
     elapsedWindows: Object.fromEntries(
       ELAPSED_WINDOWS.map(({ key }) => [key, summarizeWindow(aggregate.windows[key])])
     ),
@@ -281,7 +284,7 @@ function summarizeAggregate(aggregate, daysPerYear) {
       aggregate.sameRejoins * 100,
       aggregate.distanceDrivenLeavesTracked
     ),
-    rejoinDurations,
+    rejoinDurations: summarizeValues(aggregate.rejoinDurations),
     meanCompletedEpisodeWithinRadius6Share: ratio(
       aggregate.completedNearHomeShareSum,
       aggregate.completedNearHomeShareCount
