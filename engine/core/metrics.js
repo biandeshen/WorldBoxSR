@@ -1,4 +1,5 @@
 import { summarizeLineages } from './lineage_metrics.js';
+import { summarizeParentalUnions } from './union_metrics.js';
 
 export function summarizeWorld(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
@@ -11,6 +12,7 @@ export function summarizeWorld(world) {
   const passableTiles = world.tiles.filter((tile) => tile.passable).length;
   const claimedTerritoryCells = world.tiles.filter((tile) => tile.ownerSettlementId !== null).length;
   const lineageSummary = summarizeLineages(world);
+  const unionSummary = summarizeParentalUnions(world);
   const livingLineageTotal = lineageSummary.lineages.reduce((sum, lineage) => sum + lineage.livingMembers, 0);
   const historicalLineageTotal = lineageSummary.lineages.reduce((sum, lineage) => sum + lineage.historicalMembers, 0);
   const maxLivingLineageSize = lineageSummary.lineages.reduce((max, lineage) => Math.max(max, lineage.livingMembers), 0);
@@ -37,6 +39,15 @@ export function summarizeWorld(world) {
     averageLivingLineageSize: lineageSummary.lineageCount ? livingLineageTotal / lineageSummary.lineageCount : 0,
     averageHistoricalLineageSize: lineageSummary.lineageCount ? historicalLineageTotal / lineageSummary.lineageCount : 0,
     maxLivingLineageSize,
+    parentalUnions: unionSummary.unionCount,
+    activeParentalUnions: unionSummary.activeUnions,
+    endedParentalUnions: unionSummary.endedUnions,
+    singleChildParentalUnions: unionSummary.singleChildUnions,
+    multiChildParentalUnions: unionSummary.multiChildUnions,
+    averageChildrenPerParentalUnion: unionSummary.averageChildrenPerUnion,
+    maxChildrenPerParentalUnion: unionSummary.maxChildrenPerUnion,
+    livingUnionParticipants: unionSummary.livingUnionParticipants,
+    multiUnionLivingHumans: unionSummary.multiUnionLivingHumans,
     averageAgeYears: humans.length ? ageTotal / humans.length : 0,
     averageHunger: humans.length ? hungerTotal / humans.length : 0,
     food: foodTotal,
