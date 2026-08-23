@@ -52,6 +52,7 @@ export function updateSettlements(world) {
   }
 
   updateSettlementMembership(world);
+  updateSettlementLifecycle(world, interval);
 }
 
 export function updateSettlementMembership(world) {
@@ -71,10 +72,36 @@ export function updateSettlementMembership(world) {
   }
 }
 
+export function updateSettlementLifecycle(world, interval = world.config.settlementCheckIntervalDays) {
+  for (const settlement of world.settlements) {
+    if (!settlement.active) continue;
+    if (settlement.population > 0) {
+      settlement.emptyDays = 0;
+      continue;
+    }
+
+    settlement.emptyDays += interval;
+    if (settlement.emptyDays < world.config.settlementAbandonmentDays) continue;
+
+    settlement.active = false;
+    settlement.abandonedDay = world.day;
+    settlement.population = 0;
+    settlement.memberIds = [];
+    pushEvent(world, {
+      type: 'settlement.abandoned',
+      subject: entityRef('settlement', settlement.id),
+      settlementId: settlement.id,
+      name: settlement.name,
+      emptyDays: settlement.emptyDays
+    });
+  }
+}
+
 function nearestSettlement(world, x, y) {
   let best = null;
   let bestDistance = Infinity;
   for (const settlement of world.settlements) {
+    if (!settlement.active) continue;
     const distance = Math.max(Math.abs(x - settlement.x), Math.abs(y - settlement.y));
     if (distance > world.config.settlementMembershipRadius) continue;
     if (distance < bestDistance || (distance === bestDistance && settlement.id < best.id)) {
@@ -101,7 +128,7 @@ function countNearbyAdults(world, adultsPerTile, x, y) {
 }
 
 function tooCloseToSettlement(world, x, y) {
-  return world.settlements.some((settlement) =>
+  return world.settlements.some((settlement) => settlement.active &&
     Math.max(Math.abs(x - settlement.x), Math.abs(y - settlement.y)) < world.config.settlementMinSpacing
   );
 }
