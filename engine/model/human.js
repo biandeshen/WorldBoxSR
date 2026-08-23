@@ -1,10 +1,12 @@
 import { isTilePassable } from '../world/biomes.js';
+import { addHouseholdMember, createHousehold, householdById } from './household.js';
 
 export function createHuman(world, overrides = {}, { passableTiles = null } = {}) {
   const { x, y } = resolveSpawnPosition(world, overrides, passableTiles);
   const ageYears = overrides.ageYears ?? world.rng.range(18, 35);
+  const id = world.nextEntityId++;
   const human = {
-    id: world.nextEntityId++,
+    id,
     kind: 'human',
     x,
     y,
@@ -16,9 +18,33 @@ export function createHuman(world, overrides = {}, { passableTiles = null } = {}
     alive: true,
     bornDay: overrides.bornDay ?? world.day,
     causeOfDeath: null,
-    settlementId: overrides.settlementId ?? null
+    settlementId: overrides.settlementId ?? null,
+    householdId: null,
+    parentIds: [...(overrides.parentIds ?? [])],
+    childIds: [...(overrides.childIds ?? [])],
+    generation: overrides.generation ?? 0
   };
   world.entities.push(human);
+
+  if (overrides.householdId === null) return human;
+
+  let household = overrides.householdId === undefined
+    ? null
+    : householdById(world, overrides.householdId);
+
+  if (overrides.householdId !== undefined && !household) {
+    throw new Error(`unknown household: ${overrides.householdId}`);
+  }
+
+  if (!household) {
+    household = createHousehold(world, {
+      settlementId: human.settlementId,
+      founderIds: [human.id]
+    });
+  }
+
+  human.householdId = household.id;
+  addHouseholdMember(household, human.id, human.generation);
   return human;
 }
 
