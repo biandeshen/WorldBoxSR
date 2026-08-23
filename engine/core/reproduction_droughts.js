@@ -15,6 +15,9 @@ export function createReproductionDroughtTracker({ memoryWindows = DEFAULT_MEMOR
   const completedNoOpportunityStreaks = [];
   const memoryCoveredNoOpportunityDays = new Map(windows.map((window) => [window, 0]));
 
+  let maleCounts = null;
+  let maleGridWidth = 0;
+  let maleGridHeight = 0;
   let observations = 0;
   let eligibleFemaleDays = 0;
   let radius1OpportunityFemaleDays = 0;
@@ -28,8 +31,15 @@ export function createReproductionDroughtTracker({ memoryWindows = DEFAULT_MEMOR
   function observe(world) {
     observations += 1;
 
+    if (!maleCounts || maleGridWidth !== world.width || maleGridHeight !== world.height) {
+      maleGridWidth = world.width;
+      maleGridHeight = world.height;
+      maleCounts = new Uint32Array(world.width * world.height);
+    } else {
+      maleCounts.fill(0);
+    }
+
     const eligibleFemales = [];
-    const maleCounts = new Uint32Array(world.width * world.height);
     for (const human of world.entities) {
       if (isEligibleMale(world, human)) {
         maleCounts[human.y * world.width + human.x] += 1;
