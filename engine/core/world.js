@@ -5,6 +5,7 @@ import { pushEvent } from '../model/events.js';
 import { regenerateFood } from '../systems/environment.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
+import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 
 export const SNAPSHOT_VERSION = 1;
 
@@ -30,17 +31,25 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const fertility = rng.range(0.2, 1.0);
-      const capacity = 1.5 + fertility * 8.5;
+      const fertilitySample = rng.range(0.2, 1.0);
+      const initialFoodRatio = rng.range(0.35, 1.0);
       const index = y * width + x;
+      const elevation = fields.elevation[index];
+      const moisture = fields.moisture[index];
+      const biome = classifyTileBiome({ elevation, moisture }, world.config);
+      const passable = biome !== 'ocean';
+      const fertility = passable ? fertilitySample : 0;
+      const capacity = passable ? 1.5 + fertility * 8.5 : 0;
       world.tiles.push({
         x,
         y,
-        elevation: fields.elevation[index],
-        moisture: fields.moisture[index],
+        elevation,
+        moisture,
+        biome,
+        passable,
         fertility,
         foodCapacity: capacity,
-        food: capacity * rng.range(0.35, 1.0)
+        food: capacity * initialFoodRatio
       });
     }
   }
@@ -77,6 +86,10 @@ export function neighbors8(world, x, y) {
     }
   }
   return cells;
+}
+
+export function passableNeighbors8(world, x, y) {
+  return neighbors8(world, x, y).filter(isTilePassable);
 }
 
 export function snapshotWorld(world) {

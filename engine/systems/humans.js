@@ -1,6 +1,6 @@
 import { createHuman } from '../model/human.js';
 import { pushEvent } from '../model/events.js';
-import { neighbors8, tileAt } from '../core/world.js';
+import { passableNeighbors8, tileAt } from '../core/world.js';
 
 export function updateHumans(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
@@ -48,7 +48,7 @@ function eat(world, human, tile) {
 }
 
 function moveTowardFood(world, human) {
-  const candidates = neighbors8(world, human.x, human.y);
+  const candidates = passableNeighbors8(world, human.x, human.y);
   if (candidates.length === 0) return;
 
   let bestFood = -Infinity;
@@ -67,7 +67,7 @@ function moveTowardFood(world, human) {
 }
 
 function randomMove(world, human) {
-  const candidates = neighbors8(world, human.x, human.y);
+  const candidates = passableNeighbors8(world, human.x, human.y);
   if (candidates.length === 0) return;
   const chosen = candidates[world.rng.int(candidates.length)];
   human.x = chosen.x;

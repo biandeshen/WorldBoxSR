@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorld, tickWorld } from '../engine/core/world.js';
+import { createWorld, tickWorld, tileAt } from '../engine/core/world.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
 
 test('world invariants survive a multi-decade run', () => {
@@ -14,6 +14,7 @@ test('world invariants survive a multi-decade run', () => {
     ids.add(entity.id);
     assert.ok(entity.x >= 0 && entity.x < world.width);
     assert.ok(entity.y >= 0 && entity.y < world.height);
+    assert.equal(tileAt(world, entity.x, entity.y).passable, true);
     assert.ok(Number.isFinite(entity.hunger) && entity.hunger >= 0 && entity.hunger <= 1);
     assert.ok(Number.isFinite(entity.health) && entity.health > 0 && entity.health <= 1);
     assert.ok(entity.ageDays >= 0);
@@ -23,6 +24,8 @@ test('world invariants survive a multi-decade run', () => {
     assert.ok(Number.isFinite(tile.food));
     assert.ok(tile.food >= -1e-10);
     assert.ok(tile.food <= tile.foodCapacity + 1e-10);
+    assert.equal(tile.passable, tile.biome !== 'ocean');
+    if (!tile.passable) assert.equal(tile.foodCapacity, 0);
   }
 
   const summary = summarizeWorld(world);
