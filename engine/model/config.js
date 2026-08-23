@@ -11,7 +11,6 @@ export const DEFAULT_CONFIG = Object.freeze({
   eatAmount: 0.58,
   foodPerMeal: 0.65,
   adultAgeYears: 18,
-  dependentKinCohesionEndYears: 12,
   femaleFertilityEndYears: 45,
   birthChancePerEligiblePairPerDay: 0.0010,
   birthCooldownDays: 300,
@@ -24,8 +23,6 @@ export const DEFAULT_CONFIG = Object.freeze({
   settlementMinSpacing: 6,
   settlementMembershipRadius: 3,
   settlementHomeBiasChance: 0.05,
-  dependentKinBiasChance: 0,
-  dependentKinCohesionRadius: 3,
   settlementAbandonmentDays: 360,
   settlementTerritoryRadius: 3
 });
