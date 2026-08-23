@@ -8,7 +8,7 @@ import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 7;
+export const SNAPSHOT_VERSION = 8;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
