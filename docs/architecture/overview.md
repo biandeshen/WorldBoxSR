@@ -42,7 +42,7 @@ A world snapshot contains:
 - simulation clock;
 - map dimensions and tile data;
 - entity table and next entity id;
-- rolling major-event history;
+- rolling major-event history with stable event/command identity;
 - configuration values.
 
 ## Future modules
@@ -52,5 +52,9 @@ A world snapshot contains:
 - kingdom state machines;
 - diplomacy and war;
 - disasters / god powers as commands;
-- event causality graph;
+- causal history traversal / timeline UI;
 - render adapters.
+
+## History causality
+
+Major events use stable world-scoped IDs and serialized causal references rather than array positions or object pointers. The bounded history window may evict a parent while newer events retain its ID. See [`adr-0001-causal-history-events.md`](adr-0001-causal-history-events.md).
