@@ -2,8 +2,8 @@ import { createHuman } from '../model/human.js';
 import { entityRef, pushEvent } from '../model/events.js';
 import {
   addChildToParentalUnion,
-  endParentalUnionsForHuman,
-  ensureParentalUnion
+  ensureParentalUnion,
+  recordParentalUnionPartnerDeath
 } from '../model/parental_union.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 import { keyedChance, keyedIndex } from '../core/keyed_random.js';
@@ -212,7 +212,7 @@ function kill(world, human, cause) {
     cause,
     ageYears: human.ageDays / world.config.daysPerYear
   });
-  endParentalUnionsForHuman(world, human.id, 'partner_death');
+  recordParentalUnionPartnerDeath(world, human.id);
 }
 
 function clamp01(value) {
