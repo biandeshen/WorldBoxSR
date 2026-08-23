@@ -78,7 +78,7 @@ function randomMove(world, human, livingById) {
   const baseline = candidates[world.rng.int(candidates.length)];
 
   const ageYears = human.ageDays / world.config.daysPerYear;
-  if (ageYears < world.config.adultAgeYears) {
+  if (ageYears < world.config.dependentKinCohesionEndYears) {
     const parent = nearestLivingParent(human, livingById);
     if (parent) {
       const currentDistance = chebyshevDistance(human.x, human.y, parent.x, parent.y);
