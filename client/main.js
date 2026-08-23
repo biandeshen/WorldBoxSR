@@ -69,6 +69,20 @@ function drawWorld() {
     ctx.fillRect(tile.x * cellW, tile.y * cellH, Math.ceil(cellW), Math.ceil(cellH));
   }
 
+  for (const settlement of world.settlements) {
+    const px = (settlement.x + 0.5) * cellW;
+    const py = (settlement.y + 0.5) * cellH;
+    const size = Math.max(4, Math.min(cellW, cellH) * 0.8);
+    ctx.strokeStyle = '#ffd66b';
+    ctx.lineWidth = Math.max(1, Math.min(cellW, cellH) * 0.12);
+    ctx.strokeRect(px - size / 2, py - size / 2, size, size);
+    if (cellW >= 8 && cellH >= 8) {
+      ctx.font = `${Math.max(9, Math.floor(Math.min(cellW, cellH) * 0.8))}px ui-monospace, monospace`;
+      ctx.fillStyle = '#fff4c7';
+      ctx.fillText(settlement.name, px + size * 0.65, py - size * 0.65);
+    }
+  }
+
   const radius = Math.max(1.5, Math.min(cellW, cellH) * 0.25);
   for (const human of world.entities) {
     if (human.kind !== 'human') continue;
@@ -88,6 +102,7 @@ function updateStats() {
     `year: <strong>${s.year.toFixed(2)}</strong>`,
     `population: <strong>${s.population}</strong>`,
     `births / deaths: <strong>${s.births} / ${s.deaths}</strong>`,
+    `settlements: <strong>${s.settlements}</strong> · settled: <strong>${s.settledPopulation}</strong>`,
     `avg age: <strong>${s.averageAgeYears.toFixed(1)}</strong>`,
     `food remaining: <strong>${(s.foodUtilization * 100).toFixed(1)}%</strong>`,
     `normalized seed: <strong>${s.seed}</strong>`

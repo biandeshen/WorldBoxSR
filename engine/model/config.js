@@ -16,7 +16,12 @@ export const DEFAULT_CONFIG = Object.freeze({
   birthCooldownDays: 300,
   oldAgeYears: 75,
   hardMaxAgeYears: 105,
-  maxEventHistory: 2500
+  maxEventHistory: 2500,
+  settlementCheckIntervalDays: 30,
+  settlementMinAdults: 4,
+  settlementFormationDays: 90,
+  settlementMinSpacing: 6,
+  settlementMembershipRadius: 3
 });
 
 export function mergeConfig(overrides = {}) {
