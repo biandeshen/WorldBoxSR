@@ -10,6 +10,9 @@ export function createSettlement(world, { x, y }) {
     x,
     y,
     foundedDay: world.day,
+    active: true,
+    emptyDays: 0,
+    abandonedDay: null,
     population: 0,
     memberIds: []
   };
