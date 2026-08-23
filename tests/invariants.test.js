@@ -28,6 +28,23 @@ test('world invariants survive a multi-decade run', () => {
     if (!tile.passable) assert.equal(tile.foodCapacity, 0);
   }
 
+  const settlementIds = new Set();
+  const settlementById = new Map();
+  for (const settlement of world.settlements) {
+    assert.ok(!settlementIds.has(settlement.id), `duplicate settlement id ${settlement.id}`);
+    settlementIds.add(settlement.id);
+    settlementById.set(settlement.id, settlement);
+    assert.equal(tileAt(world, settlement.x, settlement.y).passable, true);
+    assert.equal(settlement.population, settlement.memberIds.length);
+    assert.equal(new Set(settlement.memberIds).size, settlement.memberIds.length);
+  }
+  for (const human of world.entities) {
+    if (human.settlementId === null) continue;
+    const settlement = settlementById.get(human.settlementId);
+    assert.ok(settlement, `missing settlement ${human.settlementId}`);
+    assert.ok(settlement.memberIds.includes(human.id));
+  }
+
   const summary = summarizeWorld(world);
   for (const value of Object.values(summary)) {
     if (typeof value === 'number') assert.ok(Number.isFinite(value));

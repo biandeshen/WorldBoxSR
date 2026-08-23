@@ -15,10 +15,11 @@ The first playable vertical slice is intentionally small:
 - deterministic seeded world simulation;
 - terrain fertility and renewable food;
 - humans that move, get hungry, eat, age, reproduce, and die;
+- minimal deterministic settlements that emerge from persistent local adult clusters;
 - save/load with deterministic continuation;
 - headless CLI for long-running simulations;
 - metrics and regression tests;
-- later: settlements, kingdoms, diplomacy, war, god powers, history UI.
+- later: settlement behavior, kingdoms, diplomacy, war, god powers, history UI.
 
 ## Run
 

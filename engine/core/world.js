@@ -6,6 +6,7 @@ import { regenerateFood } from '../systems/environment.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
+import { updateSettlements } from '../systems/settlements.js';
 
 export const SNAPSHOT_VERSION = 1;
 
@@ -20,9 +21,11 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     height,
     day: 0,
     nextEntityId: 1,
+    nextSettlementId: 1,
     config: mergeConfig(config),
     tiles: [],
     entities: [],
+    settlements: [],
     history: [],
     counters: { births: 0, deaths: 0, meals: 0 }
   };
@@ -49,7 +52,8 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
         passable,
         fertility,
         foodCapacity: capacity,
-        food: capacity * initialFoodRatio
+        food: capacity * initialFoodRatio,
+        settlementCandidateDays: 0
       });
     }
   }
@@ -65,6 +69,7 @@ export function tickWorld(world, ticks = 1) {
     regenerateFood(world);
     updateHumans(world);
     world.day += 1;
+    updateSettlements(world);
   }
   return world;
 }
@@ -101,9 +106,11 @@ export function snapshotWorld(world) {
     height: world.height,
     day: world.day,
     nextEntityId: world.nextEntityId,
+    nextSettlementId: world.nextSettlementId,
     config: { ...world.config },
     tiles: world.tiles.map((tile) => ({ ...tile })),
     entities: world.entities.map((entity) => ({ ...entity })),
+    settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     history: world.history.map((event) => ({ ...event })),
     counters: { ...world.counters }
   };
@@ -121,9 +128,11 @@ export function worldFromSnapshot(snapshot) {
     height: snapshot.height,
     day: snapshot.day,
     nextEntityId: snapshot.nextEntityId,
+    nextSettlementId: snapshot.nextSettlementId,
     config: mergeConfig(snapshot.config),
     tiles: snapshot.tiles.map((tile) => ({ ...tile })),
     entities: snapshot.entities.map((entity) => ({ ...entity })),
+    settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     history: snapshot.history.map((event) => ({ ...event })),
     counters: { ...snapshot.counters }
   };

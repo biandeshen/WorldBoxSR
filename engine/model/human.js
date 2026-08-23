@@ -15,7 +15,8 @@ export function createHuman(world, overrides = {}) {
     birthCooldownDays: overrides.birthCooldownDays ?? 0,
     alive: true,
     bornDay: overrides.bornDay ?? world.day,
-    causeOfDeath: null
+    causeOfDeath: null,
+    settlementId: overrides.settlementId ?? null
   };
   world.entities.push(human);
   return human;
