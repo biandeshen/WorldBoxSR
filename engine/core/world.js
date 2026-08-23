@@ -8,7 +8,7 @@ import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 4;
+export const SNAPSHOT_VERSION = 5;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -22,12 +22,14 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     day: 0,
     nextEntityId: 1,
     nextSettlementId: 1,
+    nextHouseholdId: 1,
     nextEventId: 1,
     nextCommandId: 1,
     config: mergeConfig(config),
     tiles: [],
     entities: [],
     settlements: [],
+    households: [],
     history: [],
     counters: { births: 0, deaths: 0, meals: 0 }
   };
@@ -111,12 +113,22 @@ export function snapshotWorld(world) {
     day: world.day,
     nextEntityId: world.nextEntityId,
     nextSettlementId: world.nextSettlementId,
+    nextHouseholdId: world.nextHouseholdId,
     nextEventId: world.nextEventId,
     nextCommandId: world.nextCommandId,
     config: { ...world.config },
     tiles: world.tiles.map((tile) => ({ ...tile })),
-    entities: world.entities.map((entity) => ({ ...entity })),
+    entities: world.entities.map((entity) => ({
+      ...entity,
+      parentIds: [...entity.parentIds],
+      childIds: [...entity.childIds]
+    })),
     settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
+    households: world.households.map((household) => ({
+      ...household,
+      memberIds: [...household.memberIds],
+      founderIds: [...household.founderIds]
+    })),
     history: world.history.map((event) => ({ ...event })),
     counters: { ...world.counters }
   };
@@ -135,12 +147,22 @@ export function worldFromSnapshot(snapshot) {
     day: snapshot.day,
     nextEntityId: snapshot.nextEntityId,
     nextSettlementId: snapshot.nextSettlementId,
+    nextHouseholdId: snapshot.nextHouseholdId,
     nextEventId: snapshot.nextEventId,
     nextCommandId: snapshot.nextCommandId,
     config: mergeConfig(snapshot.config),
     tiles: snapshot.tiles.map((tile) => ({ ...tile })),
-    entities: snapshot.entities.map((entity) => ({ ...entity })),
+    entities: snapshot.entities.map((entity) => ({
+      ...entity,
+      parentIds: [...entity.parentIds],
+      childIds: [...entity.childIds]
+    })),
     settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
+    households: snapshot.households.map((household) => ({
+      ...household,
+      memberIds: [...household.memberIds],
+      founderIds: [...household.founderIds]
+    })),
     history: snapshot.history.map((event) => ({ ...event })),
     counters: { ...snapshot.counters }
   };
