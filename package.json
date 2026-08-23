@@ -11,7 +11,8 @@
     "lab": "node simulation_lab/batch.js",
     "lab:parallel": "node simulation_lab/batch.js --workers 4",
     "scenario": "node simulation_lab/scenario_cli.js",
-    "dev": "node tools/serve.js"
+    "dev": "node tools/serve.js",
+    "bench": "node tools/benchmark.js"
   },
   "engines": {
     "node": ">=22"
