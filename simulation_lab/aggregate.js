@@ -16,7 +16,16 @@ export function aggregateRuns(runs) {
     settledPopulationShare: stats(runs.map((run) => run.population ? numberOrZero(run.settledPopulation) / run.population : 0)),
     abandonedSettlementShare: stats(runs.map((run) => run.settlements ? numberOrZero(run.abandonedSettlements) / run.settlements : 0)),
     claimedTerritoryCells: metricStats(runs, 'claimedTerritoryCells'),
-    territoryCoverage: metricStats(runs, 'territoryCoverage')
+    territoryCoverage: metricStats(runs, 'territoryCoverage'),
+    households: metricStats(runs, 'households'),
+    emptyHouseholds: metricStats(runs, 'emptyHouseholds'),
+    emptyHouseholdShare: stats(runs.map((run) => run.households ? numberOrZero(run.emptyHouseholds) / run.households : 0)),
+    orphanedHumans: metricStats(runs, 'orphanedHumans'),
+    orphanShare: stats(runs.map((run) => run.population ? numberOrZero(run.orphanedHumans) / run.population : 0)),
+    maxGeneration: metricStats(runs, 'maxGeneration'),
+    averageLivingHouseholdSize: metricStats(runs, 'averageLivingHouseholdSize'),
+    averageHistoricalHouseholdSize: metricStats(runs, 'averageHistoricalHouseholdSize'),
+    maxLivingHouseholdSize: metricStats(runs, 'maxLivingHouseholdSize')
   };
 }
 
@@ -56,6 +65,15 @@ function emptyAggregate() {
     settledPopulationShare: stats([]),
     abandonedSettlementShare: stats([]),
     claimedTerritoryCells: stats([]),
-    territoryCoverage: stats([])
+    territoryCoverage: stats([]),
+    households: stats([]),
+    emptyHouseholds: stats([]),
+    emptyHouseholdShare: stats([]),
+    orphanedHumans: stats([]),
+    orphanShare: stats([]),
+    maxGeneration: stats([]),
+    averageLivingHouseholdSize: stats([]),
+    averageHistoricalHouseholdSize: stats([]),
+    maxLivingHouseholdSize: stats([])
   };
 }
