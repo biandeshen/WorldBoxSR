@@ -1,6 +1,7 @@
 import { createHuman } from '../model/human.js';
 import { entityRef, pushEvent } from '../model/events.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
+import { keyedChance, keyedIndex } from '../core/keyed_random.js';
 
 export function updateHumans(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
@@ -69,9 +70,33 @@ function moveTowardFood(world, human) {
 function randomMove(world, human) {
   const candidates = passableNeighbors8(world, human.x, human.y);
   if (candidates.length === 0) return;
-  const chosen = candidates[world.rng.int(candidates.length)];
-  human.x = chosen.x;
-  human.y = chosen.y;
+
+  // Preserve the baseline sequential RNG draw even when an optional social
+  // mechanic overrides the destination. This keeps the mechanic from shifting
+  // unrelated future birth/death random sequences merely by being enabled.
+  const baseline = candidates[world.rng.int(candidates.length)];
+  const home = human.settlementId === null
+    ? null
+    : world.settlements.find((settlement) => settlement.id === human.settlementId);
+
+  if (home && keyedChance(world.seed, human.id, world.day, 0x51ed270b, world.config.settlementHomeBiasChance)) {
+    const currentDistance = chebyshevDistance(human.x, human.y, home.x, home.y);
+    const closer = candidates.filter((cell) => chebyshevDistance(cell.x, cell.y, home.x, home.y) < currentDistance);
+    if (closer.length > 0) {
+      const index = keyedIndex(world.seed, human.id, world.day, 0xa54ff53a, closer.length);
+      const chosen = closer[index];
+      human.x = chosen.x;
+      human.y = chosen.y;
+    }
+    return;
+  }
+
+  human.x = baseline.x;
+  human.y = baseline.y;
+}
+
+function chebyshevDistance(ax, ay, bx, by) {
+  return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
 function updateAgeAndHealth(world, human) {
