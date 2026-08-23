@@ -30,27 +30,15 @@ export function createSettlementChurnTracker() {
       let state = humanStates.get(human.id);
 
       if (!state) {
-        state = {
-          lastSettlementId: currentSettlementId,
-          adultTrackingStarted: false,
-          adultEverJoined: false,
-          adultLastNonNullSettlementId: null,
-          settledEpisodeStartDay: null,
-          unsettledEpisodeStartDay: null,
-          lastWasReproductiveFemale: currentReproductiveFemale,
-          lastHomeDistance: null,
-          adultEverJoinedCounted: false,
-          reproductiveFemaleEverJoinedCounted: false
-        };
+        state = createHumanState(currentSettlementId, currentReproductiveFemale);
         humanStates.set(human.id, state);
       }
 
       if (!state.adultTrackingStarted && currentAdult) {
         startAdultTracking(state, currentSettlementId, world.day);
-        if (state.adultEverJoined) countEverJoined(adults, state, false);
       } else if (state.adultTrackingStarted && currentAdult && state.lastSettlementId !== currentSettlementId) {
         const femaleTransition = state.lastWasReproductiveFemale || currentReproductiveFemale;
-        recordMembershipTransition(
+        processMembershipTransition(
           world,
           human,
           state,
@@ -87,7 +75,7 @@ export function createSettlementChurnTracker() {
     }
   }
 
-  function recordMembershipTransition(
+  function processMembershipTransition(
     world,
     human,
     state,
@@ -100,26 +88,49 @@ export function createSettlementChurnTracker() {
     const currentSettlement = currentSettlementId === null ? null : settlementById.get(currentSettlementId);
 
     if (previousSettlementId === null && currentSettlementId !== null) {
-      recordJoin(adults, state, currentSettlementId, world.day, false);
-      if (femaleTransition) recordJoin(reproductiveFemales, state, currentSettlementId, world.day, true);
+      const firstJoin = !state.adultEverJoined;
+      const sameRejoin = !firstJoin && state.adultLastNonNullSettlementId === currentSettlementId;
+      const unsettledDuration = state.unsettledEpisodeStartDay === null
+        ? null
+        : world.day - state.unsettledEpisodeStartDay;
+
+      recordJoinAggregate(adults, firstJoin, sameRejoin, unsettledDuration);
+      if (femaleTransition) {
+        recordJoinAggregate(reproductiveFemales, firstJoin, sameRejoin, unsettledDuration);
+      }
+
+      state.adultEverJoined = true;
+      state.adultLastNonNullSettlementId = currentSettlementId;
+      state.unsettledEpisodeStartDay = null;
+      state.settledEpisodeStartDay = world.day;
       return;
     }
 
     if (previousSettlementId !== null && currentSettlementId === null) {
       const cause = previousSettlement?.active ? 'distance' : previousSettlement ? 'abandonment' : 'unknown';
       const currentDistance = previousSettlement ? distanceToSettlement(human, previousSettlement) : null;
-      recordLeave(adults, state, world.day, cause, state.lastHomeDistance, currentDistance);
+      const settledDuration = state.settledEpisodeStartDay === null
+        ? null
+        : world.day - state.settledEpisodeStartDay;
+
+      recordLeaveAggregate(
+        adults,
+        cause,
+        state.lastHomeDistance,
+        currentDistance,
+        settledDuration
+      );
       if (femaleTransition) {
-        recordLeave(
+        recordLeaveAggregate(
           reproductiveFemales,
-          state,
-          world.day,
           cause,
           state.lastHomeDistance,
           currentDistance,
-          false
+          settledDuration
         );
       }
+
+      state.settledEpisodeStartDay = null;
       state.unsettledEpisodeStartDay = world.day;
       return;
     }
@@ -127,11 +138,24 @@ export function createSettlementChurnTracker() {
     if (previousSettlementId !== null && currentSettlementId !== null) {
       const oldDistance = previousSettlement ? distanceToSettlement(human, previousSettlement) : null;
       const newDistance = currentSettlement ? distanceToSettlement(human, currentSettlement) : null;
-      recordSwitch(adults, state, world.day, oldDistance, newDistance);
-      if (femaleTransition) recordSwitch(reproductiveFemales, state, world.day, oldDistance, newDistance, false);
+      const settledDuration = state.settledEpisodeStartDay === null
+        ? null
+        : world.day - state.settledEpisodeStartDay;
+
+      recordSwitchAggregate(adults, state.lastHomeDistance ?? oldDistance, oldDistance, settledDuration);
+      if (femaleTransition) {
+        recordSwitchAggregate(
+          reproductiveFemales,
+          state.lastHomeDistance ?? oldDistance,
+          oldDistance,
+          settledDuration
+        );
+      }
+
       state.adultLastNonNullSettlementId = currentSettlementId;
       state.settledEpisodeStartDay = world.day;
       state.unsettledEpisodeStartDay = null;
+      if (newDistance !== null) state.lastHomeDistance = newDistance;
     }
   }
 
@@ -145,9 +169,12 @@ export function createSettlementChurnTracker() {
   ) {
     const settlement = currentSettlementId === null ? null : settlementById.get(currentSettlementId);
     const distance = settlement ? distanceToSettlement(human, settlement) : null;
-    recordPersonDay(adults, state, distance, world.config.settlementMembershipRadius);
 
-    if (state.adultEverJoined && !state.adultEverJoinedCounted) countEverJoined(adults, state, false);
+    if (state.adultEverJoined && !state.adultEverJoinedCounted) {
+      state.adultEverJoinedCounted = true;
+      adults.humansEverJoined += 1;
+    }
+    recordPersonDay(adults, state.adultEverJoined, distance, world.config.settlementMembershipRadius);
 
     if (currentReproductiveFemale) {
       if (currentSettlementId !== null && !state.reproductiveFemaleEverJoinedCounted) {
@@ -156,10 +183,9 @@ export function createSettlementChurnTracker() {
       }
       recordPersonDay(
         reproductiveFemales,
-        state,
+        state.adultEverJoined,
         distance,
-        world.config.settlementMembershipRadius,
-        currentSettlementId !== null || state.adultEverJoined
+        world.config.settlementMembershipRadius
       );
     }
   }
@@ -178,6 +204,21 @@ export function createSettlementChurnTracker() {
   }
 
   return { observe, summarize };
+}
+
+function createHumanState(currentSettlementId, currentReproductiveFemale) {
+  return {
+    lastSettlementId: currentSettlementId,
+    adultTrackingStarted: false,
+    adultEverJoined: false,
+    adultLastNonNullSettlementId: null,
+    settledEpisodeStartDay: null,
+    unsettledEpisodeStartDay: null,
+    lastWasReproductiveFemale: currentReproductiveFemale,
+    lastHomeDistance: null,
+    adultEverJoinedCounted: false,
+    reproductiveFemaleEverJoinedCounted: false
+  };
 }
 
 function createAggregate() {
@@ -235,48 +276,19 @@ function startAdultTracking(state, currentSettlementId, day) {
   }
 }
 
-function countEverJoined(aggregate, state, reproductiveFemale) {
-  if (reproductiveFemale) {
-    if (state.reproductiveFemaleEverJoinedCounted) return;
-    state.reproductiveFemaleEverJoinedCounted = true;
-  } else {
-    if (state.adultEverJoinedCounted) return;
-    state.adultEverJoinedCounted = true;
-  }
-  aggregate.humansEverJoined += 1;
-}
-
-function recordJoin(aggregate, state, settlementId, day, reproductiveFemale = false) {
+function recordJoinAggregate(aggregate, firstJoin, sameRejoin, unsettledDuration) {
   aggregate.joinEvents += 1;
-  const firstAdultJoin = !state.adultEverJoined;
-
-  if (firstAdultJoin) {
+  if (firstJoin) {
     aggregate.firstJoinEvents += 1;
-    state.adultEverJoined = true;
-    state.adultLastNonNullSettlementId = settlementId;
-    countEverJoined(aggregate, state, reproductiveFemale);
+  } else if (sameRejoin) {
+    aggregate.rejoinSameEvents += 1;
   } else {
-    if (state.adultLastNonNullSettlementId === settlementId) aggregate.rejoinSameEvents += 1;
-    else aggregate.rejoinOtherEvents += 1;
-    if (state.unsettledEpisodeStartDay !== null) {
-      addEpisode(aggregate.unsettledEpisodesAfterJoin, day - state.unsettledEpisodeStartDay);
-    }
-    state.adultLastNonNullSettlementId = settlementId;
+    aggregate.rejoinOtherEvents += 1;
   }
-
-  state.unsettledEpisodeStartDay = null;
-  state.settledEpisodeStartDay = day;
+  if (unsettledDuration !== null) addEpisode(aggregate.unsettledEpisodesAfterJoin, unsettledDuration);
 }
 
-function recordLeave(
-  aggregate,
-  state,
-  day,
-  cause,
-  preLossDistance,
-  currentDistance,
-  mutateEpisodeState = true
-) {
+function recordLeaveAggregate(aggregate, cause, preLossDistance, currentDistance, settledDuration) {
   aggregate.leaveEvents += 1;
   if (cause === 'distance') aggregate.distanceDrivenLeaves += 1;
   else if (cause === 'abandonment') aggregate.abandonmentLeaves += 1;
@@ -284,25 +296,17 @@ function recordLeave(
 
   recordDistance(aggregate.preLossDistanceHistogram, preLossDistance);
   recordDistance(aggregate.lossDistanceHistogram, currentDistance);
-
-  if (state.settledEpisodeStartDay !== null) {
-    addEpisode(aggregate.settledEpisodes, day - state.settledEpisodeStartDay);
-  }
-  if (mutateEpisodeState) state.settledEpisodeStartDay = null;
+  if (settledDuration !== null) addEpisode(aggregate.settledEpisodes, settledDuration);
 }
 
-function recordSwitch(aggregate, state, day, oldDistance, newDistance, mutateEpisodeState = true) {
+function recordSwitchAggregate(aggregate, preSwitchDistance, oldDistance, settledDuration) {
   aggregate.switchEvents += 1;
-  recordDistance(aggregate.preLossDistanceHistogram, state.lastHomeDistance ?? oldDistance);
+  recordDistance(aggregate.preLossDistanceHistogram, preSwitchDistance);
   recordDistance(aggregate.lossDistanceHistogram, oldDistance);
-  if (state.settledEpisodeStartDay !== null) {
-    addEpisode(aggregate.settledEpisodes, day - state.settledEpisodeStartDay);
-  }
-  if (newDistance !== null) recordHomeDistance(aggregate, newDistance);
-  if (mutateEpisodeState) state.settledEpisodeStartDay = day;
+  if (settledDuration !== null) addEpisode(aggregate.settledEpisodes, settledDuration);
 }
 
-function recordPersonDay(aggregate, state, distance, membershipRadius, forceAfterJoin = null) {
+function recordPersonDay(aggregate, afterFirstJoin, distance, membershipRadius) {
   aggregate.personDays += 1;
   const settled = distance !== null;
   if (settled) {
@@ -311,7 +315,6 @@ function recordPersonDay(aggregate, state, distance, membershipRadius, forceAfte
     if (distance > membershipRadius) aggregate.outsideRadiusSettledPersonDays += 1;
   }
 
-  const afterFirstJoin = forceAfterJoin ?? state.adultEverJoined;
   if (afterFirstJoin) {
     aggregate.postFirstJoinPersonDays += 1;
     if (settled) aggregate.settledPostFirstJoinPersonDays += 1;
