@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { aggregateRuns, runBatch } from '../simulation_lab/batch.js';
+import { runBatch } from '../simulation_lab/batch.js';
+import { aggregateRuns } from '../simulation_lab/aggregate.js';
 
 test('batch runner is deterministic', () => {
   const options = { startSeed: 10, seeds: 4, years: 5, width: 10, height: 10, population: 12 };
