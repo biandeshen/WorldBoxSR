@@ -6,6 +6,8 @@ export function summarizeWorld(world) {
   const capacityTotal = world.tiles.reduce((sum, tile) => sum + tile.foodCapacity, 0);
   const settledPopulation = humans.filter((human) => human.settlementId !== null).length;
   const activeSettlements = world.settlements.filter((settlement) => settlement.active).length;
+  const passableTiles = world.tiles.filter((tile) => tile.passable).length;
+  const claimedTerritoryCells = world.tiles.filter((tile) => tile.ownerSettlementId !== null).length;
 
   return {
     seed: world.seed,
@@ -18,6 +20,9 @@ export function summarizeWorld(world) {
     settlements: world.settlements.length,
     activeSettlements,
     abandonedSettlements: world.settlements.length - activeSettlements,
+    claimedTerritoryCells,
+    unclaimedLandCells: passableTiles - claimedTerritoryCells,
+    territoryCoverage: passableTiles ? claimedTerritoryCells / passableTiles : 0,
     settledPopulation,
     averageAgeYears: humans.length ? ageTotal / humans.length : 0,
     averageHunger: humans.length ? hungerTotal / humans.length : 0,
