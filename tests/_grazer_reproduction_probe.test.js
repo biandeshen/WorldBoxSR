@@ -7,9 +7,9 @@ import { keyedChance } from '../engine/core/keyed_random.js';
 import { createGrazer } from '../engine/model/grazer.js';
 
 const SEEDS = [1, 4, 9];
-const DENSITIES = [20, 100, 200];
+const DENSITIES = [20, 100];
 const REPRODUCTION_MODES = [false, true];
-const YEARS = 10;
+const YEARS = 20;
 const SAMPLE_INTERVAL_DAYS = 30;
 const SPAWN_CELL_CAP = 32;
 const MIN_ADULT_AGE_YEARS = 1;
@@ -18,7 +18,7 @@ const MIN_LOCAL_VEGETATION_UTILIZATION = 0.5;
 const BIRTH_COOLDOWN_DAYS = 360;
 const BIRTH_CHANCE_PER_ELIGIBLE_PAIR_PER_DAY = 0.001;
 const BIRTH_SALT = 0x5c47a1d3;
-const ARTIFACT_PATH = 'tmp-research/grazer-reproduction-10y.json';
+const ARTIFACT_PATH = 'tmp-research/grazer-reproduction-20y.json';
 
 test('temporary condition-gated grazer reproduction probe', () => {
   const rows = [];
@@ -78,7 +78,7 @@ test('temporary condition-gated grazer reproduction probe', () => {
   assert.equal(rows.every((row) => row.checkpoints.length === YEARS), true);
   mkdirSync('tmp-research', { recursive: true });
   writeFileSync(ARTIFACT_PATH, `${JSON.stringify({ rows }, null, 2)}\n`);
-  console.log(`GRAZER_REPRODUCTION_10Y ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_REPRODUCTION_20Y ${JSON.stringify({ rows })}`);
 });
 
 function seedAdultGrazers(world, count) {
