@@ -130,6 +130,10 @@ function applyToolAt(x, y, shiftKey) {
     eraseAt(x, y);
     return;
   }
+  if (toolSelect.value === 'lightning') {
+    lightningAt(x, y);
+    return;
+  }
   spawnAt(x, y, shiftKey ? 10 : 1);
 }
 
@@ -146,6 +150,13 @@ function spawnAt(x, y, count) {
 
 function eraseAt(x, y) {
   applyCommand(world, { type: 'erase', x, y });
+  updateStats();
+  updateInspector();
+  updateHistoryTimeline();
+}
+
+function lightningAt(x, y) {
+  applyCommand(world, { type: 'lightning', x, y });
   updateStats();
   updateInspector();
   updateHistoryTimeline();
