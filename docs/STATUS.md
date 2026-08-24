@@ -19,7 +19,7 @@ Last updated: 2026-08-24
 - deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
 - deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero.
+Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Grazer senescent death is **not** implemented: Sprint 014 rejected simple deterministic lifespan bands because they interact badly with post-pressure reproductive recovery.
 
 ## Architecture decisions that remain binding
 
@@ -46,6 +46,10 @@ Across the 100×200 baseline only three worlds contain a naturally abandoned set
 ### Measured carrying capacity is not a population controller
 
 Sprint 011 found that overloaded grazer populations converge toward landscape-specific survivor plateaus, and those plateaus normalize to roughly one long-run grazer per 14.8–15.0 vegetation-capacity units. This is empirical validation evidence only. Runtime reproduction never reads total vegetation capacity, a target population, or that ratio; it is driven by individual condition and local vegetation.
+
+### Senescence cannot be layered on before reproductive recovery is understood
+
+Sprint 014 shows that a natural-death mechanism that looks healthy at low density can still destroy the carrying-pressure ecology when added to the existing local-resource/adjacency reproduction rule. Do not add grazer lifespan merely to make the life-cycle checklist look complete. Resolve the measured post-pressure reproduction bottleneck first.
 
 ## Empirical checkpoints
 
@@ -164,13 +168,55 @@ Snapshot schema is **v11**. v10 migration deterministically supplies `lastBirthD
 
 Tests cover every eligibility rejection, forced success, parent cooldown, typed parent/child history lookup, default-off inertness, v10 migration, enabled save/load, sequential RNG isolation, and the multi-seed 10-year low-density/overload envelope. Full normal CI and smoke pass.
 
+## Completed natural-turnover research gate — Sprint 014 / #103
+
+Simple deterministic grazer senescence was tested as temporary keyed research logic and **rejected for runtime**.
+
+### Low-density bracket
+
+With 20 age-2 founders and reproduction at `0.001`:
+
+- `8–12` year lifespans went extinct on all seeds;
+- `12–18` finished at only **6 / 2 / 28**;
+- `18–24` was low-density viable, finishing at **72 / 62 / 92** after complete founder turnover with vegetation still 64%–90%.
+
+### Carrying-pressure failure
+
+The low-density-plausible `18–24` band failed when layered onto the measured carrying regime:
+
+- 100 founders finished at **0 / 7 / 1** instead of no-senescence **114 / 155 / 130**;
+- 200 founders went **0 / 0 / 0** instead of **112 / 161 / 132**;
+- vegetation rebounded to ~99%–100%.
+
+Widening the same lifespan assumption to `18–30` and `18–36` over 45 years did not restore the ecology. Even `18–36` ended with only **7 / 33 / 3** from 100 founders and **16 / 19 / 9** from 200 founders, with vegetation ~97%–100%.
+
+### Diagnosed failure mode
+
+The mechanism creates a two-stage recovery trap:
+
+`resource depletion suppresses births → senescence reduces population → vegetation recovers → sparse spatial distribution suppresses encounters`
+
+During the depleted period, yearly checkpoints can still contain **46–67** physically eligible adjacent candidate pairs while the local vegetation >= 0.50 gate leaves **zero** resource-eligible pairs. Resource-eligible pairs generally reappear only around years **24–28**, after population has already fallen sharply.
+
+Once vegetation is abundant, most survivors become resource-ready, but spatial encounter becomes the limiting factor. After year34, the diagnostic runs expose only **0–7** resource-eligible adjacent pairs, usually 0–3, because surviving grazers occupy nearly one cell each. Some worlds have all remaining animals resource-ready but zero adjacent pairs.
+
+This is a measured low-density reproductive Allee effect. It does **not** justify a population target and does not mean the local vegetation gate should be weakened reflexively.
+
+Evidence: `docs/experiments/2026-08-24-grazer-natural-turnover.md`.
+
+### Decision
+
+Do not add a grazer lifespan field/config, senescent death event, snapshot change, or default animal population yet. Lifespan parameter search stops; the negative result is preserved.
+
 ## Next decision gate
 
-Do **not** enable default animals yet and do not jump to predators/species infrastructure.
+Research the smallest **reproductive encounter/recovery** mechanism before revisiting natural senescence.
 
-The grazer life cycle has one remaining structural gap: `ageDays` advances, but a well-fed low-pressure grazer currently has no natural senescent death. With reproduction enabled, starvation can regulate population near carrying pressure, but low-density individuals can otherwise live indefinitely.
+Keep the proven `0.001` birth chance and local vegetation >= 0.50 gate unchanged in the first comparison. Change only encounter geometry/search—for example radius-1 versus radius-2/3 partner discovery, or a narrowly reproduction-directed local encounter move—and test whether it removes the low-density spatial Allee trap while preserving high-pressure resource suppression.
 
-The next ecology gate should measure and add the smallest coherent natural-turnover mechanism, then re-run the reproduction/carrying envelope. It must preserve keyed/sequential RNG isolation, typed death history, deterministic save/load, and the principle that local resource feedback—not a population target—controls abundance.
+The next gate must still preserve keyed/sequential RNG isolation, deterministic save/load principles, default-zero reproduction, independent human/creature identity, and the rule that abundance emerges from local resource feedback rather than a target population.
+
+Do not infer sex, mate bonds, creature genealogy, migration infrastructure, predators, or a species framework from an encounter experiment. If broader encounter geometry destabilizes carrying pressure, record the negative result instead of compensating with unrelated parameter tuning.
 
 Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
