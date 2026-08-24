@@ -140,12 +140,13 @@ test('grazer starvation records typed creature death and removes only the creatu
 
 test('invalid creature spawns reject before command ID allocation', () => {
   const world = createWorld({ seed: 9304, width: 10, height: 10, population: 0, config: { waterLevel: 0.6 } });
-  const tile = land(world);
   const water = world.tiles.find((candidate) => !candidate.passable);
   assert.ok(water);
 
+  // Species validation precedes passability, so this case should not depend on
+  // the high-water test world containing any land at all.
   assert.throws(
-    () => applyCommand(world, { type: 'spawn_creature', species: 'wolf', x: tile.x, y: tile.y }),
+    () => applyCommand(world, { type: 'spawn_creature', species: 'wolf', x: 0, y: 0 }),
     /species must be grazer/
   );
   assert.equal(world.nextCommandId, 1);
