@@ -14,10 +14,14 @@ export function deriveSettlementDemography(world) {
     [...activeById.keys()].map((settlementId) => [settlementId, []])
   );
   const livingHumans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
-  const eligibleMales = livingHumans.filter((human) => isEligibleMale(world, human));
+  const eligibleMaleCountsByCell = new Map();
 
   for (const human of livingHumans) {
     if (activeById.has(human.settlementId)) membersBySettlement.get(human.settlementId).push(human);
+    if (isEligibleMale(world, human)) {
+      const index = human.y * world.width + human.x;
+      eligibleMaleCountsByCell.set(index, (eligibleMaleCountsByCell.get(index) ?? 0) + 1);
+    }
   }
 
   return world.settlements.map((settlement) => {
@@ -35,10 +39,7 @@ export function deriveSettlementDemography(world) {
     let eligibleFemalesWithLocalMaleOpportunity = 0;
     let localEligibleMaleLinks = 0;
     for (const female of eligibleFemales) {
-      let nearby = 0;
-      for (const male of eligibleMales) {
-        if (chebyshevDistance(female, male) <= 1) nearby += 1;
-      }
+      const nearby = countEligibleMalesRadius1(world, female, eligibleMaleCountsByCell);
       if (nearby > 0) eligibleFemalesWithLocalMaleOpportunity += 1;
       localEligibleMaleLinks += nearby;
     }
@@ -87,6 +88,19 @@ export function isReproductiveAgeFemale(world, human) {
   return ageYears >= world.config.adultAgeYears && ageYears <= world.config.femaleFertilityEndYears;
 }
 
+function countEligibleMalesRadius1(world, female, eligibleMaleCountsByCell) {
+  let count = 0;
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      const x = female.x + dx;
+      const y = female.y + dy;
+      if (x < 0 || y < 0 || x >= world.width || y >= world.height) continue;
+      count += eligibleMaleCountsByCell.get(y * world.width + x) ?? 0;
+    }
+  }
+  return count;
+}
+
 function ageBuckets(world, members) {
   let minors = 0;
   let reproductiveAgeAdults = 0;
@@ -98,10 +112,6 @@ function ageBuckets(world, members) {
     else laterAdults += 1;
   }
   return { minors, reproductiveAgeAdults, laterAdults };
-}
-
-function chebyshevDistance(a, b) {
-  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 
 function median(values) {
