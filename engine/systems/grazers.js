@@ -7,9 +7,14 @@ const HUNGRY_MOVE_SALT = 0x4a7e21c3;
 const PASSIVE_MOVE_CHANCE_SALT = 0x6d13f8a1;
 const PASSIVE_MOVE_INDEX_SALT = 0x2bc58d07;
 const BIRTH_SALT = 0x5c47a1d3;
+const OLD_AGE_SALT = 0x27d4eb2f;
 const REPRODUCTION_MIN_HEALTH = 0.95;
 const REPRODUCTION_MIN_LOCAL_VEGETATION_UTILIZATION = 0.5;
 const REPRODUCTION_PARTNER_RADIUS = 3;
+const OLD_AGE_START_YEARS = 12;
+const OLD_AGE_BASE_ANNUAL_PROBABILITY = 0.01;
+const OLD_AGE_DOUBLING_YEARS = 3;
+const OLD_AGE_ANNUAL_PROBABILITY_CAP = 0.50;
 
 export function updateGrazers(world) {
   for (const grazer of world.creatures) {
@@ -21,6 +26,30 @@ export function updateGrazers(world) {
     updateGrazerHealth(world, grazer);
   }
   world.creatures = world.creatures.filter((creature) => creature.alive);
+}
+
+export function updateGrazerOldAgeMortality(world) {
+  if (!world.config.grazerOldAgeMortalityEnabled) return 0;
+
+  let deaths = 0;
+  for (const grazer of world.creatures) {
+    if (!grazer.alive || grazer.species !== 'grazer') continue;
+    const ageYears = grazer.ageDays / world.config.daysPerYear;
+    if (ageYears < OLD_AGE_START_YEARS) continue;
+
+    const annualProbability = Math.min(
+      OLD_AGE_ANNUAL_PROBABILITY_CAP,
+      OLD_AGE_BASE_ANNUAL_PROBABILITY * (2 ** ((ageYears - OLD_AGE_START_YEARS) / OLD_AGE_DOUBLING_YEARS))
+    );
+    const dailyProbability = 1 - ((1 - annualProbability) ** (1 / world.config.daysPerYear));
+    if (!keyedChance(world.seed, grazer.id, world.day, OLD_AGE_SALT, dailyProbability)) continue;
+
+    killGrazer(world, grazer, 'old_age');
+    deaths += 1;
+  }
+
+  if (deaths > 0) world.creatures = world.creatures.filter((creature) => creature.alive);
+  return deaths;
 }
 
 export function updateGrazerReproduction(world) {

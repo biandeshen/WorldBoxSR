@@ -9,7 +9,7 @@ Last updated: 2026-08-24
 - seeded, serializable RNG and fixed-tick world state;
 - procedural elevation/moisture, land/ocean, renewable food, and renewable vegetation biomass;
 - human hunger, movement, eating, aging, reproduction, death, ancestry, and lineage history;
-- a typed creature domain with explicit-spawn grazer ecology and default-off authoritative grazer reproduction;
+- a typed creature domain with explicit-spawn grazer ecology, default-off authoritative grazer reproduction, and default-off authoritative gradual old-age mortality;
 - emergent settlement formation, weak home cohesion, abandonment, territory, and causal history;
 - behavior-neutral settlement resource accounting;
 - persistent historical co-parent (`parental_union`) edges;
@@ -21,7 +21,7 @@ Last updated: 2026-08-24
 
 Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**.
 
-Grazer senescent death is **not yet implemented**. Sprints 017–018 reject hard keyed lifespan bands and founder-age tuning. Sprint 019 identifies one pre-registered gradual age-dependent hazard that passes 120-year research across low-density and carrying-pressure worlds, but that hazard remains research evidence until a separate authoritative implementation gate passes.
+Grazer old-age mortality now exists behind `grazerOldAgeMortalityEnabled: false`. When enabled it uses the exact Sprint 019 gradual hazard, keyed randomness, no hard lifespan, and the normal typed creature-death lifecycle. Existing/default worlds preserve previous behavior because the switch is false and older v11 snapshots restore the missing key to false.
 
 ## Architecture decisions that remain binding
 
@@ -53,25 +53,23 @@ Sprint 011 found that overloaded grazer populations converge toward landscape-sp
 
 Sprint 015/016 intentionally separates partner encounter opportunity from resource eligibility. A grazer may discover an eligible reproduction partner within Chebyshev radius 3, but each parent's vegetation condition still measures only its own radius-1 neighborhood. Do not broaden the vegetation test merely because partner discovery is wider, and do not generalize this one radius into a public interaction framework without a second use.
 
-### Hard lifespan bands and founder-age tuning are rejected
+### Hard lifespan bands and founder-age tuning remain rejected
 
-Sprint 017 re-ran senescence evidence after partner radius 3 became authoritative. The pre-registered hard 12–18y lifespan passes a low-density gate but fails carrying pressure: seed1/100 goes extinct, seed9/100 ends at one animal, and all three 200-founder worlds go extinct. A diagnostic 18–24y band also fails all 200-founder landscapes.
-
-Sprint 018 changed only founder starting-age structure. Spreading founders deterministically over 0–6 years delays complete founder turnover by roughly 1–2 years and helps some 100-founder worlds, but all three 200-founder worlds still go extinct. Founder synchronization is not a sufficient explanation.
+Sprint 017 showed that hard keyed lifespan bands fail carrying-pressure turnover even after radius-3 reproduction became authoritative. Sprint 018 showed that spreading founder ages across 0–6 years delays/softens the same collapse but does not rescue any 200-founder landscape.
 
 Do not search more hard lifespan endpoints or founder-age ranges.
 
-### Gradual mortality is a research candidate, not shipped behavior
+### Natural grazer mortality uses a gradual hazard, not a scheduled lifespan
 
-Sprint 019 changes only mortality shape. The pre-registered research hazard is:
+Sprint 019 identified and Sprint 020 promoted the exact gradual hazard:
 
 `pAnnual(age) = 0 before age 12; otherwise min(0.50, 0.01 * 2 ^ ((ageYears - 12) / 3))`
 
-with exact annual-to-daily conversion and keyed daily randomness. It has no hard maximum age.
+with exact annual-to-daily conversion and keyed daily randomness. It has no hard maximum age and no per-creature death schedule/state.
 
-Across seeds `1/4/9` × age-2 founders `20/100/200`, the same unchanged curve remains multi-generational through 120 years. Every world retains replacement-parent births and births in the final 20 years; no world goes extinct or ends as a non-reproducing terminal tail. Old-age death ages span broadly from ~12 years into the mid-30s, with medians around 23.5–24.2 years.
+The runtime switch is default-off. When enabled, the hazard runs after daily grazer action/starvation and authoritative day increment, but before reproduction. Therefore starvation remains the earlier causal death path and an old-age death cannot reproduce later that day.
 
-This is evidence that a **distributed hazard shape** can bridge resource-recovery periods that defeated hard lifespan cliffs. It is not yet runtime behavior and must not be described as such until the implementation gate passes.
+Old-age removal reuses `creature.died` with `cause: old_age`; sequential world RNG is untouched. Snapshot schema remains v11 because config is already persisted and merged with defaults on restore.
 
 ## Empirical checkpoints
 
@@ -189,29 +187,39 @@ The 60-year gate passes 9/9 worlds, so the exact same curve advances to 120 year
 - 100 founders: **91 / 119 / 52**;
 - 200 founders: **102 / 134 / 86**.
 
-All 9 worlds have nonzero births in years101–120 and substantial replacement-parent reproduction. The weakest carrying-pressure worlds recover after minima of 5–7 animals rather than crossing into extinction. Vegetation still reaches the expected high-pressure minima (~1.9%–5.9% for 100/200 founders) and later recovers, producing long resource–population cycles rather than a fixed target.
-
-Old-age deaths are distributed broadly from roughly age12 into the mid-30s, demonstrating that the hazard does not recreate a hard lifespan cutoff. Sequential RNG remains unchanged.
-
-**Decision: the exact Sprint 019 hazard is eligible for a separate default-off authoritative implementation gate. It is not yet shipped.**
+All 9 worlds have nonzero births in years101–120 and substantial replacement-parent reproduction. Vegetation still reaches expected carrying-pressure minima and later recovers, producing long resource–population cycles. Old-age deaths span roughly age12 into the mid-30s. Sequential RNG remains unchanged.
 
 Evidence: `docs/experiments/2026-08-24-grazer-gradual-mortality-hazard.md`.
 
+## Completed authoritative gradual-mortality gate — Sprint 020 / #116
+
+The exact Sprint 019 hazard is now implemented behind `grazerOldAgeMortalityEnabled: false`.
+
+Implementation remains deliberately small:
+
+- one default-false config key;
+- private fixed hazard constants;
+- one keyed old-age update between day increment and reproduction;
+- reuse of the existing typed grazer death lifecycle;
+- no lifespan field, scheduled death day, new counter, generic mortality framework, or snapshot-version bump.
+
+Tests pin default-off behavior neutrality, pre-12 immunity, deterministic exact keyed death, typed `old_age` history, starvation precedence, v11 missing-key fallback, enabled save/load continuation, and the exact Sprint 019 60-year population/birth fingerprint across all nine seed/density worlds.
+
+The authoritative year-60 population fingerprint is:
+
+- 20 founders: **93 / 109 / 128**;
+- 100 founders: **11 / 69 / 130**;
+- 200 founders: **26 / 62 / 124**.
+
+Birth fingerprints are `199/260/249`, `48/148/185`, and `55/111/170`. Full CI and smoke pass.
+
 ## Next decision gate
 
-Promote the **exact Sprint 019 hazard** behind a default-off authoritative grazer old-age mortality switch, without retuning the curve or reproduction/resource/encounter behavior.
+The grazer loop now has measured resource pressure, authoritative reproduction, corrected encounter geometry, and validated natural turnover. The next question should be **activation**, not more grazer mechanics.
 
-The implementation must:
+Before making fauna part of ordinary generated worlds, research a small deterministic natural grazer initialization across a broader landscape-seed set with reproduction and old-age mortality enabled. The gate should determine whether an initial fauna can sustain bounded multi-generation ecology without a population controller and without making the result depend on one favorable three-seed sample.
 
-- preserve behavior exactly when disabled;
-- use keyed randomness only;
-- route old-age death through typed `creature.died` history with cause `old_age`;
-- keep starvation causally distinct;
-- preserve deterministic save/load and separate creature/human identity domains;
-- re-run multi-seed low-density and carrying-pressure ecological regression;
-- avoid a population controller or generic mortality/species framework.
-
-Whether snapshot schema needs a change depends on the smallest correct config/persistence implementation; do not bump schema merely for ceremony.
+Do not add predators, additional species, or default animals until this natural-initialization gate passes. Default worlds remain creature-free for now.
 
 Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
