@@ -55,7 +55,13 @@ chrome_flags=(
   --window-size=1440,900
   --force-device-scale-factor=1
   --run-all-compositor-stages-before-draw
-  --virtual-time-budget=6500
+  --virtual-time-budget=9000
+  --enable-webgl
+  --ignore-gpu-blocklist
+  --use-angle=swiftshader
+  --enable-unsafe-swiftshader
+  --enable-logging=stderr
+  --log-level=0
   "--user-data-dir=$user_data_dir"
 )
 
@@ -64,12 +70,18 @@ candidate_dom="$out_dir/candidate-dom.html"
 
 if ! grep -q "Phaser 4 · authoritative simulation" "$candidate_dom"; then
   echo "Phaser runtime readiness marker not found in rendered DOM" >&2
-  tail -100 "$out_dir/chrome-runtime.log" >&2 || true
+  echo "Rendered boot status:" >&2
+  grep -oE '<div id="boot-status"[^>]*>[^<]*' "$candidate_dom" | head -1 >&2 || true
+  echo "Renderer failure markers:" >&2
+  grep -oE 'Renderer failed:[^<]*' "$candidate_dom" | head -3 >&2 || true
+  echo "Chrome log tail:" >&2
+  tail -120 "$out_dir/chrome-runtime.log" >&2 || true
   exit 1
 fi
 
 if grep -q "Renderer failed:" "$candidate_dom"; then
   echo "Renderer failure marker found in rendered DOM" >&2
+  grep -oE 'Renderer failed:[^<]*' "$candidate_dom" | head -3 >&2 || true
   exit 1
 fi
 
