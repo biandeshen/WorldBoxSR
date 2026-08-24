@@ -5,6 +5,7 @@ port="${VISUAL_QA_PORT:-4173}"
 out_dir="${VISUAL_QA_OUT:-artifacts/visual}"
 log_file="${VISUAL_QA_LOG:-/tmp/worldboxsr-visual-qa.log}"
 base_url="http://127.0.0.1:${port}/WorldBoxSR/"
+ready_marker="Phaser 4 · authoritative simulation · showcase ready"
 
 browser=""
 for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
@@ -55,7 +56,7 @@ chrome_flags=(
   --window-size=1440,900
   --force-device-scale-factor=1
   --run-all-compositor-stages-before-draw
-  --virtual-time-budget=9000
+  --virtual-time-budget=15000
   --enable-webgl
   --ignore-gpu-blocklist
   --use-angle=swiftshader
@@ -68,8 +69,8 @@ chrome_flags=(
 candidate_dom="$out_dir/candidate-dom.html"
 "$browser" "${chrome_flags[@]}" --dump-dom "$base_url" >"$candidate_dom" 2>"$out_dir/chrome-runtime.log"
 
-if ! grep -q "Phaser 4 · authoritative simulation" "$candidate_dom"; then
-  echo "Phaser runtime readiness marker not found in rendered DOM" >&2
+if ! grep -q "$ready_marker" "$candidate_dom"; then
+  echo "Fully warmed Phaser showcase marker not found in rendered DOM" >&2
   echo "Rendered boot status:" >&2
   grep -oE '<div id="boot-status"[^>]*>[^<]*' "$candidate_dom" | head -1 >&2 || true
   echo "Renderer failure markers:" >&2
@@ -97,7 +98,7 @@ legacy=${base_url}?renderer=legacy
 seed=45
 candidate_screenshot=phaser-seed45-1440x900.png
 legacy_screenshot=legacy-seed45-1440x900.png
-runtime_probe=Phaser readiness marker present; Renderer failed marker absent
+runtime_probe=${ready_marker}; Renderer failed marker absent
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
