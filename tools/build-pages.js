@@ -9,15 +9,15 @@ import {
   statSync,
   writeFileSync
 } from 'node:fs';
-import { dirname, join, normalize, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative as pathRelative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = normalize(join(fileURLToPath(new URL('..', import.meta.url))));
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outputName = process.env.PAGES_OUT_DIR || '.pages';
 const output = resolve(root, outputName);
 const runtimeDirs = ['client', 'engine', 'content'];
 
-if (output === root || !output.startsWith(`${root}/`) && !output.startsWith(`${root}\\`)) {
+if (!isInside(root, output)) {
   throw new Error(`Pages output must stay inside repository root: ${output}`);
 }
 
@@ -66,17 +66,22 @@ function validateModuleImports(path, siteRoot) {
   while ((match = importPattern.exec(source)) !== null) {
     const specifier = match[1];
     if (specifier.startsWith('node:')) {
-      throw new Error(`Browser graph imports Node builtin ${specifier} from ${relative(path, siteRoot)}`);
+      throw new Error(`Browser graph imports Node builtin ${specifier} from ${displayRelative(path, siteRoot)}`);
     }
     if (!specifier.startsWith('.')) continue;
     const target = resolve(dirname(path), specifier);
-    if (!target.startsWith(siteRoot)) {
-      throw new Error(`Browser import escapes Pages artifact: ${relative(path, siteRoot)} -> ${specifier}`);
+    if (!isInside(siteRoot, target)) {
+      throw new Error(`Browser import escapes Pages artifact: ${displayRelative(path, siteRoot)} -> ${specifier}`);
     }
     if (!existsSync(target)) {
-      throw new Error(`Unresolved browser import: ${relative(path, siteRoot)} -> ${specifier}`);
+      throw new Error(`Unresolved browser import: ${displayRelative(path, siteRoot)} -> ${specifier}`);
     }
   }
+}
+
+function isInside(parent, child) {
+  const relation = pathRelative(parent, child);
+  return relation !== '' && !relation.startsWith('..') && !isAbsolute(relation);
 }
 
 function walk(directory, visit) {
@@ -87,6 +92,6 @@ function walk(directory, visit) {
   }
 }
 
-function relative(path, base) {
-  return path.slice(base.length + 1).replaceAll('\\', '/');
+function displayRelative(path, base) {
+  return pathRelative(base, path).replaceAll('\\', '/');
 }
