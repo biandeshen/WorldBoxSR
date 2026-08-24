@@ -24,7 +24,11 @@ export function createPolity(world, { capitalSettlementId }) {
     active: true,
     dissolvedDay: null,
     colorIndex: identity.colorIndex,
-    bannerStyle: identity.bannerStyle
+    bannerStyle: identity.bannerStyle,
+    rulerId: null,
+    rulerSinceDay: null,
+    rulerSequence: 0,
+    lastRulerId: null
   };
   capital.polityId = id;
   world.polities.push(polity);

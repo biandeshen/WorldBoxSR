@@ -10,6 +10,7 @@ import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { initialVegetationForTile, vegetationCapacityForTile } from '../world/vegetation.js';
 import { updateSettlements } from '../systems/settlements.js';
 import { updatePolities } from '../systems/polities.js';
+import { updateRulers } from '../systems/rulers.js';
 
 export const SNAPSHOT_VERSION = 12;
 const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11]);
@@ -96,6 +97,7 @@ export function tickWorld(world, ticks = 1) {
     updateGrazerReproduction(world);
     updateSettlements(world);
     updatePolities(world);
+    updateRulers(world);
   }
   return world;
 }
@@ -111,9 +113,7 @@ export function neighbors8(world, x, y) {
       if (dx === 0 && dy === 0) continue;
       const nx = x + dx;
       const ny = y + dy;
-      if (nx >= 0 && ny >= 0 && nx < world.width && ny < world.height) {
-        cells.push(tileAt(world, nx, ny));
-      }
+      if (nx >= 0 && ny >= 0 && nx < world.width && ny < world.height) cells.push(tileAt(world, nx, ny));
     }
   }
   return cells;
@@ -141,25 +141,12 @@ export function snapshotWorld(world) {
     nextCommandId: world.nextCommandId,
     config: { ...world.config },
     tiles: world.tiles.map((tile) => ({ ...tile })),
-    entities: world.entities.map((entity) => ({
-      ...entity,
-      parentIds: [...entity.parentIds],
-      childIds: [...entity.childIds],
-      unionIds: [...entity.unionIds]
-    })),
+    entities: world.entities.map((entity) => ({ ...entity, parentIds: [...entity.parentIds], childIds: [...entity.childIds], unionIds: [...entity.unionIds] })),
     creatures: world.creatures.map((creature) => ({ ...creature })),
     settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     polities: world.polities.map((polity) => ({ ...polity, settlementIds: [...polity.settlementIds] })),
-    lineages: world.lineages.map((lineage) => ({
-      ...lineage,
-      memberIds: [...lineage.memberIds],
-      founderIds: [...lineage.founderIds]
-    })),
-    unions: world.unions.map((union) => ({
-      ...union,
-      partnerIds: [...union.partnerIds],
-      childIds: [...union.childIds]
-    })),
+    lineages: world.lineages.map((lineage) => ({ ...lineage, memberIds: [...lineage.memberIds], founderIds: [...lineage.founderIds] })),
+    unions: world.unions.map((union) => ({ ...union, partnerIds: [...union.partnerIds], childIds: [...union.childIds] })),
     history: world.history.map((event) => ({ ...event })),
     counters: { ...world.counters }
   };
@@ -167,9 +154,7 @@ export function snapshotWorld(world) {
 
 export function worldFromSnapshot(snapshot) {
   const version = snapshot.snapshotVersion;
-  if (version !== SNAPSHOT_VERSION && !LEGACY_SNAPSHOT_VERSIONS.has(version)) {
-    throw new Error(`Unsupported snapshot version: ${version}`);
-  }
+  if (version !== SNAPSHOT_VERSION && !LEGACY_SNAPSHOT_VERSIONS.has(version)) throw new Error(`Unsupported snapshot version: ${version}`);
   const migratingPreV11 = version === 10;
   const migratingPreV12 = version === 10 || version === 11;
   return {
@@ -189,45 +174,24 @@ export function worldFromSnapshot(snapshot) {
     nextCommandId: snapshot.nextCommandId,
     config: mergeConfig(snapshot.config),
     tiles: snapshot.tiles.map((tile) => ({ ...tile })),
-    entities: snapshot.entities.map((entity) => ({
-      ...entity,
-      parentIds: [...entity.parentIds],
-      childIds: [...entity.childIds],
-      unionIds: [...entity.unionIds]
-    })),
-    creatures: snapshot.creatures.map((creature) => ({
-      ...creature,
-      lastBirthDay: migratingPreV11 ? null : (creature.lastBirthDay ?? null)
-    })),
-    settlements: snapshot.settlements.map((settlement) => ({
-      ...settlement,
-      memberIds: [...settlement.memberIds],
-      polityId: migratingPreV12 ? null : (settlement.polityId ?? null)
-    })),
+    entities: snapshot.entities.map((entity) => ({ ...entity, parentIds: [...entity.parentIds], childIds: [...entity.childIds], unionIds: [...entity.unionIds] })),
+    creatures: snapshot.creatures.map((creature) => ({ ...creature, lastBirthDay: migratingPreV11 ? null : (creature.lastBirthDay ?? null) })),
+    settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds], polityId: migratingPreV12 ? null : (settlement.polityId ?? null) })),
     polities: migratingPreV12 ? [] : (snapshot.polities ?? []).map((polity) => ({
       ...polity,
-      settlementIds: [...polity.settlementIds]
+      settlementIds: [...polity.settlementIds],
+      rulerId: polity.rulerId ?? null,
+      rulerSinceDay: polity.rulerSinceDay ?? null,
+      rulerSequence: polity.rulerSequence ?? 0,
+      lastRulerId: polity.lastRulerId ?? null
     })),
-    lineages: snapshot.lineages.map((lineage) => ({
-      ...lineage,
-      memberIds: [...lineage.memberIds],
-      founderIds: [...lineage.founderIds]
-    })),
-    unions: snapshot.unions.map((union) => ({
-      ...union,
-      partnerIds: [...union.partnerIds],
-      childIds: [...union.childIds]
-    })),
+    lineages: snapshot.lineages.map((lineage) => ({ ...lineage, memberIds: [...lineage.memberIds], founderIds: [...lineage.founderIds] })),
+    unions: snapshot.unions.map((union) => ({ ...union, partnerIds: [...union.partnerIds], childIds: [...union.childIds] })),
     history: snapshot.history.map((event) => ({ ...event })),
-    counters: {
-      ...snapshot.counters,
-      creatureBirths: migratingPreV11 ? 0 : (snapshot.counters.creatureBirths ?? 0)
-    }
+    counters: { ...snapshot.counters, creatureBirths: migratingPreV11 ? 0 : (snapshot.counters.creatureBirths ?? 0) }
   };
 }
 
 function assertWorldSize(width, height) {
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 4 || height < 4) {
-    throw new RangeError('world width and height must be integers >= 4');
-  }
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 4 || height < 4) throw new RangeError('world width and height must be integers >= 4');
 }
