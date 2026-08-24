@@ -28,6 +28,7 @@ Grazer old-age mortality is enabled only by `grazerOldAgeMortalityEnabled: true`
 - Measured grazer carrying capacity is evidence, not a runtime population controller.
 - Reproduction encounter radius 3 and resource-locality radius 1 remain distinct mechanics.
 - Hard grazer lifespan bands and founder-age tuning remain rejected.
+- Compact natural-fauna initialization must not be tuned against a phase-sensitive terminal metric.
 
 ## Authoritative grazer lifecycle
 
@@ -63,48 +64,55 @@ Evidence: `docs/experiments/2026-08-24-natural-grazer-initialization.md`.
 
 Fixed 10 passes all tested 24×24, 32×32, and 48×48 worlds through 120 years, so large maps show no founder up-scaling need.
 
-But three 16×16 worlds fail:
-
-| Seed | Land cells | Final pop | Final-20y births |
-| ---: | ---: | ---: | ---: |
-| 2 | 57 | 9 | 8 |
-| 6 | 66 | 5 | 3 |
-| 7 | 101 | 4 | 4 |
-
-Their vegetation recovers, so the failure is demographic/encounter sparsity after deep oscillation rather than permanent resource collapse.
+But three 16×16 worlds fail: seed2 final9/8 final-window births, seed6 final5/3 births, seed7 final4/4 births. Their vegetation recovers, so the failure is demographic/encounter sparsity after deep oscillation rather than permanent resource collapse.
 
 Evidence: `docs/experiments/2026-08-24-grazer-founder-size-scaling.md`.
 
 ### Sprint 023 / #122 — total-area down-scaling also fails
 
-A single pre-registered compact rule was tested:
+The pre-registered area rule gives 4 founders at 16×16. It repairs original fixed10 failures seed6 and seed7, but still fails seed2, makes seed10 go extinct, and misses seed24's continuation gate.
 
-`founders = min(10, max(2, floor(10 * width * height / (24 * 24))))`
-
-This gives 4 founders at 16×16. Stage 1 runs seeds1–30 for 120 years and fails 3/30:
-
-| Seed | Land cells | Final pop | Min after year20 | Final-20y births | Result |
-| ---: | ---: | ---: | ---: | ---: | --- |
-| 2 | 57 | **9** | 9 | 8 | misses final-pop floor |
-| 10 | 101 | **0** | 0 | **0** | extinction |
-| 24 | 81 | 17 | 7 | **4** | misses continuation gate |
-
-The rule does repair original fixed10 failures seed6 and seed7:
-
-- seed6: fixed10 `final5 / 3 births` → 4 founders **final12 / 10 births**;
-- seed7: fixed10 `final4 / 4 births` → 4 founders **final32 / 27 births**.
-
-But seed10 moves the opposite way: fixed10 passes, while 4 founders go extinct around year90 after vegetation fully recovers.
-
-Most importantly, seed7 and seed10 both have **101 passable land cells** yet prefer opposite founder-count directions. Therefore neither total map area nor passable-land count alone can explain compact-world founder robustness.
+Seed7 and seed10 both have **101 passable land cells** yet prefer opposite founder-count directions. Therefore total area or passable-land count alone cannot explain compact-world robustness.
 
 Evidence: `docs/experiments/2026-08-24-grazer-compact-area-scaling.md`.
 
+### Sprint 024 / #124 — scalar count rejected; failure mechanisms split
+
+A bounded 16×16 response surface ran seeds1–30 × founder counts `2/4/6/8/10` for 120 years.
+
+| Founders | Pass | Extinctions |
+| ---: | ---: | ---: |
+| 2 | 23/30 | 7 |
+| 4 | **27/30** | 1 |
+| 6 | 26/30 | 1 |
+| 8 | 26/30 | 0 |
+| 10 | 22/30 | 1 |
+
+No count is universal, and several seeds change pass/fail direction multiple times as founders increase.
+
+Static initialization descriptors—land components, founder graph connectivity, isolates, nearest-neighbor distance, bounding box, and initial local vegetation—do not cleanly classify outcomes.
+
+A pre-registered 50-world trajectory follow-up then separated three phenomena:
+
+1. **initial encounter failure** — some 2-founder worlds remain resource-rich but never form radius-3 reproductive pair opportunity before old age removes them;
+2. **post-establishment resource-demography failure** — some well-connected founder sets establish, grow, suppress reproduction through resource pressure, then fail to rebuild sparse reproductive stock after old-age turnover;
+3. **terminal phase sensitivity** — several year120 gate failures are still alive with recovered vegetation and many eligible pair edges, indicating a recoverable cycle trough rather than irreversible failure.
+
+Examples:
+
+- seed9/13/14 with 2 founders: zero or near-zero births despite abundant vegetation and zero pair edges, then old-age extinction;
+- seed10 with 4 founders: grows to 42 by year20, later enters resource suppression and sparse recovery, then truly goes extinct around year90 despite abundant recovered vegetation;
+- seed4 with 8 founders: year100 pop74 → year120 pop16 and fails the final-window gate, yet year120 has ~79% vegetation plus 13 reproduction-eligible grazers / 25 eligible pair edges, so the terminal failure is not equivalent to extinction.
+
+Decision: **do not promote any compact initializer, static topology rule, or placement change from Sprint 024.** The existing terminal year120 gate is too phase-sensitive to use as a tuning target.
+
+Evidence: `docs/experiments/2026-08-24-grazer-compact-founder-sensitivity.md`.
+
 ## Interpretation
 
-The compact-map problem is **non-monotonic**. Lower founder density can rescue some worlds and break others. The remaining causal variables likely include founder spatial coverage, land connectivity/topology, local encounter geometry, and deterministic lineage/keyed trajectories.
+Compact ecology is a nonlinear resource-demography oscillator. Initial encounter geometry matters for tiny founder sets, but it is not the only failure mode. Successfully established populations can still experience long demographic troughs, and a single terminal population/birth window can confuse a trough with non-viability.
 
-Do not propose another scaling formula yet.
+Changing placement now would overfit one failure class and could flatten coherent emergent cycles.
 
 ## Human / settlement checkpoint
 
@@ -128,25 +136,23 @@ Exact sampled settlement flow accounting reconciles population change, and known
 - Sprint 021 / #118 — 10-founder 24×24 natural initializer passes 30-seed/120y gate.
 - Sprint 022 / #120 — fixed10 fails some 16×16 worlds; 24×24+ all pass.
 - Sprint 023 / #122 — simple area down-scaling fails; count response is non-monotonic.
+- Sprint 024 / #124 — scalar founder count rejected; compact failures split into establishment, post-pressure recovery, and terminal-cycle sampling classes.
 
 ## Next decision gate
 
-Run a **diagnostic compact-world founder-count response surface** before proposing another initializer rule.
+Before changing compact placement, define and validate a **cycle-aware persistence gate**.
 
-The next study should:
+The next study should keep ecology and initialization unchanged and use pre-registered borderline/true-failure cases over a longer horizon to determine:
 
-- use 16×16 worlds;
-- test a bounded, pre-registered set of founder counts for diagnosis rather than promotion;
-- include broad seeds and explicitly retain known contradictory cases such as seed7 and seed10;
-- record initial founder spatial coverage, pair/encounter connectivity, passable-land components, and resource/topology descriptors;
-- determine whether any common robust count exists and whether failure correlates with count or placement geometry.
+- whether a low terminal sample later rebounds;
+- whether births resume in rolling windows after a demographic trough;
+- how long normal resource-demography cycles can remain below the current final-population/final-birth thresholds;
+- which trajectories are truly irreversible extinction/non-recovery versus merely out-of-phase at year120.
 
-If count alone is not robust, change the initializer's spatial seeding logic rather than continue scalar formula search.
+Only after this evaluation boundary is coherent should a separate experiment test one encounter-safe spatial-seeding hypothesis for genuine establishment failures.
 
-Only after compact initialization is coherent should activation semantics (explicit opt-in, ecology preset, or future default) be decided. Until then default worlds remain creature-free.
-
-Do not add predators, another species, or human/settlement animal interaction before activation is coherent.
+Until then default worlds remain creature-free. Do not add predators, another species, or human/settlement animal interaction.
 
 ## Project-management rule
 
-Do not promote convenient labels or averages into mechanics. Add the smallest causal mechanism supported by experiments, preserve negative/rare outcomes, and keep world history explainable.
+Do not promote convenient labels, averages, or terminal samples into mechanics. Add the smallest causal mechanism supported by experiments, preserve coherent negative/rare outcomes, and keep world history explainable.
