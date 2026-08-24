@@ -111,6 +111,8 @@ A 10-year refinement at `100/150/200/250/300` found a landscape-dependent surviv
 - seed 4: **164–165**;
 - seed 9: **127–130**.
 
+Normalizing those overloaded survivor plateaus by total vegetation capacity collapses the three landscapes to almost the same empirical scale: roughly **1 long-run grazer per 14.8–15.0 vegetation-capacity units**. This is a validation measurement, not a global population target to encode.
+
 `150` is the transition band; `100` is mostly survivable but can still apply long-running pressure on poorer terrain. Sequential world RNG remained unchanged after deterministic initialization.
 
 The evidence is recorded in `docs/experiments/2026-08-24-grazer-carrying-pressure.md`.
@@ -132,7 +134,8 @@ The experiment must:
 - use keyed randomness and stable ordering so sequential human RNG remains untouched;
 - preserve the separate human/creature identity domains;
 - recover low-density populations without runaway growth or permanent vegetation collapse;
-- stay bounded across multiple landscape seeds and starting densities.
+- stay bounded across multiple landscape seeds and starting densities;
+- reproduce the carrying-pressure envelope from local feedback rather than reading the measured ~15-capacity-units-per-grazer ratio as a control target.
 
 If a simple mechanism cannot satisfy those constraints, record the negative result rather than parameter-searching it into success.
 
