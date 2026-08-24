@@ -35,7 +35,7 @@ Universal natural-fauna auto-initialization is **not a v0.1 blocker**. It moves 
 
 ## Browser-only development with Codespaces
 
-The repository includes a Node 22 dev-container configuration. Open the repository in GitHub Codespaces and the codespace will start `npm run dev`, forward port `8080`, and open the WorldBoxSR preview inside the browser editor. The forwarded port stays private by default.
+The repository includes a Node 22 dev-container configuration. Open the repository in GitHub Codespaces and the codespace will start `npm run dev`, forward port `8080`, and open the WorldBoxSR preview inside the browser editor.
 
 Use the codespace terminal for the same validation commands used locally and in CI:
 
@@ -47,9 +47,17 @@ npm run sim -- --seed 42 --years 100 --population 30
 
 ## GitHub-hosted simulation runs
 
-For a deterministic run without opening a local environment, use **Actions → simulation-console → Run workflow**. Choose the seed, years, population and map size in the GitHub UI. The workflow runs the same authoritative simulation CLI, shows the main outcome metrics in the Actions summary and preserves the complete JSON result as a private workflow artifact.
+For a deterministic run without opening a local environment, use **Actions → simulation-console → Run workflow**. Choose the seed, years, population and map size in the GitHub UI. The workflow runs the same authoritative simulation CLI, shows the main outcome metrics in the Actions summary and preserves the complete JSON result as a workflow artifact tied to that commit.
 
-See [GitHub development platform](docs/development/github-platform.md) for the project’s division of responsibilities between PRs, CI, Codespaces, the Simulation Console, artifacts and releases. GitHub Pages is intentionally not enabled while this personal-account repository remains private because the published site would be public.
+## Public playable demo
+
+WorldBoxSR is prepared for a GitHub Pages deployment of the current `main` browser client. The Pages build is validated in normal CI and publishes only the browser runtime rather than the full repository tree.
+
+After the repository is switched to public and **Settings → Pages → Source** is set to **GitHub Actions**, the expected playable URL is:
+
+`https://biandeshen.github.io/WorldBoxSR/`
+
+See [GitHub development platform](docs/development/github-platform.md) for the division of responsibilities between PRs, CI, Codespaces, Simulation Console, artifacts, Pages and releases.
 
 ## Run
 
@@ -59,6 +67,7 @@ Requires Node.js 22+ and no third-party runtime dependencies.
 npm test
 npm run sim -- --seed 42 --years 100 --population 30
 npm run dev   # open http://127.0.0.1:8080
+npm run pages:build
 ```
 
 Example machine-readable run:
