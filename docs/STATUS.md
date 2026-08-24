@@ -14,9 +14,10 @@ Last updated: 2026-08-24
 - persistent historical co-parent (`parental_union`) edges;
 - derived social, scarcity, and demographic research instruments;
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
-- a minimal Canvas client/inspector that remains downstream of authoritative simulation state.
+- a lightweight Canvas client that consumes authoritative simulation state;
+- deterministic history queries plus a causal timeline/event inspector for world, human, and settlement history.
 
-Sprint 005 mechanics passed **139/139 permanent tests + smoke** before the temporary long-run probes. Final clean CI must retain that permanent suite only.
+Clean CI after Sprint 006 / #85 is **152/152 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -121,21 +122,25 @@ Reasons:
 
 Settlement extinction is valid world history.
 
-## Active gate — Sprint 006 / #85
+## Completed product gate — Sprint 006 / #85
 
-The next high-value step is **history legibility**, not another settlement rescue experiment.
+The world history is now directly inspectable instead of only visible through current state.
 
-The client currently shows present state but cannot inspect authoritative world history. Sprint 006 adds a minimal causal timeline/event inspector using existing stable event IDs and serialized causal references.
+Sprint 006 adds:
 
-The first version must:
+- deterministic world-event ordering and bounded slicing;
+- stable event lookup and typed causal-reference resolution;
+- explicit human/settlement history filters using only facts actually recorded in events;
+- visible unresolved event/command/entity references rather than fabricated resolution;
+- a lightweight client timeline with world vs selection scope, newest/oldest order, clickable event details, and causal references;
+- explicit empty/evicted states;
+- a tested truth boundary preventing current settlement membership from being retroactively attached to old birth/death events.
 
-- browse recent world events;
-- filter directly attributable human/settlement events without inventing historical membership;
-- inspect event IDs and cause/reference links;
-- keep unresolved references explicit when bounded history has evicted the parent event;
-- remain a pure consumer of `world.history`.
+The timeline is a pure consumer of `world.history`; no simulation behavior or event semantics were changed for visual richness.
 
-This directly advances the product principles **Legible causality** and **History is a first-class output** while preserving the emergent outcomes the research just explained.
+## Next decision gate
+
+Do not immediately add another rescue rule or promote labels into kingdoms. With settlement causality now both measured and inspectable, choose the next increment from existing evidence/backlog: territory/current-state legibility, a behavior-neutral causal-history improvement, richer world resources, or another simulation primitive only if it has a clear causal hypothesis.
 
 ## Project-management rule
 
