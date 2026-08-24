@@ -1,3 +1,5 @@
+import { polityColor } from './polity_style.js';
+
 export class EntityLayer {
   constructor(scene, tileSize) {
     this.scene = scene;
@@ -7,27 +9,8 @@ export class EntityLayer {
   }
 
   sync(view, now, duration = 140) {
-    syncCollection({
-      scene: this.scene,
-      tileSize: this.tileSize,
-      map: this.humans,
-      rows: view.humans,
-      now,
-      duration,
-      create: createHumanVisual,
-      updateState: updateHumanState
-    });
-
-    syncCollection({
-      scene: this.scene,
-      tileSize: this.tileSize,
-      map: this.grazers,
-      rows: view.grazers,
-      now,
-      duration,
-      create: createGrazerVisual,
-      updateState: updateGrazerState
-    });
+    syncCollection({ scene: this.scene, tileSize: this.tileSize, map: this.humans, rows: view.humans, now, duration, create: createHumanVisual, updateState: updateHumanState });
+    syncCollection({ scene: this.scene, tileSize: this.tileSize, map: this.grazers, rows: view.grazers, now, duration, create: createGrazerVisual, updateState: updateGrazerState });
   }
 
   update(now) {
@@ -35,49 +18,32 @@ export class EntityLayer {
     updateCollection(this.grazers, now, this.tileSize);
   }
 
-  destroy() {
-    destroyCollection(this.humans);
-    destroyCollection(this.grazers);
-  }
+  destroy() { destroyCollection(this.humans); destroyCollection(this.grazers); }
 }
 
 function syncCollection({ scene, tileSize, map, rows, now, duration, create, updateState }) {
   const active = new Set();
-
   for (const row of rows) {
-    const id = row.id;
-    active.add(id);
+    active.add(row.id);
     const target = tileCenter(row.x, row.y, tileSize);
-    let visual = map.get(id);
-
+    let visual = map.get(row.id);
     if (!visual) {
       visual = create(scene, row, target.x, target.y, tileSize);
-      visual.fromX = target.x;
-      visual.fromY = target.y;
-      visual.toX = target.x;
-      visual.toY = target.y;
-      visual.startedAt = now;
-      visual.duration = duration;
-      map.set(id, visual);
+      visual.fromX = target.x; visual.fromY = target.y; visual.toX = target.x; visual.toY = target.y; visual.startedAt = now; visual.duration = duration;
+      map.set(row.id, visual);
     } else {
       visual.fromX = visual.container.x;
       visual.fromY = visual.anchorY ?? visual.container.y;
-      visual.toX = target.x;
-      visual.toY = target.y;
-      visual.startedAt = now;
-      visual.duration = duration;
+      visual.toX = target.x; visual.toY = target.y; visual.startedAt = now; visual.duration = duration;
       const dx = visual.toX - visual.fromX;
       if (Math.abs(dx) > 0.01) visual.facing = dx < 0 ? -1 : 1;
     }
-
     visual.anchorY = target.y;
     updateState(visual, row);
   }
-
   for (const [id, visual] of map) {
     if (active.has(id)) continue;
-    destroyVisual(visual);
-    map.delete(id);
+    destroyVisual(visual); map.delete(id);
   }
 }
 
@@ -88,13 +54,11 @@ function updateCollection(map, now, tileSize) {
     const eased = t * (2 - t);
     const moving = t < 1 && (Math.abs(visual.toX - visual.fromX) > 0.01 || Math.abs(visual.toY - visual.fromY) > 0.01);
     const bob = Math.sin(now * visual.bobSpeed + visual.bobPhase) * (moving ? visual.moveBob : visual.idleBob);
-
     visual.container.x = lerp(visual.fromX, visual.toX, eased);
     visual.container.y = lerp(visual.fromY, visual.toY, eased) + bob;
     visual.container.scaleX = visual.baseScale * visual.facing;
     visual.container.scaleY = visual.baseScale;
     visual.container.setDepth(30 + visual.container.y / Math.max(1, tileSize));
-
     if (visual.shadow) {
       visual.shadow.scaleX = 1 + (moving ? Math.abs(Math.sin(now * 0.018 + visual.bobPhase)) * 0.08 : 0);
       visual.shadow.alpha = moving ? 0.22 : 0.28;
@@ -115,24 +79,11 @@ function createHumanVisual(scene, human, x, y, tileSize) {
   const hair = scene.add.rectangle(0, -9, 6.6, 2.2, human.sex === 'F' ? 0x5d3546 : 0x3a302a, 1);
   const facePixel = scene.add.rectangle(2.1, -6.1, 1.2, 1.2, 0x51352c, 0.9);
   const status = scene.add.circle(0, -13, 2.1, 0xf1c45d, 0).setStrokeStyle(1, 0x151b20, 0);
-  const container = scene.add.container(x, y, [shadow, backArm, legs, tunic, tunicLight, belt, frontArm, head, hair, facePixel, status]);
+  const crown = scene.add.text(0, -18.5, '♛', { fontFamily: 'serif', fontSize: '10px', color: '#ffe276', stroke: '#5a3714', strokeThickness: 2 }).setOrigin(0.5).setAlpha(human.isRuler ? 1 : 0);
+  const container = scene.add.container(x, y, [shadow, backArm, legs, tunic, tunicLight, belt, frontArm, head, hair, facePixel, status, crown]);
   container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-
-  return {
-    container,
-    shadow,
-    tunic,
-    tunicLight,
-    status,
-    baseScale,
-    facing: hashFacing(human.id),
-    bobPhase: human.id * 1.731,
-    bobSpeed: 0.009,
-    idleBob: 0.28,
-    moveBob: 0.72,
-    anchorY: y
-  };
+  return { container, shadow, tunic, tunicLight, status, crown, baseScale, facing: hashFacing(human.id), bobPhase: human.id * 1.731, bobSpeed: 0.009, idleBob: 0.28, moveBob: 0.72, anchorY: y };
 }
 
 function createGrazerVisual(scene, grazer, x, y, tileSize) {
@@ -151,50 +102,31 @@ function createGrazerVisual(scene, grazer, x, y, tileSize) {
   const container = scene.add.container(x, y, [shadow, rearLeg, frontLeg, body, flank, neck, head, ear, muzzle, eye, status]);
   container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-
-  return {
-    container,
-    shadow,
-    status,
-    baseScale,
-    facing: hashFacing(grazer.id + 1000),
-    bobPhase: grazer.id * 2.137,
-    bobSpeed: 0.0075,
-    idleBob: 0.18,
-    moveBob: 0.48,
-    anchorY: y
-  };
+  return { container, shadow, status, baseScale, facing: hashFacing(grazer.id + 1000), bobPhase: grazer.id * 2.137, bobSpeed: 0.0075, idleBob: 0.18, moveBob: 0.48, anchorY: y };
 }
 
 function updateHumanState(visual, human) {
   const color = humanColor(human);
   visual.tunic.setFillStyle(color, 1);
   visual.tunicLight.setFillStyle(lighten(color), 0.78);
+  visual.crown?.setAlpha(human.isRuler ? 1 : 0);
   updateStatus(visual, human.health, human.hunger);
 }
 
-function updateGrazerState(visual, grazer) {
-  updateStatus(visual, grazer.health, grazer.hunger);
-}
+function updateGrazerState(visual, grazer) { updateStatus(visual, grazer.health, grazer.hunger); }
 
 function updateStatus(visual, health, hunger) {
   if (health < 0.42) {
-    visual.status.setFillStyle(0xe65d57, 0.95).setStrokeStyle(1, 0x151b20, 0.8);
-    visual.container.setAlpha(0.72);
-    return;
+    visual.status.setFillStyle(0xe65d57, 0.95).setStrokeStyle(1, 0x151b20, 0.8); visual.container.setAlpha(0.72); return;
   }
-
   if (hunger > 0.68) {
-    visual.status.setFillStyle(0xf0c35f, 0.92).setStrokeStyle(1, 0x151b20, 0.78);
-    visual.container.setAlpha(1);
-    return;
+    visual.status.setFillStyle(0xf0c35f, 0.92).setStrokeStyle(1, 0x151b20, 0.78); visual.container.setAlpha(1); return;
   }
-
-  visual.status.setFillStyle(0xffffff, 0).setStrokeStyle(1, 0xffffff, 0);
-  visual.container.setAlpha(1);
+  visual.status.setFillStyle(0xffffff, 0).setStrokeStyle(1, 0xffffff, 0); visual.container.setAlpha(1);
 }
 
 function humanColor(human) {
+  if (Number.isInteger(human.polityColorIndex)) return polityColor(human.polityColorIndex);
   if (human.settlementId !== null && human.settlementId !== undefined) {
     const colors = [0xb84f48, 0x4779b7, 0xc99b40, 0x4e9764, 0x825fb1, 0xb45d8b];
     return colors[(Math.max(1, human.settlementId) - 1) % colors.length];
@@ -208,28 +140,8 @@ function lighten(color) {
   const b = Math.min(255, (color & 0xff) + 34);
   return (r << 16) | (g << 8) | b;
 }
-
-function hashFacing(id) {
-  return (Math.imul(id, 2654435761) >>> 0) % 2 === 0 ? 1 : -1;
-}
-
-function tileCenter(x, y, tileSize) {
-  return {
-    x: (x + 0.5) * tileSize,
-    y: (y + 0.5) * tileSize
-  };
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
-function destroyCollection(map) {
-  for (const visual of map.values()) destroyVisual(visual);
-  map.clear();
-}
-
-function destroyVisual(visual) {
-  for (const child of visual.container.list || []) child.destroy();
-  visual.container.destroy();
-}
+function hashFacing(id) { return (Math.imul(id, 2654435761) >>> 0) % 2 === 0 ? 1 : -1; }
+function tileCenter(x, y, tileSize) { return { x: (x + 0.5) * tileSize, y: (y + 0.5) * tileSize }; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function destroyCollection(map) { for (const visual of map.values()) destroyVisual(visual); map.clear(); }
+function destroyVisual(visual) { for (const child of visual.container.list || []) child.destroy(); visual.container.destroy(); }
