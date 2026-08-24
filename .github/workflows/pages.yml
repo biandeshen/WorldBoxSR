@@ -27,6 +27,8 @@ jobs:
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Build static demo
         run: npm run pages:build
+      - name: Verify Pages artifact is the playable demo
+        run: npm run pages:check
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
