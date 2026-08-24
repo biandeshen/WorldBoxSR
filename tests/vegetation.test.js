@@ -91,11 +91,11 @@ test('different vegetation trajectories leave human, food, settlement, history, 
   );
 });
 
-test('vegetation survives snapshot/save-load exactly under snapshot schema v10', () => {
+test('vegetation survives snapshot/save-load exactly under snapshot schema v11', () => {
   const world = createWorld({ seed: 8904, width: 12, height: 12, population: 12 });
   tickWorld(world, 500);
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 10);
+  assert.equal(snapshot.snapshotVersion, 11);
 
   const restored = worldFromSnapshot(JSON.parse(JSON.stringify(snapshot)));
   assert.deepEqual(snapshotWorld(restored), snapshot);
