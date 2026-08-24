@@ -84,8 +84,11 @@ export function createLocalCoPresenceStabilityTracker({
       if (current.daysObserved === normalizedWindowDays) windowsToFinalize.push(state);
     }
 
+    // Sample completed current-window maps before they are reset, then sample
+    // again after finalization so history-only high-water is also exact.
     updateStorageHighWater();
     for (const state of windowsToFinalize) finalizeCompleteWindow(state);
+    if (windowsToFinalize.length > 0) updateStorageHighWater();
   }
 
   function enforcePeerCap(window) {
@@ -125,9 +128,12 @@ export function createLocalCoPresenceStabilityTracker({
     const previous = state.recentValidWindows.at(-1) ?? null;
     if (previous) processAdjacent(previous, record);
 
+    const three = [...state.recentValidWindows, record].slice(-3);
+    if (three.length === 3) processThreeWindows(three);
+
+    // Adjacent + 3-window metrics require at most two prior complete maps.
     state.recentValidWindows.push(record);
-    if (state.recentValidWindows.length > 3) state.recentValidWindows.shift();
-    if (state.recentValidWindows.length === 3) processThreeWindows(state.recentValidWindows);
+    if (state.recentValidWindows.length > 2) state.recentValidWindows.shift();
   }
 
   function processAdjacent(previous, current) {
