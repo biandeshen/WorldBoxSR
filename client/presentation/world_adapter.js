@@ -102,6 +102,7 @@ export function applyGodTool(world, tool, x, y, count = 1) {
 }
 
 export function worldView(world) {
+  const polityById = new Map(world.polities.map((polity) => [polity.id, polity]));
   return {
     width: world.width,
     height: world.height,
@@ -141,14 +142,33 @@ export function worldView(world) {
         hunger: creature.hunger,
         health: creature.health
       })),
-    settlements: world.settlements.map((settlement) => ({
-      id: settlement.id,
-      name: settlement.name,
-      x: settlement.x,
-      y: settlement.y,
-      active: settlement.active,
-      population: settlement.population,
-      foundedDay: settlement.foundedDay
+    settlements: world.settlements.map((settlement) => {
+      const polity = Number.isInteger(settlement.polityId) ? polityById.get(settlement.polityId) : null;
+      return {
+        id: settlement.id,
+        name: settlement.name,
+        x: settlement.x,
+        y: settlement.y,
+        active: settlement.active,
+        population: settlement.population,
+        foundedDay: settlement.foundedDay,
+        polityId: polity?.id ?? null,
+        polityName: polity?.name ?? null,
+        polityColorIndex: polity?.colorIndex ?? null,
+        polityBannerStyle: polity?.bannerStyle ?? null,
+        isCapital: polity?.capitalSettlementId === settlement.id
+      };
+    }),
+    polities: world.polities.map((polity) => ({
+      id: polity.id,
+      name: polity.name,
+      capitalSettlementId: polity.capitalSettlementId,
+      settlementIds: [...polity.settlementIds],
+      foundedDay: polity.foundedDay,
+      active: polity.active,
+      dissolvedDay: polity.dissolvedDay,
+      colorIndex: polity.colorIndex,
+      bannerStyle: polity.bannerStyle
     }))
   };
 }

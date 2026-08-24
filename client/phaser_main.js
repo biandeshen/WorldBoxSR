@@ -102,14 +102,10 @@ class WorldScene extends Phaser.Scene {
     this.refreshHud();
     this.refreshChronicle();
 
-    if (bootStatus) {
-      bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase 0/${SHOWCASE.warmupYears}y`;
-    }
+    if (bootStatus) bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase 0/${SHOWCASE.warmupYears}y`;
     this.showToast(`World ${seed} · evolving toward showcase`);
 
-    window.setTimeout(() => {
-      void this.finishShowcaseWarmup(token, seed);
-    }, 0);
+    window.setTimeout(() => { void this.finishShowcaseWarmup(token, seed); }, 0);
   }
 
   async finishShowcaseWarmup(token, seed) {
@@ -117,12 +113,8 @@ class WorldScene extends Phaser.Scene {
       await evolveShowcaseWorld(this.world, {
         onProgress: ({ year, targetYear }) => {
           if (token !== this.worldGeneration) return;
-          if (bootStatus) {
-            bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase ${year.toFixed(0)}/${targetYear}y`;
-          }
-          if (Math.round(year) % 4 === 0 || year >= targetYear) {
-            this.syncWorld(this.time.now);
-          }
+          if (bootStatus) bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase ${year.toFixed(0)}/${targetYear}y`;
+          if (Math.round(year) % 4 === 0 || year >= targetYear) this.syncWorld(this.time.now);
         }
       });
 
@@ -164,13 +156,7 @@ class WorldScene extends Phaser.Scene {
   bindInput() {
     this.input.on('pointerdown', (pointer) => {
       if (!pointer.leftButtonDown()) return;
-      this.drag = {
-        startX: pointer.x,
-        startY: pointer.y,
-        lastX: pointer.x,
-        lastY: pointer.y,
-        moved: false
-      };
+      this.drag = { startX: pointer.x, startY: pointer.y, lastX: pointer.x, lastY: pointer.y, moved: false };
     });
 
     this.input.on('pointermove', (pointer) => {
@@ -179,13 +165,11 @@ class WorldScene extends Phaser.Scene {
       const dy = pointer.y - this.drag.lastY;
       const total = Math.hypot(pointer.x - this.drag.startX, pointer.y - this.drag.startY);
       if (total > 5) this.drag.moved = true;
-
       if (this.drag.moved) {
         const camera = this.cameras.main;
         camera.scrollX -= dx / camera.zoom;
         camera.scrollY -= dy / camera.zoom;
       }
-
       this.drag.lastX = pointer.x;
       this.drag.lastY = pointer.y;
     });
@@ -194,20 +178,16 @@ class WorldScene extends Phaser.Scene {
       const drag = this.drag;
       this.drag = null;
       if (!drag || drag.moved || !this.world) return;
-
       const tile = this.pointerTile(pointer);
       if (!tile) return;
-
       if (pointer.event?.altKey || pointer.rightButtonReleased()) {
         this.inspectTile(tile.x, tile.y);
         return;
       }
-
       if (this.booting) {
         this.showToast('World is still evolving into the showcase…');
         return;
       }
-
       const count = pointer.event?.shiftKey ? 10 : 1;
       this.useTool(tile.x, tile.y, count);
     });
@@ -281,9 +261,13 @@ class WorldScene extends Phaser.Scene {
     }
 
     if (selection.kind === 'settlement') {
+      const polity = Number.isInteger(target.polityId)
+        ? this.world.polities.find((candidate) => candidate.id === target.polityId)
+        : null;
       inspector.textContent = [
         target.name,
         `${target.active ? 'active settlement' : 'abandoned settlement'} · population ${target.population}`,
+        polity ? `♛ ${polity.name}${polity.capitalSettlementId === target.id ? ' · capital' : ''}` : 'no polity',
         `founded year ${(target.foundedDay / this.world.config.daysPerYear).toFixed(1)}`,
         `center ${target.x},${target.y}`
       ].join('\n');
@@ -301,12 +285,13 @@ class WorldScene extends Phaser.Scene {
   refreshHud() {
     if (!stats || !this.world) return;
     const summary = worldSummary(this.world);
+    const activePolities = this.world.polities.filter((polity) => polity.active).length;
     stats.innerHTML = [
       `<span><b>Year ${summary.year.toFixed(1)}</b></span>`,
       `<span>👤 ${summary.population}</span>`,
       `<span>🐾 ${summary.grazers}</span>`,
-      `<span>⌂ ${summary.activeSettlements}</span>`,
-      `<span>births ${summary.births}</span>`
+      `<span>♛ ${activePolities}</span>`,
+      `<span>⌂ ${summary.activeSettlements}</span>`
     ].join('');
   }
 
@@ -334,9 +319,7 @@ class WorldScene extends Phaser.Scene {
     eventToast.textContent = message;
     eventToast.dataset.visible = 'true';
     window.clearTimeout(this.toastTimer);
-    this.toastTimer = window.setTimeout(() => {
-      eventToast.dataset.visible = 'false';
-    }, 1500);
+    this.toastTimer = window.setTimeout(() => { eventToast.dataset.visible = 'false'; }, 1500);
   }
 
   reportRendererFailure(error) {
@@ -354,15 +337,8 @@ try {
     backgroundColor: '#0a1118',
     pixelArt: true,
     roundPixels: true,
-    render: {
-      antialias: false,
-      roundPixels: true
-    },
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
-    },
+    render: { antialias: false, roundPixels: true },
+    scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
     scene: [WorldScene]
   });
   globalThis.__PHASER_GAME__ = game;

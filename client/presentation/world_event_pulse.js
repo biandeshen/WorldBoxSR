@@ -1,16 +1,19 @@
 const SETTLEMENT_TYPES = new Set(['settlement.founded', 'settlement.abandoned']);
+const POLITY_TYPES = new Set(['polity.founded', 'polity.dissolved']);
 
 export function projectHistoryPulse(events, { daysPerYear = 360 } = {}) {
   if (!Array.isArray(events)) throw new TypeError('events must be an array');
   if (!Number.isFinite(daysPerYear) || daysPerYear <= 0) throw new RangeError('daysPerYear must be positive');
 
+  const political = [];
   const settlements = [];
   const births = [];
   const deaths = [];
 
   for (const event of events) {
     if (!event || typeof event.type !== 'string') continue;
-    if (SETTLEMENT_TYPES.has(event.type)) settlements.push(projectSettlementEvent(event, daysPerYear));
+    if (POLITY_TYPES.has(event.type)) political.push(projectPolityEvent(event, daysPerYear));
+    else if (SETTLEMENT_TYPES.has(event.type)) settlements.push(projectSettlementEvent(event, daysPerYear));
     else if (event.type === 'human.born') births.push(event);
     else if (event.type === 'human.died') deaths.push(event);
   }
@@ -19,7 +22,7 @@ export function projectHistoryPulse(events, { daysPerYear = 360 } = {}) {
   if (births.length > 0) summaries.push(projectBirthSummary(births, daysPerYear));
   if (deaths.length > 0) summaries.push(projectDeathSummary(deaths, daysPerYear));
 
-  return [...settlements, ...summaries]
+  return [...political, ...settlements, ...summaries]
     .filter(Boolean)
     .sort((a, b) => b.priority - a.priority || a.eventId - b.eventId);
 }
@@ -31,6 +34,20 @@ export function historyCursor(history) {
     if (Number.isInteger(event?.id) && event.id > max) max = event.id;
   }
   return max;
+}
+
+function projectPolityEvent(event, daysPerYear) {
+  const founded = event.type === 'polity.founded';
+  const name = String(event.name || `Polity #${event.polityId ?? '?'}`);
+  return {
+    kind: event.type,
+    eventId: Number.isInteger(event.id) ? event.id : 0,
+    priority: 4,
+    tone: founded ? 'growth' : 'loss',
+    icon: founded ? '♛' : '♜',
+    title: founded ? `${name} rose as a power` : `${name} dissolved`,
+    detail: `Year ${eventYear(event, daysPerYear)}`
+  };
 }
 
 function projectSettlementEvent(event, daysPerYear) {
