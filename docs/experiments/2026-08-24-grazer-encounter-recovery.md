@@ -9,13 +9,11 @@ Sprint 014 found that simple grazer senescence fails because the current reprodu
 
 `resource depletion suppresses births → mortality reduces population → vegetation recovers → sparse distribution suppresses adjacent encounters`
 
-Can the low-density encounter bottleneck be removed by widening only the partner-search geometry, while leaving the already-validated birth probability and local resource gate unchanged?
+Can the low-density encounter bottleneck be removed by widening only the partner-search geometry, while leaving the validated birth probability and local resource gate unchanged?
 
-## Method
+## Fixed reproduction mechanism
 
-This was a **research-only** experiment. No runtime config, snapshot, movement, lifespan, or reproduction behavior was changed.
-
-The temporary reproduction copy preserved the authoritative Sprint 012/013 rule:
+This is research-only. The temporary reproduction copy preserves the authoritative Sprint 012/013 rule:
 
 - age >= 1 world year;
 - health >= 0.95;
@@ -28,104 +26,138 @@ The temporary reproduction copy preserved the authoritative Sprint 012/013 rule:
 - one age-0 child on parent A's tile;
 - no sequential RNG.
 
-The **only experimental variable** was maximum partner-search Chebyshev distance: `1 / 2 / 3`.
+The only experimental geometry variable is maximum partner-search Chebyshev distance.
 
-A wider radius changed encounter opportunity only. It did not move animals, change either parent's local resource test, create mate bonds, or imply co-residence.
+A wider encounter radius does not move animals, change either parent's local resource test, create a mate bond, or imply co-residence.
 
-To expose the known recovery problem, the rejected Sprint 014 keyed `18–36` year lifespan was reused only as a temporary turnover stressor.
+## Stage 1 — radius 1 / 2 / 3 under turnover stress
+
+The rejected Sprint 014 keyed `18–36` year lifespan is reused only as a temporary turnover stressor so the known post-pressure recovery problem remains visible.
 
 Matrix:
 
 - 24×24 creature-only worlds;
-- landscape seeds `1 / 4 / 9`;
-- founder densities `100 / 200`;
+- landscape seeds `1/4/9`;
+- founder densities `100/200`;
 - founders age 2 years;
 - 45-year horizon;
-- 30-day vegetation sampling;
-- yearly recovery checkpoints.
-
-Every run asserted exact sequential `world.rng` neutrality.
-
-## Final state
+- partner radii `1/2/3`.
 
 ### 100 founders
 
-| Partner radius | Seed 1 | Seed 4 | Seed 9 | Post-founder births | Final vegetation utilization |
-| ---: | ---: | ---: | ---: | --- | --- |
-| 1 | 7 | 33 | 3 | 2 / 20 / 1 | 99.0% / 96.8% / 99.8% |
-| 2 | 10 | 47 | 57 | 3 / 31 / 43 | 98.7% / 94.9% / 90.3% |
-| 3 | **39** | **99** | **76** | **29 / 74 / 58** | **91.4% / 80.4% / 84.7%** |
+| Radius | Seed 1 final | Seed 4 final | Seed 9 final | Births after founders gone |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 7 | 33 | 3 | 2 / 20 / 1 |
+| 2 | 10 | 47 | 57 | 3 / 31 / 43 |
+| 3 | **39** | **99** | **76** | **29 / 74 / 58** |
 
 ### 200 founders
 
-| Partner radius | Seed 1 | Seed 4 | Seed 9 | Post-founder births | Final vegetation utilization |
-| ---: | ---: | ---: | ---: | --- | --- |
-| 1 | 16 | 19 | 9 | 7 / 8 / 2 | 97.8% / 98.4% / 99.2% |
-| 2 | 34 | 67 | 52 | 17 / 43 / 34 | 93.0% / 90.8% / 91.7% |
-| 3 | **42** | **61** | **70** | **28 / 42 / 50** | **91.6% / 92.5% / 85.0%** |
+| Radius | Seed 1 final | Seed 4 final | Seed 9 final | Births after founders gone |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 16 | 19 | 9 | 7 / 8 / 2 |
+| 2 | 34 | 67 | 52 | 17 / 43 / 34 |
+| 3 | **42** | **61** | **70** | **28 / 42 / 50** |
 
-## Interpretation
+Radius 2 materially improves recovery but fails the all-landscape gate. In seed1 / 100 founders it falls to ~12 around year34 and remains trapped around 9–11 through year45 despite ~99% vegetation.
 
-### Radius 1 reproduces the diagnosed Allee collapse
+Radius 3 is the first tested geometry where all six stress worlds survive founder turnover and enter a clear recovery trajectory:
 
-The control reproduces Sprint 014. Once founders disappear, resource-rich survivors often have almost no adjacent eligible pair supply. Final populations remain tiny even while vegetation returns to ~97%–100%.
+- 100 / seed1: ~15 at year34 → 39 at year45;
+- 100 / seed4: ~43 → 99;
+- 100 / seed9: ~30 → 76;
+- 200 / seed1: ~14 → 42;
+- 200 / seed4: ~23 → 61;
+- 200 / seed9: ~22 → 70.
 
-### Radius 2 materially helps but fails the all-landscape gate
+The unchanged local vegetation gate remains causal. During the depleted phase, radius-3 worlds still have long spans with zero resource-ready parents/pairs; births restart only after local vegetation recovers.
 
-Radius 2 improves seed 4 and seed 9 substantially, but seed 1 / 100 founders remains a failed recovery:
+## Stage 2 — 90-year multi-generation radius-3 check
 
-- founders disappear around year 33.5;
-- only 3 births occur after founder extinction;
-- population is ~12 around year 34 and ends at only 10 by year 45;
-- vegetation is ~98.7%, so the failure is not resource shortage.
+Radius 3 is held unchanged and extended to 90 years with founder densities `20/100/200` across seeds `1/4/9`. The same temporary `18–36` turnover stressor remains active.
 
-Therefore radius 2 is **not** robust enough to advance as the recovery geometry.
+| Founders | Seed 1 final | Seed 4 final | Seed 9 final | Total births | Replacement-parent births |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 20 | 48 | 53 | 55 | 242 / 343 / 278 | 205 / 314 / 242 |
+| 100 | 46 | 119 | 59 | 194 / 355 / 229 | 164 / 292 / 189 |
+| 200 | 63 | 59 | 100 | 193 / 279 / 257 | 164 / 228 / 218 |
 
-### Radius 3 is the smallest tested radius that passes all six stress worlds
+All nine worlds persist through multiple lifespan generations. Replacement-generation parents account for most later births, so the result is not a founder-tail artifact.
 
-Radius 3 produces continuing replacement-generation reproduction after complete founder turnover on every landscape and both founder densities.
+The dynamics are bounded resource cycles rather than monotonic growth:
 
-Representative recovery after founder extinction:
+`vegetation abundant → births resume → population rises → vegetation falls → births stop → turnover lowers population → vegetation recovers`
 
-- seed 1 / 100: ~15 at year 34 → 39 at year 45;
-- seed 4 / 100: ~43 → 99;
-- seed 9 / 100: ~30 → 76;
-- seed 1 / 200: ~14 → 42;
-- seed 4 / 200: ~23 → 61;
-- seed 9 / 200: ~22 → 70.
+Examples from later cycles:
 
-The recovery is not a hidden population controller. Different landscapes still settle at different population/resource trajectories.
+- 100 / seed1: 106 living at year60 with 20.9% vegetation → 39 at year85 with 78.6% → 46 at year90 while births restart;
+- 100 / seed4: 163 at year55 with 13.8% vegetation → 58 at year75 with 63.6% → 119 at year90;
+- 200 / seed9: 123 at year55 with 17.5% vegetation → 41 at year80 with 85.4% → 100 at year90.
 
-## Resource gate remains causal
+The 20-founder worlds remain bounded too. They reach maxima 108/153/122 and finish 48/53/55 rather than growing without limit.
 
-Widening encounter distance does **not** bypass the existing local vegetation gate.
+Every run preserves sequential `world.rng`.
 
-Across radius-3 high-pressure worlds, the depleted phase still contains long spans with `resourceReady = 0` and therefore zero eligible pairs, despite many living animals. Births restart only after mortality reduces consumption and local vegetation recovers.
+## Stage 3 — compatibility with the current no-senescence runtime
 
-Minimum vegetation utilization during the stress runs still reaches approximately 2%–6%, while year-45 vegetation recovers to roughly 80%–92% under radius 3. The experiment therefore opens a low-density recovery path without keeping vegetation permanently depleted.
+Runtime still has no grazer senescence, so radius 3 was also compared with radius 1 in no-senescence 30-year worlds. Seeds are `1/4/9`; founders are `20/100/200`.
+
+### 100 founders
+
+| Radius | Seed 1 final | Seed 4 final | Seed 9 final | Final vegetation |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 114 | 155 | 130 | 5.6% / 5.0% / 4.6% |
+| 3 | 115 | 165 | 134 | 5.1% / 3.4% / 3.9% |
+
+### 200 founders
+
+| Radius | Seed 1 final | Seed 4 final | Seed 9 final | Final vegetation |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 112 | 161 | 132 | 6.2% / 4.2% / 4.4% |
+| 3 | 113 | 168 | 130 | 5.9% / 3.2% / 4.5% |
+
+The overloaded populations remain on the same landscape-dependent carrying envelope. Radius 3 changes encounter opportunity and the approach timescale, not the resource-limited survivor scale.
+
+### Low-density approach speed
+
+Radius 3 does accelerate growth from 20 founders:
+
+- year10: radius1 `30/31/35`, radius3 `47/51/47`;
+- year20: radius1 `65/64/78`, radius3 `107/135/130`;
+- year30: radius3 reaches `116/171/131` and the resource-limited regime, with final vegetation ~3.6%–5.7%.
+
+This is not runaway growth. The same local vegetation gate removes birth eligibility as carrying pressure rises. Without senescence, any persistent positive reproduction eventually approaches the resource limit; radius 3 reaches it sooner.
 
 ## Decision
 
 **Radius 3 is the smallest tested partner-search geometry that passes Sprint 015's research gate.**
 
-Radius 2 is rejected as insufficient because it fails the seed1 / 100-founder recovery case. Radius 3 passes all six turnover stress worlds while preserving resource suppression and sequential RNG isolation.
+- radius 2 is rejected because recovery remains unreliable on seed1;
+- radius 3 preserves all six stress populations through founder turnover;
+- radius 3 sustains multiple replacement generations for 90 years;
+- the local vegetation birth gate remains active during depletion;
+- no-senescence 100/200 worlds retain the same landscape-dependent carrying envelope;
+- growth remains bounded by resource feedback;
+- sequential RNG isolation is preserved.
 
-This is an evidence result, **not yet a runtime change**.
+This is an evidence result, not yet a runtime change.
 
-Do not modify authoritative partner search, add senescence, or create a mate/social entity in this research PR.
+## Implementation handoff
 
-## Next gate
+A separate authoritative change may promote only the encounter geometry:
 
-Before making radius 3 authoritative, isolate the runtime effect from the temporary senescence stressor:
+- change maximum grazer partner-search Chebyshev distance from 1 to 3;
+- keep local vegetation measurement radius at 1;
+- keep birth chance, maturity, health, hunger, cooldown, stable pairing, and keyed randomness unchanged;
+- keep reproduction default-off and default worlds creature-free;
+- add forced-success coverage at distance 3 and rejection beyond 3;
+- re-run existing multi-seed reproduction/carrying regressions;
+- do not add a public interaction-radius framework/config unless another real mechanic requires it.
 
-- compare authoritative/no-senescence reproduction with partner radius 1 versus 3;
-- keep birth chance `0.001` and local vegetation threshold `0.50` unchanged;
-- confirm radius 3 does not inflate low/medium-density births enough to erase the existing carrying-pressure envelope;
-- preserve keyed randomness and default-off behavior;
-- if that check passes, promote only the encounter-radius seam in a separate implementation PR, then revisit natural senescence independently.
+Do not infer mate bonds, sex, genealogy, migration, population targets, predators, or species infrastructure from this encounter result.
 
-Do not encode a population target, weaken the resource gate, or broaden the experiment into mate bonds, migration, sex, genealogy, predators, or a species framework.
+Only after radius 3 is independently authoritative should natural senescence be reintroduced and revalidated.
 
 ## Cleanup
 
-The temporary encounter probe, temporary `npm test` override, and CI artifact upload are research scaffolding only and must be removed before merge. Runtime behavior remains unchanged by Sprint 015.
+The temporary encounter reproduction copy, temporary `18–36` turnover stressor, temporary `npm test` override, and CI artifact upload are removed before merge. Sprint 015 ships research evidence only.
