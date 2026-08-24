@@ -9,10 +9,10 @@ import { regenerateFood, regenerateVegetation } from '../engine/systems/environm
 import { updateGrazers } from '../engine/systems/grazers.js';
 
 const SEEDS = [1, 4, 9];
-const DENSITIES = [100, 200];
-const PARTNER_RADII = [1, 2, 3];
+const DENSITIES = [20, 100, 200];
+const PARTNER_RADIUS = 3;
 const FOUNDER_AGE_YEARS = 2;
-const YEARS = 45;
+const YEARS = 90;
 const SAMPLE_INTERVAL_DAYS = 30;
 const MIN_HEALTH = 0.95;
 const MIN_LOCAL_VEGETATION_UTILIZATION = 0.5;
@@ -21,89 +21,90 @@ const BIRTH_SALT = 0x5c47a1d3;
 const LIFESPAN_SALT = 0x718c3b2d;
 const LIFESPAN_MIN_YEARS = 18;
 const LIFESPAN_MAX_YEARS = 36;
-const ARTIFACT_PATH = 'tmp-research/grazer-encounter-stage1.json';
+const ARTIFACT_PATH = 'tmp-research/grazer-encounter-stage2.json';
 
-test('temporary grazer partner-radius recovery comparison', () => {
+test('temporary radius-3 multi-generation encounter recovery check', () => {
   const rows = [];
 
   for (const density of DENSITIES) {
-    for (const partnerRadius of PARTNER_RADII) {
-      for (const seed of SEEDS) {
-        const world = createWorld({
-          seed,
-          width: 24,
-          height: 24,
-          population: 0,
-          config: { grazerBirthChancePerEligiblePairPerDay: 0 }
-        });
-        seedAdultGrazers(world, density);
-        const rngBefore = world.rng.snapshot();
-        let researchBirths = 0;
-        let replacementParentBirths = 0;
-        let birthsAfterFoundersGone = 0;
-        let oldAgeDeaths = 0;
-        let founderExtinctionDay = null;
-        let maxLiving = world.creatures.length;
-        let minVegetationUtilization = summarizeWorld(world).vegetationUtilization;
-        const checkpoints = [];
-        const totalDays = YEARS * world.config.daysPerYear;
+    for (const seed of SEEDS) {
+      const world = createWorld({
+        seed,
+        width: 24,
+        height: 24,
+        population: 0,
+        config: { grazerBirthChancePerEligiblePairPerDay: 0 }
+      });
+      seedAdultGrazers(world, density);
+      const rngBefore = world.rng.snapshot();
+      let researchBirths = 0;
+      let replacementParentBirths = 0;
+      let birthsAfterFoundersGone = 0;
+      let oldAgeDeaths = 0;
+      let founderExtinctionDay = null;
+      let maxLiving = world.creatures.length;
+      let minVegetationUtilization = summarizeWorld(world).vegetationUtilization;
+      const checkpoints = [];
+      const totalDays = YEARS * world.config.daysPerYear;
 
-        for (let elapsed = 0; elapsed < totalDays; elapsed += 1) {
-          regenerateFood(world);
-          regenerateVegetation(world);
-          updateGrazers(world);
-          world.day += 1;
-          oldAgeDeaths += applyResearchSenescence(world);
+      for (let elapsed = 0; elapsed < totalDays; elapsed += 1) {
+        regenerateFood(world);
+        regenerateVegetation(world);
+        updateGrazers(world);
+        world.day += 1;
+        oldAgeDeaths += applyResearchSenescence(world);
 
-          const foundersAlive = countFounders(world, density);
-          if (foundersAlive === 0 && founderExtinctionDay === null) founderExtinctionDay = world.day;
+        const foundersAlive = countFounders(world, density);
+        if (foundersAlive === 0 && founderExtinctionDay === null) founderExtinctionDay = world.day;
 
-          const birthResult = attemptResearchBirths(world, partnerRadius, density);
-          researchBirths += birthResult.births;
-          replacementParentBirths += birthResult.replacementParentBirths;
-          if (foundersAlive === 0) birthsAfterFoundersGone += birthResult.births;
-          maxLiving = Math.max(maxLiving, world.creatures.length);
+        const birthResult = attemptResearchBirths(world, density);
+        researchBirths += birthResult.births;
+        replacementParentBirths += birthResult.replacementParentBirths;
+        if (foundersAlive === 0) birthsAfterFoundersGone += birthResult.births;
+        maxLiving = Math.max(maxLiving, world.creatures.length);
 
-          if (world.day % SAMPLE_INTERVAL_DAYS === 0 || world.day === totalDays) {
-            minVegetationUtilization = Math.min(
-              minVegetationUtilization,
-              summarizeWorld(world).vegetationUtilization
-            );
-          }
-          if (world.day % world.config.daysPerYear === 0) {
-            checkpoints.push(compactCheckpoint(world, density, partnerRadius, researchBirths, oldAgeDeaths));
-          }
+        if (world.day % SAMPLE_INTERVAL_DAYS === 0 || world.day === totalDays) {
+          minVegetationUtilization = Math.min(
+            minVegetationUtilization,
+            summarizeWorld(world).vegetationUtilization
+          );
         }
-
-        const summary = summarizeWorld(world);
-        assert.deepEqual(world.rng.snapshot(), rngBefore, `${density} r${partnerRadius} seed ${seed} consumed sequential RNG`);
-        assert.equal(checkpoints.length, YEARS);
-        assert.notEqual(founderExtinctionDay, null, `${density} r${partnerRadius} seed ${seed} founders must turn over`);
-        rows.push({
-          seed,
-          initialGrazers: density,
-          partnerRadius,
-          survivingGrazers: summary.grazers,
-          researchBirths,
-          starvationDeaths: summary.creatureDeaths,
-          oldAgeDeaths,
-          replacementParentBirths,
-          birthsAfterFoundersGone,
-          founderExtinctionYear: round(founderExtinctionDay / world.config.daysPerYear),
-          maxLiving,
-          vegetationUtilization: round(summary.vegetationUtilization),
-          minVegetationUtilization: round(minVegetationUtilization),
-          occupiedCells: occupiedCreatureCells(world),
-          checkpoints
-        });
+        if (world.day % world.config.daysPerYear === 0) {
+          checkpoints.push(compactCheckpoint(world, density, researchBirths, oldAgeDeaths));
+        }
       }
+
+      const summary = summarizeWorld(world);
+      const livingAges = world.creatures.map((grazer) => grazer.ageDays / world.config.daysPerYear);
+      assert.deepEqual(world.rng.snapshot(), rngBefore, `${density} r${PARTNER_RADIUS} seed ${seed} consumed sequential RNG`);
+      assert.equal(checkpoints.length, YEARS);
+      assert.notEqual(founderExtinctionDay, null, `${density} seed ${seed} founders must turn over`);
+      rows.push({
+        seed,
+        initialGrazers: density,
+        partnerRadius: PARTNER_RADIUS,
+        survivingGrazers: summary.grazers,
+        researchBirths,
+        starvationDeaths: summary.creatureDeaths,
+        oldAgeDeaths,
+        replacementParentBirths,
+        birthsAfterFoundersGone,
+        founderExtinctionYear: round(founderExtinctionDay / world.config.daysPerYear),
+        maxLiving,
+        vegetationUtilization: round(summary.vegetationUtilization),
+        minVegetationUtilization: round(minVegetationUtilization),
+        occupiedCells: occupiedCreatureCells(world),
+        meanLivingAgeYears: livingAges.length ? round(livingAges.reduce((sum, age) => sum + age, 0) / livingAges.length) : null,
+        oldestLivingAgeYears: livingAges.length ? round(Math.max(...livingAges)) : null,
+        checkpoints
+      });
     }
   }
 
-  assert.equal(rows.length, DENSITIES.length * PARTNER_RADII.length * SEEDS.length);
+  assert.equal(rows.length, DENSITIES.length * SEEDS.length);
   mkdirSync('tmp-research', { recursive: true });
   writeFileSync(ARTIFACT_PATH, `${JSON.stringify({ rows }, null, 2)}\n`);
-  console.log(`GRAZER_ENCOUNTER_STAGE1 ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_ENCOUNTER_STAGE2 ${JSON.stringify({ rows })}`);
 });
 
 function seedAdultGrazers(world, count) {
@@ -124,7 +125,7 @@ function seedAdultGrazers(world, count) {
   }
 }
 
-function attemptResearchBirths(world, partnerRadius, founderCount) {
+function attemptResearchBirths(world, founderCount) {
   const eligible = [...world.creatures]
     .filter((grazer) => isReproductionEligible(world, grazer))
     .sort((a, b) => a.id - b.id);
@@ -137,7 +138,7 @@ function attemptResearchBirths(world, partnerRadius, founderCount) {
     const parentB = eligible.find((candidate) => (
       candidate.id > parentA.id
       && !usedToday.has(candidate.id)
-      && chebyshevDistance(parentA, candidate) <= partnerRadius
+      && chebyshevDistance(parentA, candidate) <= PARTNER_RADIUS
       && isReproductionEligible(world, candidate)
     ));
     if (!parentB) continue;
@@ -196,7 +197,7 @@ function lifespanDays(world, creatureId) {
   return minDays + Math.floor(keyedUnit(world.seed, creatureId, 0, LIFESPAN_SALT) * span);
 }
 
-function compactCheckpoint(world, founderCount, partnerRadius, researchBirths, oldAgeDeaths) {
+function compactCheckpoint(world, founderCount, researchBirths, oldAgeDeaths) {
   const summary = summarizeWorld(world);
   const eligible = world.creatures.filter((grazer) => isReproductionEligible(world, grazer));
   return {
@@ -208,12 +209,12 @@ function compactCheckpoint(world, founderCount, partnerRadius, researchBirths, o
     foundersAlive: countFounders(world, founderCount),
     vegetationUtilization: round(summary.vegetationUtilization),
     resourceReady: eligible.length,
-    eligiblePairs: stablePairableCount(eligible, partnerRadius),
+    eligiblePairs: stablePairableCount(eligible),
     occupiedCells: occupiedCreatureCells(world)
   };
 }
 
-function stablePairableCount(grazers, partnerRadius) {
+function stablePairableCount(grazers) {
   const ordered = [...grazers].sort((a, b) => a.id - b.id);
   const used = new Set();
   let pairs = 0;
@@ -222,7 +223,7 @@ function stablePairableCount(grazers, partnerRadius) {
     const second = ordered.find((candidate) => (
       candidate.id > first.id
       && !used.has(candidate.id)
-      && chebyshevDistance(first, candidate) <= partnerRadius
+      && chebyshevDistance(first, candidate) <= PARTNER_RADIUS
     ));
     if (!second) continue;
     used.add(first.id);
