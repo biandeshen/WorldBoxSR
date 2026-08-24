@@ -20,16 +20,22 @@
     <div id="stats" aria-label="world summary"></div>
 
     <div id="row">
-      <input id="seed" value="45" size="7" aria-label="seed" title="World seed" />
+      <label class="compact-field" title="World seed">
+        <span>Seed</span>
+        <input id="seed" value="45" size="7" aria-label="seed" />
+      </label>
       <button id="reset" type="button" title="Create the showcase world from this seed">↻ World</button>
       <button id="pause" type="button">Ⅱ Pause</button>
       <button id="reset-camera" type="button" title="Fit the world in view">⌂ View</button>
-      <select id="speed" aria-label="simulation speed" title="Simulation speed">
-        <option value="1">1 day / step</option>
-        <option value="10">10 days / step</option>
-        <option value="60" selected>60 days / step</option>
-        <option value="360">1 year / step</option>
-      </select>
+      <label class="compact-field" title="Simulation speed">
+        <span>Time</span>
+        <select id="speed" aria-label="simulation speed">
+          <option value="1">1 day</option>
+          <option value="10">10 days</option>
+          <option value="60" selected>60 days</option>
+          <option value="360">1 year</option>
+        </select>
+      </label>
     </div>
   </header>
 
@@ -56,21 +62,40 @@
   </aside>
 
   <footer id="power-dock">
-    <label>
-      God power
-      <select id="tool" aria-label="god tool">
-        <option value="spawn_human" selected>✦ Spawn human</option>
-        <option value="spawn_grazer">🐾 Spawn grazer</option>
-        <option value="erase">✕ Erase humans</option>
-        <option value="lightning">⚡ Lightning</option>
-      </select>
-    </label>
-    <div id="hint">Click: power · Shift-click: spawn 10 · Drag: pan · Wheel: zoom · Alt-click: inspect</div>
+    <div class="power-dock-title">
+      <span>GOD POWERS</span>
+      <strong id="tool-readout">Create humans</strong>
+    </div>
+
+    <div id="power-buttons" role="toolbar" aria-label="god powers">
+      <button class="power-button" type="button" data-tool-button="spawn_human" aria-label="Spawn human" title="Spawn human · key 1">
+        <span class="power-icon">✦</span><span class="power-label">Human</span><kbd>1</kbd>
+      </button>
+      <button class="power-button" type="button" data-tool-button="spawn_grazer" aria-label="Spawn grazer" title="Spawn grazer · key 2">
+        <span class="power-icon">🐾</span><span class="power-label">Grazer</span><kbd>2</kbd>
+      </button>
+      <button class="power-button power-danger" type="button" data-tool-button="erase" aria-label="Erase humans" title="Erase humans · key 3">
+        <span class="power-icon">✕</span><span class="power-label">Erase</span><kbd>3</kbd>
+      </button>
+      <button class="power-button power-electric" type="button" data-tool-button="lightning" aria-label="Lightning" title="Lightning · key 4">
+        <span class="power-icon">⚡</span><span class="power-label">Lightning</span><kbd>4</kbd>
+      </button>
+    </div>
+
+    <select id="tool" class="visually-hidden-select" aria-label="god tool">
+      <option value="spawn_human" selected>✦ Spawn human</option>
+      <option value="spawn_grazer">🐾 Spawn grazer</option>
+      <option value="erase">✕ Erase humans</option>
+      <option value="lightning">⚡ Lightning</option>
+    </select>
+
+    <div id="hint">Click world: use power · Shift-click: spawn 10 · Drag: pan · Wheel: zoom · Alt-click: inspect</div>
     <a id="renderer-link" href="?renderer=legacy" title="Open the v0.1 Canvas renderer for comparison">v0.1 renderer ↗</a>
   </footer>
 
   <div id="event-toast" role="status" aria-live="polite"></div>
 
+  <script type="module" src="./presentation/ui_controls.js"></script>
   <script type="module" src="./bootstrap.js"></script>
 </body>
 </html>
