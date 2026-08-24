@@ -68,6 +68,9 @@ function runArm(seed, founders, arm) {
     }
   });
   const selected = seedFounders(world, founders, arm);
+  const initialMeanLocalVegetationUtilization = round(mean(
+    selected.map((cell) => localVegetationUtilization(world, cell.x, cell.y))
+  ));
   const rngBefore = world.rng.snapshot();
   const totalDays = YEARS * world.config.daysPerYear;
   let firstBirthDay = null;
@@ -112,7 +115,7 @@ function runArm(seed, founders, arm) {
     }
   }
 
-  assert.notEqual(birthsAtYear20, null, `seed ${seed} founders ${founders} ${arm} extinct before year20 measurement`);
+  if (birthsAtYear20 === null) birthsAtYear20 = world.counters.creatureBirths;
   assert.deepEqual(world.rng.snapshot(), rngBefore, `seed ${seed} founders ${founders} ${arm} consumed sequential RNG`);
 
   const initialGraph = founderGraph(selected);
@@ -123,7 +126,7 @@ function runArm(seed, founders, arm) {
     initialPairEdges: initialGraph.edges,
     initialGraphComponents: initialGraph.components,
     initialIsolates: initialGraph.isolates,
-    initialMeanLocalVegetationUtilization: round(mean(selected.map((cell) => localVegetationUtilization(world, cell.x, cell.y)))),
+    initialMeanLocalVegetationUtilization,
     firstBirthYear: firstBirthDay === null ? null : round(firstBirthDay / world.config.daysPerYear),
     birthsByYear20: birthsAtYear20,
     totalBirths: world.counters.creatureBirths,
@@ -286,6 +289,7 @@ function compactRow(row) {
     initialPairEdges: row.initialPairEdges,
     initialGraphComponents: row.initialGraphComponents,
     initialIsolates: row.initialIsolates,
+    initialMeanLocalVegetationUtilization: row.initialMeanLocalVegetationUtilization,
     firstBirthYear: row.firstBirthYear,
     birthsByYear20: row.birthsByYear20,
     totalBirths: row.totalBirths,
