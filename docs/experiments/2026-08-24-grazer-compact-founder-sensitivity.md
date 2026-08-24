@@ -60,43 +60,94 @@ Examples:
 - seed26: `2 pass → 4 pass → 6 fail → 8 pass → 10 extinct`;
 - seed29: `2 fail → 4 pass → 6 pass → 8 pass → 10 fail`.
 
-This directly rejects a simple interpretation that more founders merely improve establishment probability or that failures can be repaired by one threshold count.
+This rejects the idea that more founders simply improve establishment probability or that one threshold count can repair compact worlds.
 
-### Earlier target seeds
+### Static initialization descriptors
 
-The five compact-map failures/counterexamples that motivated this sprint remain contradictory under the same placement family:
+Stage 1 recorded land connected components, founder-covered land share, radius-3 founder graph structure, isolates, nearest-founder distance, bounding-box area, and initial radius-1 vegetation utilization.
 
-- seed2 passes at 2 and 8, but fails at 4/6/10;
-- seed6 passes at 2/4, goes extinct at 6, and fails at 8/10;
-- seed7 passes at 2/4/6/8 but fails at 10;
-- seed10 passes at 2, goes extinct at 4, then passes again at 6/8/10;
-- seed24 passes at 2/6/10 but fails at 4/8.
+No single descriptor cleanly separates pass/fail runs across counts. Median differences change direction by count. Failed worlds are not consistently more fragmented, do not consistently have fewer founder pair edges, and are not consistently poorer in initial local vegetation.
 
-Seed7 and seed10 each have 101 passable cells yet react differently to the same count changes, reinforcing that total land area alone is not the cause.
+Static topology alone therefore does not justify another initializer rule.
 
-## Initialization descriptors
+## Stage 2 — 10-year trajectory diagnostic
 
-Stage 1 also recorded land connected components, founder-covered land share, radius-3 founder graph structure, isolates, nearest-founder distance, bounding-box area, and initial radius-1 vegetation utilization.
-
-No single descriptor cleanly separates pass/fail runs across counts. Median differences change direction by count. In particular:
-
-- failed runs are not consistently more fragmented;
-- failed runs do not consistently have fewer founder pair edges;
-- higher initial local vegetation does not guarantee success;
-- denser founder graphs can still fail;
-- both compact and spatially spread founder layouts occur among passes and failures.
-
-The evidence therefore does **not** justify promoting a static topology threshold from Stage 1 alone.
-
-## Stage 1 decision
-
-1. Reject a universal scalar founder-count rule from `2/4/6/8/10`.
-2. Do not test additional counts in this issue.
-3. Do not promote a topology formula from static descriptors.
-4. Proceed to the pre-registered optional Stage 2 because the count response remains causally ambiguous.
-
-Stage 2 is restricted to the first ten seed numbers whose pass/fail status changes across the five pre-registered counts:
+Because Stage 1 remained causally ambiguous, the pre-registered deterministic subset was run: the first ten seed numbers whose pass/fail status changes across counts:
 
 `2, 4, 6, 7, 9, 10, 13, 14, 15, 16`.
 
-For those 50 worlds only, collect 10-year trajectories to distinguish early resource suppression, demographic turnover, and reproduction/encounter recovery. Mechanics and counts remain unchanged.
+All five counts were re-run for 120 years: **50 worlds**. Every 10 years the probe recorded population, founder survival, births, starvation/old-age deaths, vegetation utilization, hunger, reproduction-eligible grazers, radius-3 pair edges among eligible grazers, occupied cells, and age.
+
+### Failure class A — establishment/encounter failure
+
+Some very small founder populations fail before ecology is resource-limited.
+
+The clearest cases are seed9/13/14 with 2 founders:
+
+- initial/follow-up vegetation remains abundant;
+- the founders repeatedly have **zero eligible radius-3 pair edges**;
+- seed9 produces 0 births, seed13/14 only 1;
+- mortality is old age, not starvation;
+- the world then becomes empty while vegetation approaches 100%.
+
+This is a real spatial encounter/establishment failure. It explains why very small founder counts cannot be universal.
+
+But it does **not** explain the higher-count failures below.
+
+### Failure class B — resource-demography cycles and recovery failure
+
+Many higher-count failures first establish successfully, grow, suppress vegetation/reproduction, then enter an old-age demographic trough.
+
+Example: seed10 with 4 founders:
+
+- year20: 42 living, 42 births, vegetation ~45%;
+- year30: 39 living, vegetation ~7%, **0 reproduction-eligible grazers / 0 pair edges**;
+- year40: 14 living while vegetation has recovered to ~42%, but only 2 eligible grazers and no pair edge;
+- year50–80: population falls 3 → 4 → 3 → 1 despite vegetation near capacity;
+- by year90 the population is extinct.
+
+This is not an initial placement-connectivity failure: the 4 founders began with a fully connected radius-3 graph. The failure emerges later from the coupled resource → reproduction suppression → aging → sparse recovery sequence.
+
+Seed6 with 6 founders shows a similar multi-cycle decline and finally reaches extinction at year120. Seed7 with 10 founders falls from 37 at year20 to 4 at year110/120 after repeated resource-demography cycles.
+
+### Failure class C — terminal sampling of a living cycle
+
+Several Stage-1 "fails" are clearly alive and capable of another rebound at year120. The existing terminal gate is therefore phase-sensitive on compact maps.
+
+Examples:
+
+- seed4 / 8 founders: year100 population 74 → year110 52 → year120 16; final-20y births are only 4, so it fails the gate, but at year120 vegetation is ~79%, **13 grazers are reproduction-eligible with 25 pair edges**;
+- seed2 / 4 founders: final population 9 fails the population floor, yet year120 has ~74% vegetation, **9 eligible grazers and 17 eligible pair edges**;
+- seed6 / 8 founders: final population 7 and only 3 final-window births, but the world remains alive and has recovered vegetation plus viable pair opportunity;
+- seed7 / 10 founders: final population 4, but still has eligible animals/a pair edge rather than being an already-empty world.
+
+These are not equivalent to seed9/13/14 two-founder establishment extinctions or seed10/four-founder eventual extinction.
+
+## Structural conclusion
+
+Compact-map initialization has **at least two distinct causal problems**:
+
+1. too-small founder sets can fail to establish a reproductive encounter network even with abundant resources;
+2. successfully established populations can later enter deep resource-demography cycles where old-age turnover and sparse encounter recovery determine whether they rebound.
+
+A third evaluation problem is also exposed: a single year-120 terminal population/birth window can label a recoverable trough as a failure.
+
+Therefore:
+
+- a scalar founder count is rejected;
+- total area/passable-land formulas remain rejected;
+- a static founder-topology threshold is insufficient;
+- changing placement now would overfit one failure class and would not explain the post-establishment failures;
+- the existing terminal gate should not be used to tune initialization mechanics until its phase sensitivity is characterized.
+
+## Decision
+
+**Do not promote any natural-fauna initializer from Sprint 024.** Default worlds remain creature-free.
+
+The next causal gate should change **evaluation, not ecology or placement**: distinguish true extinction/non-recovery from an ordinary low phase of a long compact-world population cycle. Use longer-horizon trajectory/rolling-window evidence on the pre-registered borderline cases before deciding whether any spatial seeding change is needed.
+
+Only after a cycle-aware persistence gate exists should a separate initializer experiment ask whether encounter-safe spatial seeding reduces genuine establishment failures without flattening emergent population cycles.
+
+## Cleanup
+
+All Stage-1/Stage-2 probes and test-script overrides are temporary research scaffolding and are removed before merge. Runtime ecology and default-world behavior remain unchanged.
