@@ -45,6 +45,12 @@ npm run smoke
 npm run sim -- --seed 42 --years 100 --population 30
 ```
 
+## GitHub-hosted simulation runs
+
+For a deterministic run without opening a local environment, use **Actions → simulation-console → Run workflow**. Choose the seed, years, population and map size in the GitHub UI. The workflow runs the same authoritative simulation CLI, shows the main outcome metrics in the Actions summary and preserves the complete JSON result as a private workflow artifact.
+
+See [GitHub development platform](docs/development/github-platform.md) for the project’s division of responsibilities between PRs, CI, Codespaces, the Simulation Console, artifacts and releases. GitHub Pages is intentionally not enabled while this personal-account repository remains private because the published site would be public.
+
 ## Run
 
 Requires Node.js 22+ and no third-party runtime dependencies.
