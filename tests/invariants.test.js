@@ -7,17 +7,32 @@ test('world invariants survive a multi-decade run', () => {
   const world = createWorld({ seed: 42, width: 20, height: 20, population: 40 });
   tickWorld(world, world.config.daysPerYear * 40);
 
-  const ids = new Set();
+  const humanIds = new Set();
   for (const entity of world.entities) {
     assert.equal(entity.alive, true);
-    assert.ok(!ids.has(entity.id), `duplicate entity id ${entity.id}`);
-    ids.add(entity.id);
+    assert.ok(!humanIds.has(entity.id), `duplicate human entity id ${entity.id}`);
+    humanIds.add(entity.id);
     assert.ok(entity.x >= 0 && entity.x < world.width);
     assert.ok(entity.y >= 0 && entity.y < world.height);
     assert.equal(tileAt(world, entity.x, entity.y).passable, true);
     assert.ok(Number.isFinite(entity.hunger) && entity.hunger >= 0 && entity.hunger <= 1);
     assert.ok(Number.isFinite(entity.health) && entity.health > 0 && entity.health <= 1);
     assert.ok(entity.ageDays >= 0);
+  }
+
+  const creatureIds = new Set();
+  for (const creature of world.creatures) {
+    assert.equal(creature.alive, true);
+    assert.equal(creature.kind, 'creature');
+    assert.equal(creature.species, 'grazer');
+    assert.ok(!creatureIds.has(creature.id), `duplicate creature id ${creature.id}`);
+    creatureIds.add(creature.id);
+    assert.ok(creature.x >= 0 && creature.x < world.width);
+    assert.ok(creature.y >= 0 && creature.y < world.height);
+    assert.equal(tileAt(world, creature.x, creature.y).passable, true);
+    assert.ok(Number.isFinite(creature.hunger) && creature.hunger >= 0 && creature.hunger <= 1);
+    assert.ok(Number.isFinite(creature.health) && creature.health > 0 && creature.health <= 1);
+    assert.ok(Number.isInteger(creature.ageDays) && creature.ageDays >= 0);
   }
 
   for (const tile of world.tiles) {

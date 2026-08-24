@@ -1,3 +1,4 @@
+import { createGrazer } from '../model/grazer.js';
 import { createHuman } from '../model/human.js';
 import { killHuman } from '../model/human_lifecycle.js';
 import { commandRef, eventRef, pushEvent, worldSubject } from '../model/events.js';
@@ -8,6 +9,8 @@ export function applyCommand(world, command) {
   switch (command.type) {
     case 'spawn_human':
       return spawnHumans(world, command);
+    case 'spawn_creature':
+      return spawnCreatures(world, command);
     case 'erase':
       return eraseHumans(world, command);
     case 'lightning':
@@ -20,8 +23,7 @@ export function applyCommand(world, command) {
 function spawnHumans(world, command) {
   const x = integerInRange(command.x, 0, world.width - 1, 'x');
   const y = integerInRange(command.y, 0, world.height - 1, 'y');
-  const count = command.count ?? 1;
-  if (!Number.isInteger(count) || count < 1 || count > 1000) throw new RangeError('count must be an integer from 1 to 1000');
+  const count = boundedCount(command.count ?? 1);
   if (!world.tiles[y * world.width + x]?.passable) throw new RangeError('humans cannot spawn on impassable tiles');
 
   // Allocate command identity only after validation. Rejected input must not
@@ -41,6 +43,31 @@ function spawnHumans(world, command) {
     entityIds: ids
   });
   return ids;
+}
+
+function spawnCreatures(world, command) {
+  const x = integerInRange(command.x, 0, world.width - 1, 'x');
+  const y = integerInRange(command.y, 0, world.height - 1, 'y');
+  const count = boundedCount(command.count ?? 1);
+  if (command.species !== 'grazer') throw new RangeError('species must be grazer');
+  if (!world.tiles[y * world.width + x]?.passable) throw new RangeError('creatures cannot spawn on impassable tiles');
+
+  const commandId = world.nextCommandId++;
+  const creatureIds = [];
+  for (let i = 0; i < count; i += 1) {
+    creatureIds.push(createGrazer(world, { x, y }).id);
+  }
+  pushEvent(world, {
+    type: 'god.spawn_creature',
+    subject: worldSubject(),
+    causes: [commandRef(commandId, command.type)],
+    species: command.species,
+    x,
+    y,
+    count,
+    creatureIds
+  });
+  return creatureIds;
 }
 
 function eraseHumans(world, command) {
@@ -104,6 +131,13 @@ function killTargetHumans(world, targets, cause, causeEventId) {
     });
   }
   world.entities = world.entities.filter((entity) => entity.alive);
+}
+
+function boundedCount(value) {
+  if (!Number.isInteger(value) || value < 1 || value > 1000) {
+    throw new RangeError('count must be an integer from 1 to 1000');
+  }
+  return value;
 }
 
 function integerInRange(value, min, max, name) {

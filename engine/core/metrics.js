@@ -3,6 +3,8 @@ import { summarizeParentalUnions } from './union_metrics.js';
 
 export function summarizeWorld(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
+  const creatures = world.creatures.filter((entity) => entity.kind === 'creature' && entity.alive);
+  const grazers = creatures.filter((creature) => creature.species === 'grazer');
   const ageTotal = humans.reduce((sum, human) => sum + human.ageDays / world.config.daysPerYear, 0);
   const hungerTotal = humans.reduce((sum, human) => sum + human.hunger, 0);
   const foodTotal = world.tiles.reduce((sum, tile) => sum + tile.food, 0);
@@ -27,6 +29,10 @@ export function summarizeWorld(world) {
     births: world.counters.births,
     deaths: world.counters.deaths,
     meals: world.counters.meals,
+    creatures: creatures.length,
+    grazers: grazers.length,
+    creatureMeals: world.counters.creatureMeals,
+    creatureDeaths: world.counters.creatureDeaths,
     settlements: world.settlements.length,
     activeSettlements,
     abandonedSettlements: world.settlements.length - activeSettlements,

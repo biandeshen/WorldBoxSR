@@ -42,9 +42,7 @@ function reset() {
   selection = null;
   selectedHistoryEventId = null;
   resetCamera(camera);
-  updateStats();
-  updateInspector();
-  updateHistoryTimeline();
+  refreshHud();
 }
 
 document.querySelector('#reset').addEventListener('click', reset);
@@ -134,15 +132,26 @@ function applyToolAt(x, y, shiftKey) {
     lightningAt(x, y);
     return;
   }
+  if (toolSelect.value === 'spawn_grazer') {
+    spawnGrazerAt(x, y, shiftKey ? 10 : 1);
+    return;
+  }
   spawnAt(x, y, shiftKey ? 10 : 1);
 }
 
 function spawnAt(x, y, count) {
   try {
     applyCommand(world, { type: 'spawn_human', x, y, count });
-    updateStats();
-    updateInspector();
-    updateHistoryTimeline();
+    refreshHud();
+  } catch (error) {
+    if (!/impassable/.test(String(error?.message))) throw error;
+  }
+}
+
+function spawnGrazerAt(x, y, count) {
+  try {
+    applyCommand(world, { type: 'spawn_creature', species: 'grazer', x, y, count });
+    refreshHud();
   } catch (error) {
     if (!/impassable/.test(String(error?.message))) throw error;
   }
@@ -150,13 +159,15 @@ function spawnAt(x, y, count) {
 
 function eraseAt(x, y) {
   applyCommand(world, { type: 'erase', x, y });
-  updateStats();
-  updateInspector();
-  updateHistoryTimeline();
+  refreshHud();
 }
 
 function lightningAt(x, y) {
   applyCommand(world, { type: 'lightning', x, y });
+  refreshHud();
+}
+
+function refreshHud() {
   updateStats();
   updateInspector();
   updateHistoryTimeline();
@@ -167,6 +178,10 @@ function cycleSelectionAt(x, y) {
     .filter((entity) => entity.kind === 'human' && entity.x === x && entity.y === y)
     .sort((a, b) => a.id - b.id)
     .map((human) => ({ kind: 'human', id: human.id }));
+  candidates.push(...world.creatures
+    .filter((creature) => creature.alive && creature.x === x && creature.y === y)
+    .sort((a, b) => a.id - b.id)
+    .map((creature) => ({ kind: 'creature', id: creature.id })));
   candidates.push(...world.settlements
     .filter((settlement) => settlement.x === x && settlement.y === y)
     .sort((a, b) => a.id - b.id)
@@ -190,9 +205,7 @@ function frame(timestamp) {
   if (!paused) tickWorld(world, Number(speedSelect.value));
   drawWorld();
   if (timestamp - lastStatsFrame > 150) {
-    updateStats();
-    updateInspector();
-    updateHistoryTimeline();
+    refreshHud();
     lastStatsFrame = timestamp;
   }
   requestAnimationFrame(frame);
@@ -235,17 +248,28 @@ function drawWorld() {
     ctx.restore();
   }
 
-  const radius = Math.max(1.5, Math.min(cellW, cellH) * 0.25);
+  const humanRadius = Math.max(1.5, Math.min(cellW, cellH) * 0.25);
   for (const human of world.entities) {
     if (human.kind !== 'human') continue;
     const p = worldToScreen(camera, human.x + 0.5, human.y + 0.5, viewport());
     ctx.beginPath();
-    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, humanRadius, 0, Math.PI * 2);
     ctx.fillStyle = human.sex === 'F' ? '#ffd1dc' : '#d5e8ff';
     ctx.fill();
     ctx.strokeStyle = '#111a';
     ctx.lineWidth = 1;
     ctx.stroke();
+  }
+
+  const creatureSize = Math.max(2, Math.min(cellW, cellH) * 0.35);
+  for (const creature of world.creatures) {
+    if (!creature.alive || creature.species !== 'grazer') continue;
+    const p = worldToScreen(camera, creature.x + 0.5, creature.y + 0.5, viewport());
+    ctx.fillStyle = '#f0c36a';
+    ctx.fillRect(p.x - creatureSize / 2, p.y - creatureSize / 2, creatureSize, creatureSize);
+    ctx.strokeStyle = '#111a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x - creatureSize / 2, p.y - creatureSize / 2, creatureSize, creatureSize);
   }
 
   drawSelection(cellW, cellH);
@@ -254,9 +278,7 @@ function drawWorld() {
 function drawSelection(cellW, cellH) {
   const target = resolveSelection();
   if (!target) return;
-  const x = target.x;
-  const y = target.y;
-  const p = worldToScreen(camera, x, y, viewport());
+  const p = worldToScreen(camera, target.x, target.y, viewport());
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = Math.max(1.5, Math.min(cellW, cellH) * 0.12);
   ctx.strokeRect(p.x + 1, p.y + 1, Math.max(0, cellW - 2), Math.max(0, cellH - 2));
@@ -266,11 +288,13 @@ function updateStats() {
   const s = summarizeWorld(world);
   stats.innerHTML = [
     `year: <strong>${s.year.toFixed(2)}</strong>`,
-    `population: <strong>${s.population}</strong>`,
+    `population: <strong>${s.population}</strong> · grazers: <strong>${s.grazers}</strong>`,
     `births / deaths: <strong>${s.births} / ${s.deaths}</strong>`,
+    `creature meals / deaths: <strong>${s.creatureMeals} / ${s.creatureDeaths}</strong>`,
     `settlements: <strong>${s.activeSettlements}/${s.settlements} active</strong> · settled: <strong>${s.settledPopulation}</strong>`,
     `avg age: <strong>${s.averageAgeYears.toFixed(1)}</strong>`,
     `food remaining: <strong>${(s.foodUtilization * 100).toFixed(1)}%</strong>`,
+    `vegetation: <strong>${(s.vegetationUtilization * 100).toFixed(1)}%</strong>`,
     `zoom: <strong>${camera.zoom.toFixed(2)}×</strong>`,
     `normalized seed: <strong>${s.seed}</strong>`
   ].join('<br>');
@@ -295,6 +319,16 @@ function updateInspector() {
     return;
   }
 
+  if (target.kind === 'creature') {
+    inspector.textContent = [
+      `${target.species.toUpperCase()} · CREATURE #${target.id}`,
+      `age ${(target.ageDays / world.config.daysPerYear).toFixed(1)}y`,
+      `health ${(target.health * 100).toFixed(0)}% · hunger ${(target.hunger * 100).toFixed(0)}%`,
+      `position ${target.x},${target.y}`
+    ].join('\n');
+    return;
+  }
+
   if (target.kind === 'settlement') {
     inspector.textContent = [
       `${target.name.toUpperCase()} · SETTLEMENT #${target.id}`,
@@ -313,6 +347,7 @@ function updateInspector() {
     `elevation ${target.elevation.toFixed(3)} · moisture ${target.moisture.toFixed(3)}`,
     `fertility ${target.fertility.toFixed(3)}`,
     `food ${target.food.toFixed(2)} / ${target.foodCapacity.toFixed(2)}`,
+    `vegetation ${target.vegetation.toFixed(2)} / ${target.vegetationCapacity.toFixed(2)}`,
     `settlement candidate ${(target.settlementCandidateDays / world.config.daysPerYear).toFixed(2)}y`
   ].join('\n');
 }
@@ -366,6 +401,10 @@ function resolveSelection() {
     const human = world.entities.find((entity) => entity.kind === 'human' && entity.id === selection.id);
     return human ? { ...human, kind: 'human' } : null;
   }
+  if (selection.kind === 'creature') {
+    const creature = world.creatures.find((entity) => entity.kind === 'creature' && entity.id === selection.id);
+    return creature ? { ...creature, kind: 'creature' } : null;
+  }
   if (selection.kind === 'settlement') {
     const settlement = world.settlements.find((candidate) => candidate.id === selection.id);
     return settlement ? { ...settlement, kind: 'settlement' } : null;
@@ -416,7 +455,5 @@ function resize() {
   }
 }
 
-updateStats();
-updateInspector();
-updateHistoryTimeline();
+refreshHud();
 requestAnimationFrame(frame);

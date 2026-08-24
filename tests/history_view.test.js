@@ -22,10 +22,16 @@ test('timeline helper switches between world and explicit selection history', ()
     subject: entityRef('human', 8),
     entityId: 8
   });
+  pushEvent(world, {
+    type: 'god.spawn_creature',
+    subject: worldSubject(),
+    species: 'grazer',
+    creatureIds: [5]
+  });
 
   assert.deepEqual(
-    timelineEvents(world, { scope: 'world', order: 'newest', limit: 2 }).map((event) => event.type),
-    ['human.born', 'settlement.founded']
+    timelineEvents(world, { scope: 'world', order: 'newest', limit: 3 }).map((event) => event.type),
+    ['god.spawn_creature', 'human.born', 'settlement.founded']
   );
   assert.deepEqual(
     timelineEvents(world, {
@@ -46,6 +52,14 @@ test('timeline helper switches between world and explicit selection history', ()
   assert.deepEqual(
     timelineEvents(world, {
       scope: 'selection',
+      selection: { kind: 'creature', id: 5 },
+      order: 'oldest'
+    }).map((event) => event.type),
+    ['god.spawn_creature']
+  );
+  assert.deepEqual(
+    timelineEvents(world, {
+      scope: 'selection',
       selection: { kind: 'tile', x: 1, y: 1 }
     }),
     []
@@ -59,10 +73,17 @@ test('timeline scope labels remain explicit about unavailable selection history'
     'Human #7 history'
   );
   assert.equal(
+    timelineScopeLabel('selection', { kind: 'creature', id: 9 }),
+    'Creature #9 history'
+  );
+  assert.equal(
     timelineScopeLabel('selection', { kind: 'settlement', id: 3 }),
     'Settlement #3 history'
   );
-  assert.match(timelineScopeLabel('selection', { kind: 'tile', x: 1, y: 1 }), /select a human or settlement/);
+  assert.match(
+    timelineScopeLabel('selection', { kind: 'tile', x: 1, y: 1 }),
+    /select a human, creature, or settlement/
+  );
 });
 
 test('event labels and details show stable IDs, payload, and resolved causal events', () => {

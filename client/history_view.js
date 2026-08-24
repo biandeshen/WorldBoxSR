@@ -1,4 +1,5 @@
 import {
+  historyForCreature,
   historyForHuman,
   historyForSettlement,
   queryHistory,
@@ -17,16 +18,20 @@ export function timelineEvents(world, {
   if (scope !== 'selection') throw new RangeError('timeline scope must be world or selection');
   if (!selection || !Number.isInteger(selection.id)) return [];
   if (selection.kind === 'human') return historyForHuman(world, selection.id, { order, limit });
+  if (selection.kind === 'creature') return historyForCreature(world, selection.id, { order, limit });
   if (selection.kind === 'settlement') return historyForSettlement(world, selection.id, { order, limit });
   return [];
 }
 
 export function timelineScopeLabel(scope, selection = null) {
   if (scope === 'world') return 'World history';
-  if (!selection || !Number.isInteger(selection.id)) return 'Selection history · select a human or settlement';
+  if (!selection || !Number.isInteger(selection.id)) {
+    return 'Selection history · select a human, creature, or settlement';
+  }
   if (selection.kind === 'human') return `Human #${selection.id} history`;
+  if (selection.kind === 'creature') return `Creature #${selection.id} history`;
   if (selection.kind === 'settlement') return `Settlement #${selection.id} history`;
-  return 'Selection history · select a human or settlement';
+  return 'Selection history · select a human, creature, or settlement';
 }
 
 export function formatHistoryEventLabel(event, daysPerYear) {

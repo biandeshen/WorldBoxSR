@@ -52,6 +52,14 @@ export function historyForHuman(world, humanId, options = {}) {
   });
 }
 
+export function historyForCreature(world, creatureId, options = {}) {
+  positiveInteger(creatureId, 'creatureId');
+  return queryHistory(world, {
+    ...options,
+    predicate: (event) => eventExplicitlyReferencesCreature(event, creatureId)
+  });
+}
+
 export function eventHasSubject(event, entityKind, id) {
   nonEmptyString(entityKind, 'entityKind');
   positiveInteger(id, 'entity id');
@@ -74,6 +82,15 @@ export function eventExplicitlyReferencesHuman(event, humanId) {
   if (event?.entityId === humanId) return true;
   if (Array.isArray(event?.entityIds) && event.entityIds.includes(humanId)) return true;
   if (event?.motherId === humanId || event?.fatherId === humanId) return true;
+  return false;
+}
+
+export function eventExplicitlyReferencesCreature(event, creatureId) {
+  positiveInteger(creatureId, 'creatureId');
+  if (eventHasSubject(event, 'creature', creatureId)) return true;
+  if (explicitEntityCause(event, 'creature', creatureId)) return true;
+  if (event?.creatureId === creatureId) return true;
+  if (Array.isArray(event?.creatureIds) && event.creatureIds.includes(creatureId)) return true;
   return false;
 }
 
@@ -154,6 +171,8 @@ function findCurrentEntity(world, entityKind, id) {
   switch (entityKind) {
     case 'human':
       return world.entities?.find((entity) => entity.kind === 'human' && entity.id === id) ?? null;
+    case 'creature':
+      return world.creatures?.find((entity) => entity.kind === 'creature' && entity.id === id) ?? null;
     case 'settlement':
       return world.settlements?.find((entity) => entity.id === id) ?? null;
     case 'lineage':

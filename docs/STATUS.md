@@ -9,16 +9,17 @@ Last updated: 2026-08-24
 - seeded, serializable RNG and fixed-tick world state;
 - procedural elevation/moisture, land/ocean, renewable food, and renewable vegetation biomass;
 - human hunger, movement, eating, aging, reproduction, death, ancestry, and lineage history;
+- a typed creature domain with explicit-spawn grazer ecology;
 - emergent settlement formation, weak home cohesion, abandonment, territory, and causal history;
 - behavior-neutral settlement resource accounting;
 - persistent historical co-parent (`parental_union`) edges;
 - derived social, scarcity, and demographic research instruments;
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
 - a lightweight Canvas client that consumes authoritative simulation state;
-- deterministic history queries plus a causal timeline/event inspector for world, human, and settlement history;
-- deterministic Spawn human, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
+- deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
+- deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Clean CI after Sprint 009 / #91: **172/172 tests + smoke**.
+Clean CI after Sprint 010 / #93: **180/180 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -141,36 +142,68 @@ Erase consumes no RNG, does not directly force settlement lifecycle off-cadence,
 
 ## Completed world-resource gate — Sprint 008 / #89
 
-The world now has a second renewable authoritative resource: **vegetation biomass**.
+The world has a second renewable authoritative resource: **vegetation biomass**.
 
 Vegetation v0 derives capacity from moisture, regenerates independently of food, remains zero on ocean, persists under snapshot schema v9, and is behavior-neutral to humans/settlements. A 20-year divergent-regrowth semantic comparison preserved human, food, settlement, lineage, union, causal-history, counter, ID, and RNG state exactly.
 
 ## Completed environment-disturbance gate — Sprint 009 / #91
 
-Lightning is the first real causal loop involving vegetation:
+Lightning is the first player-driven causal loop involving vegetation:
 
 `player lightning → exact-tile vegetation reset + shared human death lifecycle → inspectable history → deterministic vegetation recovery`
 
-Lightning v0:
+Lightning consumes no RNG and does not alter food, terrain, ownership, or force settlement lifecycle off-cadence. No wildfire, burning state, damage framework, AOE, or generic power registry was introduced.
 
-- accepts any in-bounds tile, including ocean;
-- records vegetation before/after and stable human targets in `god.lightning`;
-- kills exact-tile humans with cause `lightning` linked back to the god event;
-- reuses parental-union mortality bookkeeping;
-- consumes no RNG;
-- does not alter food, terrain, ownership, or force settlement lifecycle off-cadence;
-- relies only on normal vegetation regeneration for recovery;
-- is exposed as the third minimal client god tool.
+## Completed ecology gate — Sprint 010 / #93
 
-No wildfire, burning state, damage framework, AOE, or generic power registry was introduced. Final feature CI passed **172/172 tests + smoke**.
+The project now has its first endogenous non-human loop: **explicit-spawn grazers consume renewable vegetation and can starve when the resource is unavailable**.
+
+### Typed creature identity
+
+Creature IDs are intentionally independent of human IDs:
+
+- `world.creatures` + `nextCreatureId`;
+- snapshot schema **v10**;
+- `entityKind: creature` references;
+- `creatureIds` spawn payloads;
+- typed `historyForCreature()`.
+
+This prevents animals from shifting future human IDs, which would otherwise alter human keyed-random behavior for reasons unrelated to ecology. Numeric human/creature ID collisions are safe because history is typed.
+
+### Grazer behavior
+
+Grazer v0:
+
+- ages and becomes hungry;
+- consumes vegetation only;
+- moves one passable step toward locally highest vegetation when hungry;
+- uses keyed randomness/stable ordering rather than the sequential world RNG;
+- suffers starvation damage and emits typed `creature.died` history;
+- does not reproduce, attack humans, consume human food, join settlements, or own territory.
+
+Default worlds contain **zero creatures**. A 20-year creature-free comparison under radically different grazer config values preserves human/food/settlement/history/RNG state exactly.
+
+### Ecology evidence
+
+A temporary default-parameter density study used seeds `1/4/9`, explicit densities `0/5/20`, and 2-year runs. For every seed:
+
+`vegetation biomass at 0 grazers >= 5 grazers >= 20 grazers`
+
+and sequential RNG remained unchanged. The temporary probe was removed before merge.
+
+This proves grazing pressure creates a real, monotonic resource response. It does **not** justify default animals or reproduction.
+
+### Client
+
+The lightweight client now supports `Spawn grazer`, minimal grazer rendering/inspection, typed creature selection history, vegetation inspection, and creature counters without an art/framework rewrite.
 
 ## Next decision gate
 
-The vegetation substrate now has a player-driven disturbance/recovery loop. Do **not** automatically build wildfire or another power checklist item.
+Do **not** immediately add animal reproduction or predators.
 
-The next higher-value step should preferably make vegetation matter **endogenously without player action**. The strongest candidate is a minimal herbivore/creature that consumes vegetation, has deterministic bounded movement/survival, and can be spawned through a narrow creature command. That would create the first ecology loop while also exercising the still-open generalized creature-spawn backlog.
+The next ecology question should be evidence-first: characterize survival/carrying pressure across explicit grazer densities over longer horizons, then test any proposed reproduction rule off by default against vegetation stability and extinction/overpopulation behavior. Default worlds should remain creature-free until a self-sustaining ecology experiment passes.
 
-If that path is taken, protect the existing human/settlement baseline: default worlds should not silently gain animals until a multi-seed ecology experiment demonstrates safe coexistence.
+Territory visualization and civilization labels remain lower priority unless they become the actual bottleneck.
 
 ## Project-management rule
 

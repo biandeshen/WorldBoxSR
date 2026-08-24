@@ -3,13 +3,14 @@ import { mergeConfig } from '../model/config.js';
 import { createHuman } from '../model/human.js';
 import { pushEvent, worldSubject } from '../model/events.js';
 import { regenerateFood, regenerateVegetation } from '../systems/environment.js';
+import { updateGrazers } from '../systems/grazers.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { initialVegetationForTile, vegetationCapacityForTile } from '../world/vegetation.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 9;
+export const SNAPSHOT_VERSION = 10;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -22,6 +23,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     height,
     day: 0,
     nextEntityId: 1,
+    nextCreatureId: 1,
     nextSettlementId: 1,
     nextLineageId: 1,
     nextUnionId: 1,
@@ -30,11 +32,12 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     config: mergeConfig(config),
     tiles: [],
     entities: [],
+    creatures: [],
     settlements: [],
     lineages: [],
     unions: [],
     history: [],
-    counters: { births: 0, deaths: 0, meals: 0 }
+    counters: { births: 0, deaths: 0, meals: 0, creatureMeals: 0, creatureDeaths: 0 }
   };
 
   const fields = generateWorldFields({ seed: world.seed, width, height });
@@ -82,6 +85,7 @@ export function tickWorld(world, ticks = 1) {
   for (let i = 0; i < ticks; i += 1) {
     regenerateFood(world);
     regenerateVegetation(world);
+    updateGrazers(world);
     updateHumans(world);
     world.day += 1;
     updateSettlements(world);
@@ -121,6 +125,7 @@ export function snapshotWorld(world) {
     height: world.height,
     day: world.day,
     nextEntityId: world.nextEntityId,
+    nextCreatureId: world.nextCreatureId,
     nextSettlementId: world.nextSettlementId,
     nextLineageId: world.nextLineageId,
     nextUnionId: world.nextUnionId,
@@ -134,6 +139,7 @@ export function snapshotWorld(world) {
       childIds: [...entity.childIds],
       unionIds: [...entity.unionIds]
     })),
+    creatures: world.creatures.map((creature) => ({ ...creature })),
     settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     lineages: world.lineages.map((lineage) => ({
       ...lineage,
@@ -162,6 +168,7 @@ export function worldFromSnapshot(snapshot) {
     height: snapshot.height,
     day: snapshot.day,
     nextEntityId: snapshot.nextEntityId,
+    nextCreatureId: snapshot.nextCreatureId,
     nextSettlementId: snapshot.nextSettlementId,
     nextLineageId: snapshot.nextLineageId,
     nextUnionId: snapshot.nextUnionId,
@@ -175,6 +182,7 @@ export function worldFromSnapshot(snapshot) {
       childIds: [...entity.childIds],
       unionIds: [...entity.unionIds]
     })),
+    creatures: snapshot.creatures.map((creature) => ({ ...creature })),
     settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     lineages: snapshot.lineages.map((lineage) => ({
       ...lineage,
