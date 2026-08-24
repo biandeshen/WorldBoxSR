@@ -6,32 +6,21 @@ import { createWorld, passableNeighbors8, tickWorld, tileAt } from '../engine/co
 import { createGrazer } from '../engine/model/grazer.js';
 
 const SIZE = 16;
-const SEEDS = Array.from({ length: 30 }, (_, index) => index + 1);
+const SEEDS = [2, 4, 6, 7, 9, 10, 13, 14, 15, 16];
 const COUNTS = [2, 4, 6, 8, 10];
 const YEARS = 120;
+const CHECKPOINT_YEARS = 10;
 const FINAL_WINDOW_YEARS = 20;
 const INIT_AGE_SALT = 0x1b56c4e9;
-const TARGET_SEEDS = new Set([2, 6, 7, 10, 24]);
-const DESCRIPTOR_KEYS = [
-  'landComponentCount',
-  'largestLandComponentShare',
-  'founderCoveredLandShare',
-  'founderDistinctCells',
-  'founderPairEdges',
-  'founderGraphComponents',
-  'founderLargestGraphComponent',
-  'isolatedFounders',
-  'meanNearestFounderDistance',
-  'founderBoundingBoxArea',
-  'meanFounderLocalVegetationUtilization'
-];
+const REPRODUCTION_MIN_HEALTH = 0.95;
+const REPRODUCTION_MIN_LOCAL_VEGETATION_UTILIZATION = 0.5;
+const REPRODUCTION_PARTNER_RADIUS = 3;
 
-
-test('temporary compact founder-count/spatial sensitivity response surface', () => {
+test('temporary compact founder Stage 2 trajectories', () => {
   const rows = [];
 
-  for (const count of COUNTS) {
-    for (const seed of SEEDS) {
+  for (const seed of SEEDS) {
+    for (const count of COUNTS) {
       const world = createWorld({
         seed,
         width: SIZE,
@@ -43,37 +32,48 @@ test('temporary compact founder-count/spatial sensitivity response surface', () 
         }
       });
       seedNaturalFounders(world, count);
-      const descriptors = initialDescriptors(world, count);
       const rngBefore = world.rng.snapshot();
+      const passableLandCells = world.tiles.filter((tile) => tile.passable).length;
       const totalDays = YEARS * world.config.daysPerYear;
       const finalWindowStart = (YEARS - FINAL_WINDOW_YEARS) * world.config.daysPerYear;
       let birthsAtFinalWindowStart = null;
       let replacementParentBirths = 0;
+      let starvationDeaths = 0;
+      let oldAgeDeaths = 0;
       let maxLiving = world.creatures.length;
       let minLivingAfterYear20 = Infinity;
-      let minVegetationUtilization = summarizeWorld(world).vegetationUtilization;
       let everExtinct = false;
+      const checkpoints = [checkpoint(world, count, starvationDeaths, oldAgeDeaths)];
 
       for (let elapsed = 0; elapsed < totalDays; elapsed += 1) {
         const eventIdBefore = world.nextEventId;
         tickWorld(world, 1);
+        const events = newEventsSince(world, eventIdBefore);
+        for (const event of events) {
+          if (event.type === 'creature.died') {
+            if (event.cause === 'starvation') starvationDeaths += 1;
+            if (event.cause === 'old_age') oldAgeDeaths += 1;
+          }
+          if (event.type === 'creature.born' && event.parentCreatureIds?.some((id) => id > count)) {
+            replacementParentBirths += 1;
+          }
+        }
+
         maxLiving = Math.max(maxLiving, world.creatures.length);
         if (world.day >= 20 * world.config.daysPerYear) {
           minLivingAfterYear20 = Math.min(minLivingAfterYear20, world.creatures.length);
         }
         if (world.creatures.length === 0) everExtinct = true;
         if (world.day === finalWindowStart) birthsAtFinalWindowStart = world.counters.creatureBirths;
-        replacementParentBirths += countReplacementBirths(world, eventIdBefore, count);
-        if (world.day % 30 === 0) {
-          minVegetationUtilization = Math.min(
-            minVegetationUtilization,
-            summarizeWorld(world).vegetationUtilization
-          );
+        if (world.day % (CHECKPOINT_YEARS * world.config.daysPerYear) === 0) {
+          checkpoints.push(checkpoint(world, count, starvationDeaths, oldAgeDeaths));
         }
       }
 
       assert.notEqual(birthsAtFinalWindowStart, null);
       assert.deepEqual(world.rng.snapshot(), rngBefore, `count ${count} seed ${seed} consumed sequential RNG`);
+      assert.equal(checkpoints.length, YEARS / CHECKPOINT_YEARS + 1);
+
       const summary = summarizeWorld(world);
       const birthsFinal20Years = summary.creatureBirths - birthsAtFinalWindowStart;
       const passesGate = (
@@ -81,56 +81,45 @@ test('temporary compact founder-count/spatial sensitivity response surface', () 
         && summary.grazers >= 10
         && birthsFinal20Years >= 5
         && replacementParentBirths > 0
-        && maxLiving < descriptors.passableLandCells
+        && maxLiving < passableLandCells
       );
 
       rows.push({
         seed,
         founders: count,
-        ...descriptors,
+        passableLandCells,
         finalPopulation: summary.grazers,
-        minLivingAfterYear20: Number.isFinite(minLivingAfterYear20) ? minLivingAfterYear20 : null,
-        maxLiving,
-        totalBirths: summary.creatureBirths,
         birthsFinal20Years,
         replacementParentBirths,
-        creatureDeaths: summary.creatureDeaths,
-        finalVegetationUtilization: round(summary.vegetationUtilization),
-        minVegetationUtilization: round(minVegetationUtilization),
+        starvationDeaths,
+        oldAgeDeaths,
+        maxLiving,
+        minLivingAfterYear20: Number.isFinite(minLivingAfterYear20) ? minLivingAfterYear20 : null,
         everExtinct,
-        passesGate
+        passesGate,
+        checkpoints
       });
     }
   }
 
-  const countSummaries = COUNTS.map((count) => summarizeCount(rows.filter((row) => row.founders === count), count));
-  const universalCounts = countSummaries.filter((entry) => entry.passCount === SEEDS.length).map((entry) => entry.founders);
-  const perSeed = SEEDS.map((seed) => {
-    const seedRows = COUNTS.map((count) => rows.find((row) => row.seed === seed && row.founders === count));
-    const passes = seedRows.map((row) => row.passesGate);
-    return {
-      seed,
-      passingCounts: seedRows.filter((row) => row.passesGate).map((row) => row.founders),
-      passPattern: passes.map((value) => value ? '1' : '0').join(''),
-      transitionCount: adjacentTransitions(passes),
-      finals: seedRows.map((row) => [row.founders, row.finalPopulation]),
-      finalWindowBirths: seedRows.map((row) => [row.founders, row.birthsFinal20Years])
-    };
-  });
-  const transitionSeeds = perSeed.filter((entry) => entry.transitionCount > 0);
-  const targetRows = rows.filter((row) => TARGET_SEEDS.has(row.seed));
-  const descriptorContrasts = COUNTS.map((count) => descriptorContrast(rows.filter((row) => row.founders === count), count));
+  const bySeed = SEEDS.map((seed) => ({
+    seed,
+    counts: COUNTS.map((count) => {
+      const row = rows.find((candidate) => candidate.seed === seed && candidate.founders === count);
+      return {
+        founders: count,
+        passesGate: row.passesGate,
+        finalPopulation: row.finalPopulation,
+        birthsFinal20Years: row.birthsFinal20Years,
+        starvationDeaths: row.starvationDeaths,
+        oldAgeDeaths: row.oldAgeDeaths,
+        checkpoints: row.checkpoints
+      };
+    })
+  }));
 
   assert.equal(rows.length, SEEDS.length * COUNTS.length);
-  console.log(`GRAZER_COMPACT_SENSITIVITY_STAGE1 ${JSON.stringify({
-    universalCounts,
-    countSummaries,
-    perSeed,
-    transitionSeeds,
-    targetRows,
-    descriptorContrasts,
-    rows
-  })}`);
+  console.log(`GRAZER_COMPACT_SENSITIVITY_STAGE2 ${JSON.stringify({ bySeed })}`);
 });
 
 function seedNaturalFounders(world, count) {
@@ -149,125 +138,45 @@ function seedNaturalFounders(world, count) {
   }
 }
 
-function initialDescriptors(world, founderCount) {
-  const land = connectedLandComponents(world);
-  const founders = world.creatures.slice(0, founderCount);
-  const founderComponentIds = new Set(founders.map((grazer) => land.componentByTile[grazer.y * world.width + grazer.x]));
-  const coveredLand = [...founderComponentIds]
-    .filter((id) => id !== null && id !== undefined)
-    .reduce((sum, id) => sum + land.componentSizes[id], 0);
-  const graph = founderGraph(founders);
-  const xs = founders.map((grazer) => grazer.x);
-  const ys = founders.map((grazer) => grazer.y);
-  const bboxArea = founders.length === 0
-    ? 0
-    : (Math.max(...xs) - Math.min(...xs) + 1) * (Math.max(...ys) - Math.min(...ys) + 1);
-  const meanLocalVegetation = mean(founders.map((grazer) => localVegetationUtilization(world, grazer.x, grazer.y)));
-
+function checkpoint(world, founderCount, starvationDeaths, oldAgeDeaths) {
+  const summary = summarizeWorld(world);
+  const eligible = world.creatures
+    .filter((grazer) => isReproductionEligible(world, grazer))
+    .sort((a, b) => a.id - b.id);
+  const ages = world.creatures.map((grazer) => grazer.ageDays / world.config.daysPerYear);
   return {
-    passableLandCells: land.passableLandCells,
-    landComponentCount: land.componentSizes.length,
-    largestLandComponentSize: Math.max(...land.componentSizes),
-    largestLandComponentShare: round(Math.max(...land.componentSizes) / land.passableLandCells),
-    founderCoveredLandCells: coveredLand,
-    founderCoveredLandShare: round(coveredLand / land.passableLandCells),
-    founderDistinctCells: new Set(founders.map((grazer) => `${grazer.x},${grazer.y}`)).size,
-    founderPairEdges: graph.edgeCount,
-    founderGraphComponents: graph.componentSizes.length,
-    founderLargestGraphComponent: Math.max(...graph.componentSizes),
-    isolatedFounders: graph.isolatedCount,
-    meanNearestFounderDistance: round(meanNearestDistance(founders)),
-    founderBoundingBoxArea: bboxArea,
-    meanFounderLocalVegetationUtilization: round(meanLocalVegetation)
+    year: world.day / world.config.daysPerYear,
+    living: summary.grazers,
+    foundersAlive: world.creatures.filter((grazer) => grazer.id <= founderCount).length,
+    births: summary.creatureBirths,
+    starvationDeaths,
+    oldAgeDeaths,
+    vegetationUtilization: round(summary.vegetationUtilization),
+    meanHunger: round(mean(world.creatures.map((grazer) => grazer.hunger))),
+    reproductionEligible: eligible.length,
+    eligiblePairEdges: eligiblePairEdges(eligible),
+    occupiedCells: new Set(world.creatures.map((grazer) => `${grazer.x},${grazer.y}`)).size,
+    meanAgeYears: round(mean(ages))
   };
 }
 
-function connectedLandComponents(world) {
-  const componentByTile = Array(world.tiles.length).fill(null);
-  const componentSizes = [];
-  let passableLandCells = 0;
-
-  for (let index = 0; index < world.tiles.length; index += 1) {
-    if (!world.tiles[index].passable) continue;
-    passableLandCells += 1;
-    if (componentByTile[index] !== null) continue;
-
-    const componentId = componentSizes.length;
-    let size = 0;
-    const queue = [index];
-    componentByTile[index] = componentId;
-    for (let cursor = 0; cursor < queue.length; cursor += 1) {
-      const current = queue[cursor];
-      size += 1;
-      const tile = world.tiles[current];
-      for (let dy = -1; dy <= 1; dy += 1) {
-        for (let dx = -1; dx <= 1; dx += 1) {
-          if (dx === 0 && dy === 0) continue;
-          const x = tile.x + dx;
-          const y = tile.y + dy;
-          if (x < 0 || y < 0 || x >= world.width || y >= world.height) continue;
-          const neighborIndex = y * world.width + x;
-          if (!world.tiles[neighborIndex].passable || componentByTile[neighborIndex] !== null) continue;
-          componentByTile[neighborIndex] = componentId;
-          queue.push(neighborIndex);
-        }
-      }
-    }
-    componentSizes.push(size);
-  }
-
-  assert.ok(passableLandCells > 0);
-  return { componentByTile, componentSizes, passableLandCells };
+function isReproductionEligible(world, grazer) {
+  if (!grazer.alive || grazer.species !== 'grazer') return false;
+  if (grazer.ageDays < world.config.daysPerYear) return false;
+  if (grazer.health < REPRODUCTION_MIN_HEALTH) return false;
+  if (grazer.hunger > world.config.grazerHungryThreshold) return false;
+  if (grazer.lastBirthDay !== null && world.day - grazer.lastBirthDay < world.config.daysPerYear) return false;
+  return localVegetationUtilization(world, grazer.x, grazer.y) >= REPRODUCTION_MIN_LOCAL_VEGETATION_UTILIZATION;
 }
 
-function founderGraph(founders) {
-  const adjacency = founders.map(() => []);
-  let edgeCount = 0;
-  for (let i = 0; i < founders.length; i += 1) {
-    for (let j = i + 1; j < founders.length; j += 1) {
-      if (chebyshev(founders[i], founders[j]) > 3) continue;
-      adjacency[i].push(j);
-      adjacency[j].push(i);
-      edgeCount += 1;
+function eligiblePairEdges(eligible) {
+  let edges = 0;
+  for (let i = 0; i < eligible.length; i += 1) {
+    for (let j = i + 1; j < eligible.length; j += 1) {
+      if (chebyshev(eligible[i], eligible[j]) <= REPRODUCTION_PARTNER_RADIUS) edges += 1;
     }
   }
-
-  const seen = new Set();
-  const componentSizes = [];
-  for (let i = 0; i < founders.length; i += 1) {
-    if (seen.has(i)) continue;
-    const stack = [i];
-    seen.add(i);
-    let size = 0;
-    while (stack.length > 0) {
-      const node = stack.pop();
-      size += 1;
-      for (const neighbor of adjacency[node]) {
-        if (seen.has(neighbor)) continue;
-        seen.add(neighbor);
-        stack.push(neighbor);
-      }
-    }
-    componentSizes.push(size);
-  }
-
-  return {
-    edgeCount,
-    componentSizes,
-    isolatedCount: adjacency.filter((neighbors) => neighbors.length === 0).length
-  };
-}
-
-function meanNearestDistance(founders) {
-  if (founders.length < 2) return 0;
-  return mean(founders.map((founder, index) => {
-    let nearest = Infinity;
-    for (let other = 0; other < founders.length; other += 1) {
-      if (other === index) continue;
-      nearest = Math.min(nearest, chebyshev(founder, founders[other]));
-    }
-    return nearest;
-  }));
+  return edges;
 }
 
 function localVegetationUtilization(world, x, y) {
@@ -277,47 +186,14 @@ function localVegetationUtilization(world, x, y) {
   return capacity > 0 ? vegetation / capacity : 0;
 }
 
-function countReplacementBirths(world, eventIdBefore, founderCount) {
-  let count = 0;
+function newEventsSince(world, eventIdBefore) {
+  const events = [];
   for (let index = world.history.length - 1; index >= 0; index -= 1) {
     const event = world.history[index];
     if (event.id < eventIdBefore) break;
-    if (event.type === 'creature.born' && event.parentCreatureIds?.some((id) => id > founderCount)) count += 1;
+    events.push(event);
   }
-  return count;
-}
-
-function summarizeCount(rows, founders) {
-  return {
-    founders,
-    passCount: rows.filter((row) => row.passesGate).length,
-    extinctionCount: rows.filter((row) => row.everExtinct).length,
-    passingSeeds: rows.filter((row) => row.passesGate).map((row) => row.seed),
-    failingSeeds: rows.filter((row) => !row.passesGate).map((row) => row.seed),
-    minFinalPopulation: Math.min(...rows.map((row) => row.finalPopulation)),
-    medianFinalPopulation: median(rows.map((row) => row.finalPopulation)),
-    minFinalWindowBirths: Math.min(...rows.map((row) => row.birthsFinal20Years)),
-    medianFinalWindowBirths: median(rows.map((row) => row.birthsFinal20Years))
-  };
-}
-
-function descriptorContrast(rows, founders) {
-  const passed = rows.filter((row) => row.passesGate);
-  const failed = rows.filter((row) => !row.passesGate);
-  const result = { founders, passCount: passed.length, failCount: failed.length, descriptors: {} };
-  for (const key of DESCRIPTOR_KEYS) {
-    result.descriptors[key] = {
-      passMedian: passed.length > 0 ? round(median(passed.map((row) => row[key]))) : null,
-      failMedian: failed.length > 0 ? round(median(failed.map((row) => row[key]))) : null
-    };
-  }
-  return result;
-}
-
-function adjacentTransitions(values) {
-  let count = 0;
-  for (let i = 1; i < values.length; i += 1) if (values[i] !== values[i - 1]) count += 1;
-  return count;
+  return events;
 }
 
 function chebyshev(a, b) {
@@ -326,13 +202,6 @@ function chebyshev(a, b) {
 
 function mean(values) {
   return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-}
-
-function median(values) {
-  assert.ok(values.length > 0);
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 function round(value) {
