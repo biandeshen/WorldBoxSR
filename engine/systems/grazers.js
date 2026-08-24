@@ -9,6 +9,7 @@ const PASSIVE_MOVE_INDEX_SALT = 0x2bc58d07;
 const BIRTH_SALT = 0x5c47a1d3;
 const REPRODUCTION_MIN_HEALTH = 0.95;
 const REPRODUCTION_MIN_LOCAL_VEGETATION_UTILIZATION = 0.5;
+const REPRODUCTION_PARTNER_RADIUS = 3;
 
 export function updateGrazers(world) {
   for (const grazer of world.creatures) {
@@ -37,7 +38,7 @@ export function updateGrazerReproduction(world) {
     const parentB = eligible.find((candidate) => (
       candidate.id > parentA.id
       && !usedToday.has(candidate.id)
-      && isAdjacent(parentA, candidate)
+      && isWithinReproductionPartnerRadius(parentA, candidate)
       && isReproductionEligible(world, candidate)
     ));
     if (!parentB) continue;
@@ -168,8 +169,8 @@ function localVegetationUtilization(world, x, y) {
   return capacity > 0 ? vegetation / capacity : 0;
 }
 
-function isAdjacent(a, b) {
-  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= 1;
+function isWithinReproductionPartnerRadius(a, b) {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= REPRODUCTION_PARTNER_RADIUS;
 }
 
 function pairIdentity(a, b) {

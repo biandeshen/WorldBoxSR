@@ -19,7 +19,7 @@ Last updated: 2026-08-24
 - deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
 - deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is still Chebyshev radius 1 until the Sprint 015 handoff is implemented. Grazer senescent death is **not** implemented.
+Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**. Grazer senescent death is **not** implemented.
 
 ## Architecture decisions that remain binding
 
@@ -47,9 +47,13 @@ Across the 100×200 baseline only three worlds contain a naturally abandoned set
 
 Sprint 011 found that overloaded grazer populations converge toward landscape-specific survivor plateaus, normalizing to roughly one long-run grazer per 14.8–15.0 vegetation-capacity units. This is empirical validation evidence only. Runtime reproduction never reads total vegetation capacity, a target population, or that ratio; abundance must remain a result of local condition/resource feedback.
 
-### Senescence cannot be layered on before reproductive recovery is robust
+### Encounter distance and resource locality are distinct mechanics
 
-Sprint 014 proved that a natural-death mechanism that looks viable at low density can destroy carrying-pressure populations when combined with the current radius-1 encounter rule. Do not add lifespan merely to complete a life-cycle checklist. Sprint 015 identifies radius 3 as the smallest tested encounter geometry that removes that measured low-density spatial trap while preserving resource suppression; make that encounter seam authoritative first, then re-run senescence evidence from scratch.
+Sprint 015/016 intentionally separates partner encounter opportunity from resource eligibility. A grazer may discover an eligible reproduction partner within Chebyshev radius 3, but each parent's vegetation condition still measures only its own radius-1 neighborhood. Do not broaden the vegetation test merely because partner discovery is wider, and do not generalize this one radius into a public interaction framework without a second use.
+
+### Natural turnover must be re-tested after encounter correction
+
+Sprint 014 rejected simple senescence when authoritative encounter radius was 1. Sprint 015 showed that radius 3 removes the measured post-pressure spatial Allee trap, and Sprint 016 made radius 3 authoritative. That changes replacement dynamics materially, so Sprint 014's lifespan outcomes are no longer sufficient evidence for or against any specific lifespan band. Re-run the lifespan gate instead of promoting the diagnostic `18–36` band by assumption.
 
 ## Empirical checkpoints
 
@@ -133,7 +137,7 @@ Snapshot schema is **v11** with deterministic v10 migration. Enabled save/load c
 
 ## Completed natural-turnover research gate — Sprint 014 / #103
 
-Simple deterministic grazer senescence was tested as keyed research logic and **rejected for runtime**.
+Simple deterministic grazer senescence was tested as keyed research logic and **rejected for runtime under radius-1 encounter geometry**.
 
 Low-density bracket with 20 age-2 founders:
 
@@ -141,22 +145,22 @@ Low-density bracket with 20 age-2 founders:
 - `12–18`: final **6 / 2 / 28**;
 - `18–24`: low-density viable at **72 / 62 / 92** after founder turnover.
 
-But `18–24` collapses carrying-pressure worlds:
+But `18–24` collapsed carrying-pressure worlds:
 
 - 100 founders: **0 / 7 / 1** instead of no-senescence **114 / 155 / 130**;
 - 200 founders: **0 / 0 / 0** instead of **112 / 161 / 132**.
 
-Widening to `18–30` / `18–36` only delays the same problem. Diagnosis identifies a two-stage trap:
+Widening to `18–30` / `18–36` only delayed the same problem. Diagnosis identified:
 
 `resource depletion suppresses births → senescence reduces population → vegetation recovers → sparse spatial distribution suppresses encounters`
 
-During depletion there can be **46–67** physically eligible adjacent pairs but zero resource-eligible pairs; resource eligibility returns around years **24–28**, after population has fallen. Later, survivors are resource-ready but usually expose only 0–3 adjacent pairs. Evidence: `docs/experiments/2026-08-24-grazer-natural-turnover.md`.
+Evidence: `docs/experiments/2026-08-24-grazer-natural-turnover.md`.
 
-No lifespan field/config/event, snapshot change, or old-age runtime behavior is accepted from Sprint 014.
+No lifespan field/config/event, snapshot change, or old-age runtime behavior was accepted from Sprint 014.
 
 ## Completed encounter-recovery research gate — Sprint 015 / #105
 
-Sprint 015 isolates the diagnosed spatial bottleneck by keeping birth chance `0.001`, the radius-1 local vegetation threshold `0.50`, condition gates, cooldown, stable pairing, and keyed randomness fixed while comparing only partner-search Chebyshev radius `1/2/3`.
+Sprint 015 kept birth chance `0.001`, radius-1 local vegetation threshold `0.50`, condition gates, cooldown, stable pairing, and keyed randomness fixed while comparing only partner-search Chebyshev radius `1/2/3`.
 
 ### 45-year turnover stress
 
@@ -171,8 +175,6 @@ Radius-3 year45 populations:
 - 100 founders: **39 / 99 / 76**;
 - 200 founders: **42 / 61 / 70**.
 
-The local vegetation gate still shuts births during depletion; wider encounter range does not bypass resource causality.
-
 ### 90-year multi-generation check
 
 Radius 3 remains bounded and viable through multiple turnover generations in all 9 `20/100/200 × seeds 1/4/9` worlds:
@@ -181,39 +183,50 @@ Radius 3 remains bounded and viable through multiple turnover generations in all
 - 100 founders finish **46 / 119 / 59**;
 - 200 founders finish **63 / 59 / 100**.
 
-Replacement-generation parents account for most later births. Worlds display repeated population/vegetation cycles rather than monotonic growth. Sequential `world.rng` remains unchanged.
+Replacement-generation parents account for most later births. The local vegetation gate still shuts births during depletion, and sequential `world.rng` remains unchanged.
 
-### Compatibility with current no-senescence runtime
+### Compatibility with no senescence
 
-Without senescence, radius 3 changes the approach speed but preserves the overloaded carrying envelope:
+Without senescence, radius 3 changes approach speed but preserves the overloaded carrying envelope:
 
 - 100 founders, radius1 `114/155/130` vs radius3 `115/165/134`;
 - 200 founders, radius1 `112/161/132` vs radius3 `113/168/130`.
 
-Final overloaded vegetation remains around ~3%–6%. From 20 founders, radius 3 reaches carrying pressure faster, but the unchanged local resource gate still bounds growth.
-
 Evidence: `docs/experiments/2026-08-24-grazer-encounter-recovery.md`.
 
-### Decision
+## Completed authoritative encounter gate — Sprint 016 / #107
 
-Radius 3 passes as the **smallest reliable partner encounter geometry**. Radius 2 is rejected. This research does not itself alter runtime behavior.
+The Sprint 015 result is now implemented as one narrow runtime change: grazer reproduction partner discovery accepts an eligible second parent within Chebyshev radius **3**.
+
+The implementation deliberately keeps each parent's local vegetation measurement at radius **1** and leaves every other reproduction semantic unchanged. The radius is a private mechanic constant rather than public config; snapshot schema remains v11.
+
+Tests prove:
+
+- an otherwise eligible distance-3 pair produces exactly one typed birth;
+- an otherwise eligible distance-4 pair cannot reproduce;
+- default-off behavior stays inert;
+- enabled save/load continuation remains exact;
+- sequential RNG isolation remains exact;
+- existing multi-seed low-density and overloaded reproduction regressions remain bounded/resource-limited;
+- full normal CI and smoke pass.
+
+No senescence, mate bond, sex, genealogy, gestation, migration, population target, predator/species framework, human coupling, or schema change was introduced.
 
 ## Next decision gate
 
-Promote only the proven grazer partner-search seam from Chebyshev radius **1 → 3** in a separate authoritative implementation.
+Re-run the grazer natural-turnover/lifespan study against **authoritative radius-3 encounter geometry**.
 
-Keep unchanged:
+Do not assume the old low-density bracket or the diagnostic `18–36` band remains correct. The encounter change materially alters replacement probability, so the next research gate should re-test candidate deterministic lifespan bands with the authoritative reproduction implementation and compare low-density replacement plus 100/200 carrying-pressure behavior across seeds `1/4/9`.
 
-- local vegetation measurement radius 1;
-- birth chance and default-zero behavior;
-- maturity, health, hunger, and cooldown gates;
-- stable pairing and keyed randomness;
-- separate human/creature identity domains;
-- default worlds with zero creatures.
+Any accepted senescence mechanism must preserve:
 
-Do not add a public interaction-radius framework/config, mate bonds, sex, genealogy, migration, population targets, predators, or species infrastructure from this one result.
-
-After radius 3 is authoritative and fully regression-tested, revisit natural senescence as a new evidence gate. Re-test lifespan assumptions; do not promote the diagnostic `18–36` band by default.
+- local-resource-driven abundance rather than a population target;
+- multi-generation persistence across landscapes;
+- causal distinction between starvation and old age;
+- typed creature death history;
+- deterministic save/load;
+- keyed/sequential RNG isolation;
+- default-zero creatures and default-off reproduction unless separately changed by evidence.
 
 Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
