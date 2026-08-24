@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createWorld, tickWorld } from '../engine/core/world.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
 import { createGrazer } from '../engine/model/grazer.js';
@@ -10,6 +11,7 @@ const YEARS = 5;
 const CHECKPOINTS = new Set([1, 2, 3, 5]);
 const SAMPLE_INTERVAL_DAYS = 30;
 const SPAWN_CELL_CAP = 32;
+const ARTIFACT_PATH = 'tmp-research/grazer-carrying-5y.json';
 
 test('temporary 5-year grazer carrying-pressure bracket', () => {
   const rows = [];
@@ -52,9 +54,12 @@ test('temporary 5-year grazer carrying-pressure bracket', () => {
     }
   }
 
+  const result = { rows };
   assert.equal(rows.length, SEEDS.length * DENSITIES.length);
   assert.equal(rows.every((row) => row.checkpoints.length === CHECKPOINTS.size), true);
-  console.log(`GRAZER_CARRYING_5Y ${JSON.stringify({ rows })}`);
+  mkdirSync('tmp-research', { recursive: true });
+  writeFileSync(ARTIFACT_PATH, `${JSON.stringify(result, null, 2)}\n`);
+  console.log(`GRAZER_CARRYING_5Y ${JSON.stringify(result)}`);
 });
 
 function seedGrazers(world, count) {
