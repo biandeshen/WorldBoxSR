@@ -8,5 +8,6 @@
       "onAutoForward": "openPreview"
     }
   },
+  "postCreateCommand": "npm install --no-audit --no-fund",
   "postStartCommand": "bash .devcontainer/start-dev.sh"
 }
