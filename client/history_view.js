@@ -23,7 +23,7 @@ export function timelineEvents(world, {
 
 export function timelineScopeLabel(scope, selection = null) {
   if (scope === 'world') return 'World history';
-  if (!selection || !Number.isInteger(selection.id)) return 'Selection history · no human/settlement selected';
+  if (!selection || !Number.isInteger(selection.id)) return 'Selection history · select a human or settlement';
   if (selection.kind === 'human') return `Human #${selection.id} history`;
   if (selection.kind === 'settlement') return `Settlement #${selection.id} history`;
   return 'Selection history · select a human or settlement';
