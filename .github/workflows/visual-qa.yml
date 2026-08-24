@@ -1,0 +1,50 @@
+name: visual-qa
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'engine/**'
+      - 'content/**'
+      - 'package.json'
+      - 'vite.config.js'
+      - 'tools/capture-visual-evidence.sh'
+      - '.github/workflows/visual-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser toolchain
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Capture runtime and screenshots
+        run: bash tools/capture-visual-evidence.sh
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-evidence
+          path: artifacts/visual
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Summarize visual gate
+        if: always()
+        run: |
+          {
+            echo '## Visual QA'
+            echo ''
+            echo '- Production Vite build served through the real project-site base path.'
+            echo '- Headless Chromium must confirm a fully warmed Phaser showcase.'
+            echo '- `Renderer failed` must be absent from the rendered DOM.'
+            echo '- Artifact `visual-evidence` preserves rendered DOM/logs and, on success, fixed 1440×900 Phaser + legacy screenshots for seed 45.'
+          } >> "$GITHUB_STEP_SUMMARY"

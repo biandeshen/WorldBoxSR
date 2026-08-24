@@ -3,9 +3,11 @@ const renderer = params.get('renderer') === 'legacy' ? 'legacy' : 'phaser';
 
 document.documentElement.dataset.renderer = renderer;
 
-const modulePath = renderer === 'legacy' ? './main.js' : './phaser_main.js';
+const startup = renderer === 'legacy'
+  ? import('./main.js')
+  : import('./phaser_main.js');
 
-import(modulePath).catch((error) => {
+startup.catch((error) => {
   console.error(`Failed to start ${renderer} renderer`, error);
   const status = document.querySelector('#boot-status');
   if (status) status.textContent = `Renderer failed: ${error?.message || error}`;

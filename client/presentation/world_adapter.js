@@ -7,6 +7,7 @@ export const SHOWCASE = Object.freeze({
   height: 24,
   population: 30,
   warmupYears: 40,
+  warmupChunkYears: 2,
   defaultSeed: 45,
   grazerCount: 8
 });
@@ -17,19 +18,41 @@ export function normalizeSeed(seedToken) {
 }
 
 export function createShowcaseWorld(seedToken = SHOWCASE.defaultSeed) {
-  const world = createWorld({
+  return createWorld({
     seed: normalizeSeed(seedToken),
     width: SHOWCASE.width,
     height: SHOWCASE.height,
     population: SHOWCASE.population
   });
+}
 
-  tickWorld(world, world.config.daysPerYear * SHOWCASE.warmupYears);
+export async function evolveShowcaseWorld(world, {
+  years = SHOWCASE.warmupYears,
+  chunkYears = SHOWCASE.warmupChunkYears,
+  onProgress = null
+} = {}) {
+  if (!Number.isFinite(years) || years < 0) throw new RangeError('showcase years must be non-negative');
+  if (!Number.isFinite(chunkYears) || chunkYears <= 0) throw new RangeError('showcase chunkYears must be positive');
+
+  const targetDays = Math.round(years * world.config.daysPerYear);
+  const chunkDays = Math.max(1, Math.round(chunkYears * world.config.daysPerYear));
+
+  while (world.day < targetDays) {
+    const remaining = targetDays - world.day;
+    tickWorld(world, Math.min(chunkDays, remaining));
+    onProgress?.({
+      day: world.day,
+      year: world.day / world.config.daysPerYear,
+      targetYear: years
+    });
+    await yieldToBrowser();
+  }
+
   seedShowcaseGrazers(world);
   return world;
 }
 
-function seedShowcaseGrazers(world) {
+export function seedShowcaseGrazers(world) {
   if (world.creatures.some((creature) => creature.alive && creature.species === 'grazer')) return;
 
   const candidates = world.tiles
@@ -151,4 +174,8 @@ export function selectionAt(world, x, y) {
 
   const tile = world.tiles.find((candidate) => candidate.x === x && candidate.y === y);
   return tile ? { kind: 'tile', value: tile } : null;
+}
+
+function yieldToBrowser() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
