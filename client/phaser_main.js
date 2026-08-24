@@ -7,6 +7,7 @@ import {
   advanceWorld,
   applyGodTool,
   createShowcaseWorld,
+  evolveShowcaseWorld,
   selectionAt,
   SHOWCASE,
   worldSummary,
@@ -30,6 +31,8 @@ const historyDetail = document.querySelector('#history-detail');
 const bootStatus = document.querySelector('#boot-status');
 const eventToast = document.querySelector('#event-toast');
 
+if (bootStatus) bootStatus.textContent = 'Phaser 4 · module loaded · starting scene…';
+
 class WorldScene extends Phaser.Scene {
   constructor() {
     super('world');
@@ -39,23 +42,32 @@ class WorldScene extends Phaser.Scene {
     this.entities = null;
     this.settlements = null;
     this.paused = false;
+    this.booting = false;
+    this.worldGeneration = 0;
     this.nextStepAt = 0;
     this.lastHudAt = 0;
     this.drag = null;
   }
 
   create() {
-    this.entities = new EntityLayer(this, TILE_SIZE);
-    this.settlements = new SettlementLayer(this, TILE_SIZE);
-    this.resetWorld();
-    this.bindInput();
-    this.bindDom();
-    this.game.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
-    if (bootStatus) bootStatus.textContent = 'Phaser 4 · authoritative simulation · showcase year 40';
+    try {
+      if (bootStatus) bootStatus.textContent = 'Phaser 4 · scene created · preparing world…';
+      this.entities = new EntityLayer(this, TILE_SIZE);
+      this.settlements = new SettlementLayer(this, TILE_SIZE);
+      this.bindInput();
+      this.bindDom();
+      this.game.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+      this.resetWorld();
+    } catch (error) {
+      this.reportRendererFailure(error);
+      throw error;
+    }
   }
 
   update(time) {
-    if (!this.paused && time >= this.nextStepAt) {
+    if (!this.world || !this.entities) return;
+
+    if (!this.booting && !this.paused && time >= this.nextStepAt) {
       const days = Math.max(1, Number(speedSelect?.value || 10));
       advanceWorld(this.world, days);
       this.syncWorld(time);
@@ -71,9 +83,11 @@ class WorldScene extends Phaser.Scene {
   }
 
   resetWorld() {
+    const token = ++this.worldGeneration;
     const seed = seedInput?.value?.trim() || String(SHOWCASE.defaultSeed);
     if (seedInput && !seedInput.value.trim()) seedInput.value = String(SHOWCASE.defaultSeed);
 
+    this.booting = true;
     this.world = createShowcaseWorld(seed);
     this.view = worldView(this.world);
 
@@ -87,10 +101,47 @@ class WorldScene extends Phaser.Scene {
     this.resetCamera();
     this.refreshHud();
     this.refreshChronicle();
-    this.showToast(`World ${seed} · evolved ${SHOWCASE.warmupYears} years`);
+
+    if (bootStatus) {
+      bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase 0/${SHOWCASE.warmupYears}y`;
+    }
+    this.showToast(`World ${seed} · evolving toward showcase`);
+
+    window.setTimeout(() => {
+      void this.finishShowcaseWarmup(token, seed);
+    }, 0);
+  }
+
+  async finishShowcaseWarmup(token, seed) {
+    try {
+      await evolveShowcaseWorld(this.world, {
+        onProgress: ({ year, targetYear }) => {
+          if (token !== this.worldGeneration) return;
+          if (bootStatus) {
+            bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase ${year.toFixed(0)}/${targetYear}y`;
+          }
+          if (Math.round(year) % 4 === 0 || year >= targetYear) {
+            this.syncWorld(this.time.now);
+          }
+        }
+      });
+
+      if (token !== this.worldGeneration) return;
+      this.syncWorld(this.time.now);
+      this.booting = false;
+      this.nextStepAt = this.time.now + STEP_INTERVAL_MS;
+      if (bootStatus) bootStatus.textContent = 'Phaser 4 · authoritative simulation · showcase ready';
+      this.showToast(`World ${seed} · showcase ready at year ${SHOWCASE.warmupYears}`);
+    } catch (error) {
+      if (token !== this.worldGeneration) return;
+      this.booting = false;
+      this.reportRendererFailure(error);
+      console.error(error);
+    }
   }
 
   syncWorld(now) {
+    if (!this.world || !this.terrain) return;
     this.view = worldView(this.world);
     renderTerrain(this.terrain, this.view, TILE_SIZE);
     this.settlements.sync(this.view);
@@ -99,6 +150,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   resetCamera() {
+    if (!this.view) return;
     const worldWidth = this.view.width * TILE_SIZE;
     const worldHeight = this.view.height * TILE_SIZE;
     const camera = this.cameras.main;
@@ -141,13 +193,18 @@ class WorldScene extends Phaser.Scene {
     this.input.on('pointerup', (pointer) => {
       const drag = this.drag;
       this.drag = null;
-      if (!drag || drag.moved) return;
+      if (!drag || drag.moved || !this.world) return;
 
       const tile = this.pointerTile(pointer);
       if (!tile) return;
 
       if (pointer.event?.altKey || pointer.rightButtonReleased()) {
         this.inspectTile(tile.x, tile.y);
+        return;
+      }
+
+      if (this.booting) {
+        this.showToast('World is still evolving into the showcase…');
         return;
       }
 
@@ -173,6 +230,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   pointerTile(pointer) {
+    if (!this.view) return null;
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const x = Math.floor(point.x / TILE_SIZE);
     const y = Math.floor(point.y / TILE_SIZE);
@@ -241,7 +299,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   refreshHud() {
-    if (!stats) return;
+    if (!stats || !this.world) return;
     const summary = worldSummary(this.world);
     stats.innerHTML = [
       `<span><b>Year ${summary.year.toFixed(1)}</b></span>`,
@@ -253,7 +311,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   refreshChronicle() {
-    if (!historyList || !historyScopeLabel) return;
+    if (!historyList || !historyScopeLabel || !this.world) return;
     historyScopeLabel.textContent = 'World chronicle';
     const rows = this.world.history.slice(-7).reverse();
     historyList.innerHTML = rows.length
@@ -280,27 +338,39 @@ class WorldScene extends Phaser.Scene {
       eventToast.dataset.visible = 'false';
     }, 1500);
   }
+
+  reportRendererFailure(error) {
+    const message = error?.stack || error?.message || String(error);
+    if (bootStatus) bootStatus.textContent = `Renderer failed: ${message}`;
+    this.showToast(`Renderer failed: ${error?.message || error}`);
+  }
 }
 
-const game = new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: 'phaser-root',
-  backgroundColor: '#0a1118',
-  pixelArt: true,
-  roundPixels: true,
-  render: {
-    antialias: false,
-    roundPixels: true
-  },
-  scale: {
-    mode: Phaser.Scale.RESIZE,
-    width: window.innerWidth,
-    height: window.innerHeight
-  },
-  scene: [WorldScene]
-});
-
-globalThis.__PHASER_GAME__ = game;
+let game;
+try {
+  game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'phaser-root',
+    backgroundColor: '#0a1118',
+    pixelArt: true,
+    roundPixels: true,
+    render: {
+      antialias: false,
+      roundPixels: true
+    },
+    scale: {
+      mode: Phaser.Scale.RESIZE,
+      width: window.innerWidth,
+      height: window.innerHeight
+    },
+    scene: [WorldScene]
+  });
+  globalThis.__PHASER_GAME__ = game;
+} catch (error) {
+  if (bootStatus) bootStatus.textContent = `Renderer failed: ${error?.stack || error?.message || error}`;
+  console.error(error);
+  throw error;
+}
 
 function toolMessage(effect, count) {
   if (effect === 'lightning') return '⚡ Lightning struck';
