@@ -1,81 +1,78 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorld, tickWorld } from '../engine/core/world.js';
-import { summarizeWorld } from '../engine/core/metrics.js';
+import { deriveSettlementResources } from '../engine/analysis/settlement_resources.js';
 import { summarizeSettlementFoodStorage } from '../engine/systems/settlement_food_storage.js';
 
-const seeds = [1, 4, 9, 45, 80, 98];
+const checkpoints = [100, 120, 140, 160, 180, 200];
 
-test('temporary 6-seed 200-year settlement storage off-vs-on probe', () => {
+test('temporary seed98 settlement-level storage survival audit', () => {
+  const offWorld = createWorld({ seed: 98, width: 24, height: 24, population: 30 });
+  const onWorld = createWorld({
+    seed: 98,
+    width: 24,
+    height: 24,
+    population: 30,
+    config: { settlementFoodStorageEnabled: true }
+  });
+
   const rows = [];
-
-  for (const seed of seeds) {
-    const offWorld = createWorld({ seed, width: 24, height: 24, population: 30 });
-    const onWorld = createWorld({
-      seed,
-      width: 24,
-      height: 24,
-      population: 30,
-      config: { settlementFoodStorageEnabled: true }
-    });
-    const days = 200 * offWorld.config.daysPerYear;
+  let previousYear = 0;
+  for (const year of checkpoints) {
+    const days = (year - previousYear) * offWorld.config.daysPerYear;
     tickWorld(offWorld, days);
     tickWorld(onWorld, days);
-
-    const off = summarizeWorld(offWorld);
-    const on = summarizeWorld(onWorld);
-    const storage = summarizeSettlementFoodStorage(onWorld);
+    previousYear = year;
 
     rows.push({
-      seed,
-      off: pickWorld(off),
-      on: pickWorld(on),
-      delta: {
-        population: on.population - off.population,
-        births: on.births - off.births,
-        deaths: on.deaths - off.deaths,
-        meals: on.meals - off.meals,
-        settlements: on.settlements - off.settlements,
-        activeSettlements: on.activeSettlements - off.activeSettlements,
-        abandonedSettlements: on.abandonedSettlements - off.abandonedSettlements,
-        settledPopulation: on.settledPopulation - off.settledPopulation,
-        food: round(on.food - off.food),
-        averageHunger: round(on.averageHunger - off.averageHunger)
-      },
-      storage: {
-        totalStored: round(storage.totalStored),
-        totalCapacity: round(storage.totalCapacity),
-        utilization: round(storage.capacityUtilization),
-        totalDeposited: round(storage.totalDeposited),
-        totalWithdrawn: round(storage.totalWithdrawn),
-        storeMeals: storage.storeMeals,
-        strandedFood: round(storage.strandedFood),
-        settlementsWithStorage: storage.settlementsWithStorage
-      }
+      year,
+      off: snapshotSettlements(offWorld),
+      on: snapshotSettlements(onWorld)
     });
   }
 
-  const seed45 = rows.find((row) => row.seed === 45);
-  assert.equal(seed45.off.population, 128);
-  assert.equal(rows.length, seeds.length);
-  console.log(`SETTLEMENT_STORAGE_AB_200Y ${JSON.stringify({ rows })}`);
+  const off200 = rows.at(-1).off;
+  const on200 = rows.at(-1).on;
+  const offAbandoned = off200.filter((settlement) => !settlement.active);
+  const rescuedIds = offAbandoned
+    .filter((settlement) => on200.find((other) => other.id === settlement.id)?.active)
+    .map((settlement) => settlement.id);
+
+  assert.equal(offAbandoned.length, 1);
+  assert.deepEqual(rescuedIds, [5]);
+  console.log(`SEED98_STORAGE_SURVIVAL_AUDIT ${JSON.stringify({ rescuedIds, rows })}`);
 });
 
-function pickWorld(summary) {
-  return {
-    population: summary.population,
-    births: summary.births,
-    deaths: summary.deaths,
-    meals: summary.meals,
-    settlements: summary.settlements,
-    activeSettlements: summary.activeSettlements,
-    abandonedSettlements: summary.abandonedSettlements,
-    settledPopulation: summary.settledPopulation,
-    territoryCoverage: round(summary.territoryCoverage),
-    food: round(summary.food),
-    foodUtilization: round(summary.foodUtilization),
-    averageHunger: round(summary.averageHunger)
-  };
+function snapshotSettlements(world) {
+  const resources = new Map(deriveSettlementResources(world).map((entry) => [entry.settlementId, entry]));
+  const storage = new Map(
+    summarizeSettlementFoodStorage(world).settlements.map((entry) => [entry.settlementId, entry])
+  );
+
+  return world.settlements.map((settlement) => {
+    const resource = resources.get(settlement.id);
+    const store = storage.get(settlement.id);
+    return {
+      id: settlement.id,
+      name: settlement.name,
+      active: settlement.active,
+      foundedDay: settlement.foundedDay,
+      abandonedDay: settlement.abandonedDay,
+      population: settlement.population,
+      foodRemainingFraction: round(resource?.foodRemainingFraction ?? 0),
+      foodPerMember: nullableRound(resource?.foodPerMember),
+      foodCapacityPerMember: nullableRound(resource?.foodCapacityPerMember),
+      storedFood: round(store?.storedFood ?? 0),
+      deposited: round(store?.deposited ?? 0),
+      withdrawn: round(store?.withdrawn ?? 0),
+      storeMeals: store?.storeMeals ?? 0,
+      strandedAtAbandonment: nullableRound(store?.strandedAtAbandonment)
+    };
+  });
+}
+
+function nullableRound(value) {
+  return value === null || value === undefined ? null : round(value);
 }
 
 function round(value) {
