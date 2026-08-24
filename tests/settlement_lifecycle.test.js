@@ -43,8 +43,11 @@ test('empty settlements abandon exactly at the configured grace boundary', () =>
   assert.equal(settlement.active, false);
   assert.equal(settlement.emptyDays, 60);
   assert.equal(settlement.abandonedDay, 60);
-  assert.equal(world.history.at(-1).type, 'settlement.abandoned');
-  assert.deepEqual(world.history.at(-1).subject, { kind: 'entity', entityKind: 'settlement', id: settlement.id });
+  const abandonedEvent = world.history.findLast((event) =>
+    event.type === 'settlement.abandoned' && event.settlementId === settlement.id
+  );
+  assert.ok(abandonedEvent, 'settlement abandonment must remain explicit in causal history');
+  assert.deepEqual(abandonedEvent.subject, { kind: 'entity', entityKind: 'settlement', id: settlement.id });
 
   const summary = summarizeWorld(world);
   assert.equal(summary.settlements, 1);
