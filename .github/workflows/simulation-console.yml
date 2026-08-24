@@ -1,0 +1,115 @@
+name: simulation-console
+run-name: "simulation seed=${{ inputs.seed }} years=${{ inputs.years }} ${{ inputs.width }}x${{ inputs.height }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Deterministic world seed (number or string)
+        required: true
+        default: "42"
+      years:
+        description: Simulated years
+        required: true
+        default: "100"
+      population:
+        description: Human founder population
+        required: true
+        default: "30"
+      width:
+        description: World width in tiles
+        required: true
+        default: "32"
+      height:
+        description: World height in tiles
+        required: true
+        default: "32"
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Preflight smoke check
+        run: npm run smoke
+
+      - name: Run deterministic simulation
+        env:
+          SEED: ${{ inputs.seed }}
+          YEARS: ${{ inputs.years }}
+          POPULATION: ${{ inputs.population }}
+          WIDTH: ${{ inputs.width }}
+          HEIGHT: ${{ inputs.height }}
+        run: |
+          mkdir -p artifacts
+          node tools/simulate.js \
+            --seed "$SEED" \
+            --years "$YEARS" \
+            --population "$POPULATION" \
+            --width "$WIDTH" \
+            --height "$HEIGHT" \
+            --json | tee artifacts/simulation.json
+
+      - name: Write Actions summary
+        env:
+          SEED: ${{ inputs.seed }}
+          YEARS: ${{ inputs.years }}
+          POPULATION: ${{ inputs.population }}
+          WIDTH: ${{ inputs.width }}
+          HEIGHT: ${{ inputs.height }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
+
+          const summary = JSON.parse(readFileSync('artifacts/simulation.json', 'utf8'));
+          const pct = (value) => Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : 'n/a';
+          const number = (value, digits = 0) => Number.isFinite(value) ? value.toFixed(digits) : 'n/a';
+          const text = (value) => String(value ?? 'n/a').replaceAll('|', '\\|').replaceAll('\n', ' ');
+
+          const rows = [
+            ['Requested seed', process.env.SEED],
+            ['Normalized seed', summary.seed],
+            ['Requested years', process.env.YEARS],
+            ['Map', `${process.env.WIDTH}×${process.env.HEIGHT}`],
+            ['Human founders', process.env.POPULATION],
+            ['Final year', number(summary.year, 2)],
+            ['Population', summary.population],
+            ['Births', summary.births],
+            ['Deaths', summary.deaths],
+            ['Average age', number(summary.averageAgeYears, 1)],
+            ['Settlements', `${summary.activeSettlements ?? 'n/a'}/${summary.settlements ?? 'n/a'} active/total`],
+            ['Grazers', summary.grazers],
+            ['Food remaining', pct(summary.foodUtilization)],
+            ['Vegetation remaining', pct(summary.vegetationUtilization)]
+          ];
+
+          const markdown = [
+            '## WorldBoxSR Simulation Console',
+            '',
+            'This run used the repository’s authoritative deterministic CLI after a smoke preflight.',
+            '',
+            '| Metric | Value |',
+            '| --- | ---: |',
+            ...rows.map(([key, value]) => `| ${text(key)} | ${text(value)} |`),
+            '',
+            'The full machine-readable result is attached as the `worldboxsr-simulation-*` workflow artifact.'
+          ].join('\n') + '\n';
+
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown);
+          NODE
+
+      - name: Preserve simulation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: worldboxsr-simulation-${{ github.run_id }}
+          path: artifacts/simulation.json
+          if-no-files-found: error
+          retention-days: 30
