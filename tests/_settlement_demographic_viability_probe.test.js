@@ -4,10 +4,9 @@ import { createWorld, tickWorld } from '../engine/core/world.js';
 import { deriveSettlementDemography } from '../engine/analysis/settlement_demography.js';
 import { createSettlementDemographicViabilityTracker } from '../engine/core/settlement_demographic_viability.js';
 
-const SEEDS = [1, 4, 9, 45, 80, 98];
+const SEEDS = [49, 62, 98];
 const YEARS = 200;
 const CHECKPOINT_YEARS = new Set([100, 120, 140, 160, 180, 200]);
-
 const FLOW_KEYS = Object.freeze([
   'newbornAdditions',
   'externalSpawnAdditions',
@@ -19,16 +18,9 @@ const FLOW_KEYS = Object.freeze([
   'birthsProducedByPriorMembers'
 ]);
 
-const CONDITION_KEYS = Object.freeze([
-  'zeroLocalReproductionOpportunity',
-  'noBirthReplacement',
-  'netMembershipOutflow',
-  'naturalReplacementDeficit'
-]);
-
-test('temporary 6-seed 200-year settlement demographic viability probe', () => {
+test('temporary all-abandonment-seed female replacement pipeline audit', () => {
   const rows = [];
-  const allYear100Cohort = [];
+  const allSettlementPipelineRows = [];
 
   for (const seed of SEEDS) {
     const world = createWorld({ seed, width: 24, height: 24, population: 30 });
@@ -36,252 +28,165 @@ test('temporary 6-seed 200-year settlement demographic viability probe', () => {
       sampleIntervalDays: 30,
       maxCompletedEpisodes: 50000
     });
-    let year100Baseline = new Map();
-    let previousPinefordFlow = null;
-    const pinefordCheckpoints = [];
+    const pipeline = new Map();
+    const checkpoints = new Map();
 
     for (let day = 30; day <= YEARS * world.config.daysPerYear; day += 30) {
       tickWorld(world, 30);
       tracker.observe(world);
 
-      const year = world.day / world.config.daysPerYear;
-      if (year === 100) {
-        const summary = tracker.summarize(world);
-        const byId = new Map(summary.settlements.map((settlement) => [settlement.settlementId, settlement]));
-        const demography = new Map(
-          deriveSettlementDemography(world).map((row) => [row.settlementId, compactDemography(row)])
-        );
-        year100Baseline = new Map(
-          world.settlements
-            .filter((settlement) => settlement.active)
-            .map((settlement) => {
-              const tracked = byId.get(settlement.id);
-              return [settlement.id, {
-                settlementId: settlement.id,
-                name: settlement.name,
-                population: settlement.population,
-                flowTotals: cloneFlow(tracked?.flowTotals),
-                conditionSamples: cloneConditions(tracked?.conditionSamples),
-                activeIntervalsObserved: tracked?.activeIntervalsObserved ?? 0,
-                demography: demography.get(settlement.id) ?? null
-              }];
-            })
-        );
+      const demographyRows = deriveSettlementDemography(world);
+      const trackedById = new Map(
+        tracker.summarize(world).settlements.map((settlement) => [settlement.settlementId, settlement])
+      );
+
+      for (const demographic of demographyRows) {
+        if (!demographic.active) continue;
+        let state = pipeline.get(demographic.settlementId);
+        if (!state) {
+          state = {
+            settlementId: demographic.settlementId,
+            activeSamples: 0,
+            noReproductiveAgeFemaleSamples: 0,
+            noFemalePipelineSamples: 0,
+            firstNoFemalePipelineDay: null,
+            currentNoPipelineStartDay: null,
+            longestNoPipelineObservedSpanDays: 0,
+            minimumFemalePipelineMembers: null
+          };
+          pipeline.set(demographic.settlementId, state);
+        }
+
+        state.activeSamples += 1;
+        if (demographic.reproductiveAgeFemales === 0) state.noReproductiveAgeFemaleSamples += 1;
+        if (demographic.femaleReplacementPipelineMembers === 0) {
+          state.noFemalePipelineSamples += 1;
+          if (state.firstNoFemalePipelineDay === null) state.firstNoFemalePipelineDay = world.day;
+          if (state.currentNoPipelineStartDay === null) state.currentNoPipelineStartDay = world.day;
+          state.longestNoPipelineObservedSpanDays = Math.max(
+            state.longestNoPipelineObservedSpanDays,
+            world.day - state.currentNoPipelineStartDay
+          );
+        } else {
+          state.currentNoPipelineStartDay = null;
+        }
+        state.minimumFemalePipelineMembers = state.minimumFemalePipelineMembers === null
+          ? demographic.femaleReplacementPipelineMembers
+          : Math.min(state.minimumFemalePipelineMembers, demographic.femaleReplacementPipelineMembers);
       }
 
-      if (seed === 98 && CHECKPOINT_YEARS.has(year)) {
-        const summary = tracker.summarize(world);
-        const tracked = summary.settlements.find((settlement) => settlement.settlementId === 5) ?? null;
-        const demographic = deriveSettlementDemography(world).find((row) => row.settlementId === 5) ?? null;
-        const cumulativeFlow = cloneFlow(tracked?.flowTotals);
-        const intervalFlow = previousPinefordFlow === null
-          ? zeroFlow()
-          : subtractFlow(cumulativeFlow, previousPinefordFlow);
-        previousPinefordFlow = cumulativeFlow;
-
-        pinefordCheckpoints.push({
-          year,
-          active: demographic?.active ?? false,
-          population: demographic?.population ?? 0,
-          demography: demographic ? compactDemography(demographic) : null,
-          flowSincePreviousCheckpoint: intervalFlow,
-          cumulativeFlow,
-          conditionShares: tracked ? compactConditionShares(tracked.conditionShares) : null,
-          abandonedDay: tracked?.abandonedDay ?? null
-        });
+      const year = world.day / world.config.daysPerYear;
+      if (CHECKPOINT_YEARS.has(year)) {
+        for (const demographic of demographyRows) {
+          let list = checkpoints.get(demographic.settlementId);
+          if (!list) checkpoints.set(demographic.settlementId, list = []);
+          const tracked = trackedById.get(demographic.settlementId);
+          list.push({
+            year,
+            active: demographic.active,
+            population: demographic.population,
+            femalePipelineMembers: demographic.femaleReplacementPipelineMembers,
+            minorFemales: demographic.minorFemales,
+            reproductiveAgeFemales: demographic.reproductiveAgeFemales,
+            laterAdultFemales: demographic.laterAdultFemales,
+            reproductiveAgeMales: demographic.reproductiveAgeMales,
+            laterAdultMales: demographic.laterAdultMales,
+            eligibleFemales: demographic.eligibleFemales,
+            eligibleMales: demographic.eligibleMales,
+            localOpportunityCoverage: roundNullable(demographic.localReproductionOpportunityCoverage),
+            meanAgeYears: roundNullable(demographic.meanAgeYears),
+            medianAgeYears: roundNullable(demographic.medianAgeYears),
+            cumulativeFlow: cloneFlow(tracked?.flowTotals),
+            abandonedDay: tracked?.abandonedDay ?? null
+          });
+        }
       }
     }
 
     const final = tracker.summarize(world);
-    assert.equal(final.reconciliation.errorIntervals, 0, `seed ${seed} has flow reconciliation errors`);
+    assert.equal(final.reconciliation.errorIntervals, 0, `seed ${seed} has reconciliation errors`);
     assert.equal(final.reconciliation.maxAbsoluteError, 0, `seed ${seed} has non-zero reconciliation error`);
-    assert.equal(final.storage.completedEpisodeEvictions, 0, `seed ${seed} demographic episode cap truncated`);
+    assert.equal(final.storage.completedEpisodeEvictions, 0, `seed ${seed} episode cap truncated`);
 
     const finalById = new Map(final.settlements.map((settlement) => [settlement.settlementId, settlement]));
-    const cohort = [];
-    for (const [settlementId, start] of year100Baseline) {
-      const tracked = finalById.get(settlementId);
-      const settlement = world.settlements.find((candidate) => candidate.id === settlementId);
-      if (!tracked || !settlement) continue;
-
-      const post100Flow = subtractFlow(tracked.flowTotals, start.flowTotals);
-      const post100Conditions = subtractConditions(tracked.conditionSamples, start.conditionSamples);
-      const post100Intervals = tracked.activeIntervalsObserved - start.activeIntervalsObserved;
-      const finalPopulation = settlement.active ? settlement.population : 0;
-      const stockNaturalReplacementBalance = post100Flow.newbornAdditions - post100Flow.deaths;
-      const nonDeathMembershipBalance =
-        post100Flow.entrantsFromNone + post100Flow.switchesIn -
-        post100Flow.exitsToNone - post100Flow.switchesOut;
-      const populationDelta = finalPopulation - start.population;
-      const expectedPopulationDelta =
-        stockNaturalReplacementBalance +
-        nonDeathMembershipBalance +
-        post100Flow.externalSpawnAdditions;
-      assert.equal(
-        expectedPopulationDelta,
-        populationDelta,
-        `seed ${seed} settlement ${settlementId} post100 stock flow does not reconcile`
-      );
-
-      const item = {
+    const settlementRows = world.settlements.map((settlement) => {
+      const pipe = pipeline.get(settlement.id) ?? emptyPipeline(settlement.id);
+      const tracked = finalById.get(settlement.id);
+      const row = {
         seed,
-        settlementId,
-        name: start.name,
-        startPopulation: start.population,
-        finalPopulation,
-        populationDelta,
-        abandoned: !settlement.active,
-        post100Intervals,
-        post100Flow,
-        stockNaturalReplacementBalance,
-        producedNewbornBalance: post100Flow.birthsProducedByPriorMembers - post100Flow.deaths,
-        newbornAssignmentBalance:
-          post100Flow.newbornAdditions - post100Flow.birthsProducedByPriorMembers,
-        nonDeathMembershipBalance,
-        conditionShares: Object.fromEntries(
-          CONDITION_KEYS.map((key) => [key, share(post100Conditions[key], post100Intervals)])
-        ),
-        startDemography: start.demography,
-        finalDemography: tracked.lastDemography ? compactDemography(tracked.lastDemography) : null
+        settlementId: settlement.id,
+        name: settlement.name,
+        foundedDay: settlement.foundedDay,
+        active: settlement.active,
+        abandonedDay: settlement.abandonedDay,
+        finalPopulation: settlement.active ? settlement.population : 0,
+        activeSamples: pipe.activeSamples,
+        noReproductiveAgeFemaleShare: share(pipe.noReproductiveAgeFemaleSamples, pipe.activeSamples),
+        noFemaleReplacementPipelineShare: share(pipe.noFemalePipelineSamples, pipe.activeSamples),
+        firstNoFemalePipelineDay: pipe.firstNoFemalePipelineDay,
+        longestNoPipelineObservedSpanDays: pipe.longestNoPipelineObservedSpanDays,
+        minimumFemalePipelineMembers: pipe.minimumFemalePipelineMembers,
+        cumulativeFlow: cloneFlow(tracked?.flowTotals),
+        checkpoints: checkpoints.get(settlement.id) ?? []
       };
-      cohort.push(item);
-      allYear100Cohort.push(item);
-    }
+      allSettlementPipelineRows.push(row);
+      return row;
+    });
 
+    const abandoned = settlementRows.filter((row) => !row.active);
+    assert.equal(abandoned.length, 1, `seed ${seed} should have exactly one abandoned settlement in baseline`);
     rows.push({
       seed,
-      final: {
-        population: world.entities.filter((entity) => entity.kind === 'human' && entity.alive).length,
-        settlements: world.settlements.length,
-        activeSettlements: world.settlements.filter((settlement) => settlement.active).length,
-        abandonedSettlements: world.settlements.filter((settlement) => !settlement.active).length
-      },
-      reconciliation: final.reconciliation,
-      year100Cohort: summarizeOutcomeGroups(cohort),
-      pinefordCheckpoints,
-      pinefordPost100: seed === 98 ? cohort.find((item) => item.settlementId === 5) ?? null : null
+      historicalSettlements: world.settlements.length,
+      abandoned: abandoned[0],
+      finalActiveSummary: summarizePipelineGroup(settlementRows.filter((row) => row.active))
     });
   }
 
-  const pineford = allYear100Cohort.find((item) => item.seed === 98 && item.settlementId === 5);
-  assert.ok(pineford, 'seed98 Pineford #5 missing from year100 cohort');
-  assert.equal(pineford.abandoned, true, 'seed98 Pineford #5 should abandon in baseline');
+  const abandonedRows = allSettlementPipelineRows.filter((row) => !row.active);
+  const activeRows = allSettlementPipelineRows.filter((row) => row.active);
+  assert.equal(abandonedRows.length, 3, 'expected all three known natural abandonments');
 
-  const recoveryComparator = chooseRecoveryComparator(allYear100Cohort, pineford);
-  assert.ok(recoveryComparator, 'no growing small-settlement comparator found');
-
-  console.log('SETTLEMENT_DEMOGRAPHIC_VIABILITY_6SEED_200Y', JSON.stringify({
-    rows,
-    pineford,
-    recoveryComparator,
-    aggregate: summarizeAllOutcomeGroups(allYear100Cohort)
+  console.log('SETTLEMENT_FEMALE_REPLACEMENT_ALL_ABANDONMENTS', JSON.stringify({
+    abandonedSummary: summarizePipelineGroup(abandonedRows),
+    activeSummary: summarizePipelineGroup(activeRows),
+    rows
   }));
 });
 
-function compactDemography(row) {
+function summarizePipelineGroup(rows) {
   return {
-    population: row.population,
-    minors: row.minors,
-    adults: row.adults,
-    reproductiveAgeFemales: row.reproductiveAgeFemales,
-    adultMales: row.adultMales,
-    eligibleFemales: row.eligibleFemales,
-    eligibleMales: row.eligibleMales,
-    eligibleFemalesWithLocalMaleOpportunity: row.eligibleFemalesWithLocalMaleOpportunity,
-    eligibleFemalesWithoutLocalMaleOpportunity: row.eligibleFemalesWithoutLocalMaleOpportunity,
-    localReproductionOpportunityCoverage: roundNullable(row.localReproductionOpportunityCoverage),
-    meanAgeYears: roundNullable(row.meanAgeYears),
-    medianAgeYears: roundNullable(row.medianAgeYears),
-    ageBuckets: { ...row.ageBuckets }
-  };
-}
-
-function compactConditionShares(shares) {
-  return Object.fromEntries(CONDITION_KEYS.map((key) => [key, round(shares[key] ?? 0)]));
-}
-
-function summarizeOutcomeGroups(cohort) {
-  return {
-    count: cohort.length,
-    abandoned: summarizeGroup(cohort.filter((item) => item.abandoned)),
-    declinedActive: summarizeGroup(cohort.filter((item) => !item.abandoned && item.populationDelta < 0)),
-    nonDeclined: summarizeGroup(cohort.filter((item) => !item.abandoned && item.populationDelta >= 0))
-  };
-}
-
-function summarizeAllOutcomeGroups(cohort) {
-  return summarizeOutcomeGroups(cohort);
-}
-
-function summarizeGroup(items) {
-  return {
-    count: items.length,
-    startPopulationMedian: medianNullable(items.map((item) => item.startPopulation)),
-    populationDeltaMedian: medianNullable(items.map((item) => item.populationDelta)),
-    deathsMedian: medianNullable(items.map((item) => item.post100Flow.deaths)),
-    survivingNewbornAdditionsMedian: medianNullable(items.map((item) => item.post100Flow.newbornAdditions)),
-    stockNaturalReplacementBalanceMedian: medianNullable(
-      items.map((item) => item.stockNaturalReplacementBalance)
+    count: rows.length,
+    noReproductiveAgeFemaleShareMedian: medianNullable(
+      rows.map((row) => row.noReproductiveAgeFemaleShare)
     ),
-    survivingNewbornProductionMedian: medianNullable(
-      items.map((item) => item.post100Flow.birthsProducedByPriorMembers)
+    noFemaleReplacementPipelineShareMedian: medianNullable(
+      rows.map((row) => row.noFemaleReplacementPipelineShare)
     ),
-    producedNewbornBalanceMedian: medianNullable(items.map((item) => item.producedNewbornBalance)),
-    newbornAssignmentBalanceMedian: medianNullable(items.map((item) => item.newbornAssignmentBalance)),
-    entrantsMedian: medianNullable(items.map((item) => item.post100Flow.entrantsFromNone + item.post100Flow.switchesIn)),
-    outflowMedian: medianNullable(items.map((item) => item.post100Flow.exitsToNone + item.post100Flow.switchesOut)),
-    nonDeathMembershipBalanceMedian: medianNullable(items.map((item) => item.nonDeathMembershipBalance)),
-    zeroOpportunityShareMedian: medianNullable(
-      items.map((item) => item.conditionShares.zeroLocalReproductionOpportunity)
+    longestNoPipelineObservedSpanDaysMedian: medianNullable(
+      rows.map((row) => row.longestNoPipelineObservedSpanDays)
     ),
-    noBirthReplacementShareMedian: medianNullable(
-      items.map((item) => item.conditionShares.noBirthReplacement)
-    ),
-    netOutflowShareMedian: medianNullable(items.map((item) => item.conditionShares.netMembershipOutflow)),
-    naturalDeficitShareMedian: medianNullable(
-      items.map((item) => item.conditionShares.naturalReplacementDeficit)
+    minimumFemalePipelineMembersMedian: medianNullable(
+      rows.map((row) => row.minimumFemalePipelineMembers ?? 0)
     )
   };
 }
 
-function chooseRecoveryComparator(cohort, pineford) {
-  const growing = cohort.filter((item) =>
-    !item.abandoned &&
-    item.populationDelta > 0 &&
-    !(item.seed === pineford.seed && item.settlementId === pineford.settlementId)
-  );
-  growing.sort((a, b) =>
-    Math.abs(a.startPopulation - pineford.startPopulation) - Math.abs(b.startPopulation - pineford.startPopulation) ||
-    a.startPopulation - b.startPopulation ||
-    b.populationDelta - a.populationDelta ||
-    a.seed - b.seed ||
-    a.settlementId - b.settlementId
-  );
-  return growing[0] ?? null;
+function emptyPipeline(settlementId) {
+  return {
+    settlementId,
+    activeSamples: 0,
+    noReproductiveAgeFemaleSamples: 0,
+    noFemalePipelineSamples: 0,
+    firstNoFemalePipelineDay: null,
+    currentNoPipelineStartDay: null,
+    longestNoPipelineObservedSpanDays: 0,
+    minimumFemalePipelineMembers: null
+  };
 }
 
 function cloneFlow(flow) {
-  if (!flow) return zeroFlow();
-  return Object.fromEntries(FLOW_KEYS.map((key) => [key, flow[key] ?? 0]));
-}
-
-function zeroFlow() {
-  return Object.fromEntries(FLOW_KEYS.map((key) => [key, 0]));
-}
-
-function subtractFlow(after, before) {
-  return Object.fromEntries(FLOW_KEYS.map((key) => [key, (after?.[key] ?? 0) - (before?.[key] ?? 0)]));
-}
-
-function cloneConditions(conditions) {
-  if (!conditions) return Object.fromEntries(CONDITION_KEYS.map((key) => [key, 0]));
-  return Object.fromEntries(CONDITION_KEYS.map((key) => [key, conditions[key] ?? 0]));
-}
-
-function subtractConditions(after, before) {
-  return Object.fromEntries(
-    CONDITION_KEYS.map((key) => [key, (after?.[key] ?? 0) - (before?.[key] ?? 0)])
-  );
+  return Object.fromEntries(FLOW_KEYS.map((key) => [key, flow?.[key] ?? 0]));
 }
 
 function share(numerator, denominator) {
@@ -289,7 +194,8 @@ function share(numerator, denominator) {
 }
 
 function medianNullable(values) {
-  return values.length > 0 ? round(median(values)) : null;
+  if (values.length === 0) return null;
+  return round(median(values));
 }
 
 function median(values) {
