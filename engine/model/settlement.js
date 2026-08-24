@@ -1,3 +1,5 @@
+import { initializeSettlementFoodStorage } from '../systems/settlement_food_storage.js';
+
 const PREFIXES = ['Alder', 'Ash', 'Briar', 'Cedar', 'Dawn', 'Elder', 'Fern', 'Glen', 'Hearth', 'Iron', 'Juniper', 'Kestrel', 'Linden', 'Moss', 'North', 'Oak', 'Pine', 'Raven', 'Stone', 'Willow'];
 const SUFFIXES = ['brook', 'cross', 'dale', 'field', 'ford', 'gate', 'haven', 'hold', 'mere', 'rest', 'ridge', 'stead', 'vale', 'watch', 'wick', 'wood'];
 
@@ -16,6 +18,7 @@ export function createSettlement(world, { x, y }) {
     population: 0,
     memberIds: []
   };
+  initializeSettlementFoodStorage(world, settlement);
   world.settlements.push(settlement);
   return settlement;
 }
