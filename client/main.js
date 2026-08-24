@@ -1,7 +1,14 @@
 import { applyCommand } from '../engine/core/commands.js';
+import { findHistoryEvent } from '../engine/analysis/history_query.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
 import { createWorld, tickWorld, tileAt } from '../engine/core/world.js';
 import { createCamera, panCamera, resetCamera, screenToTile, worldToScreen, zoomCameraAt } from './camera.js';
+import {
+  formatHistoryEventDetail,
+  formatHistoryEventLabel,
+  timelineEvents,
+  timelineScopeLabel
+} from './history_view.js';
 
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
@@ -10,10 +17,16 @@ const inspector = document.querySelector('#inspector');
 const pauseButton = document.querySelector('#pause');
 const speedSelect = document.querySelector('#speed');
 const seedInput = document.querySelector('#seed');
+const historyScopeSelect = document.querySelector('#history-scope');
+const historyOrderSelect = document.querySelector('#history-order');
+const historyScopeLabel = document.querySelector('#history-scope-label');
+const historyList = document.querySelector('#history-list');
+const historyDetail = document.querySelector('#history-detail');
 
 let world = makeWorld(seedInput.value);
 const camera = createCamera();
 let selection = null;
+let selectedHistoryEventId = null;
 let paused = false;
 let lastStatsFrame = 0;
 let pointerDrag = null;
@@ -26,9 +39,11 @@ function makeWorld(seedToken) {
 function reset() {
   world = makeWorld(seedInput.value.trim() || '42');
   selection = null;
+  selectedHistoryEventId = null;
   resetCamera(camera);
   updateStats();
   updateInspector();
+  updateHistoryTimeline();
 }
 
 document.querySelector('#reset').addEventListener('click', reset);
@@ -36,6 +51,17 @@ document.querySelector('#reset-camera').addEventListener('click', () => resetCam
 pauseButton.addEventListener('click', () => {
   paused = !paused;
   pauseButton.textContent = paused ? 'Play' : 'Pause';
+});
+historyScopeSelect.addEventListener('change', () => {
+  selectedHistoryEventId = null;
+  updateHistoryTimeline();
+});
+historyOrderSelect.addEventListener('change', updateHistoryTimeline);
+historyList.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-event-id]');
+  if (!button) return;
+  selectedHistoryEventId = Number(button.dataset.eventId);
+  updateHistoryTimeline();
 });
 
 canvas.addEventListener('pointerdown', (event) => {
@@ -103,6 +129,7 @@ function spawnAt(x, y, count) {
     applyCommand(world, { type: 'spawn_human', x, y, count });
     updateStats();
     updateInspector();
+    updateHistoryTimeline();
   } catch (error) {
     if (!/impassable/.test(String(error?.message))) throw error;
   }
@@ -121,7 +148,9 @@ function cycleSelectionAt(x, y) {
 
   const currentIndex = candidates.findIndex((candidate) => sameSelection(candidate, selection));
   selection = candidates[(currentIndex + 1) % candidates.length];
+  if (historyScopeSelect.value === 'selection') selectedHistoryEventId = null;
   updateInspector();
+  updateHistoryTimeline();
 }
 
 function sameSelection(a, b) {
@@ -136,6 +165,7 @@ function frame(timestamp) {
   if (timestamp - lastStatsFrame > 150) {
     updateStats();
     updateInspector();
+    updateHistoryTimeline();
     lastStatsFrame = timestamp;
   }
   requestAnimationFrame(frame);
@@ -197,8 +227,8 @@ function drawWorld() {
 function drawSelection(cellW, cellH) {
   const target = resolveSelection();
   if (!target) return;
-  const x = target.kind === 'tile' ? target.x : target.x;
-  const y = target.kind === 'tile' ? target.y : target.y;
+  const x = target.x;
+  const y = target.y;
   const p = worldToScreen(camera, x, y, viewport());
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = Math.max(1.5, Math.min(cellW, cellH) * 0.12);
@@ -260,6 +290,48 @@ function updateInspector() {
   ].join('\n');
 }
 
+function updateHistoryTimeline() {
+  const scope = historyScopeSelect.value;
+  const order = historyOrderSelect.value;
+  historyScopeLabel.textContent = timelineScopeLabel(scope, selection);
+  const events = timelineEvents(world, { scope, selection, order });
+
+  historyList.replaceChildren();
+  if (events.length === 0) {
+    const empty = document.createElement('div');
+    empty.id = 'history-empty';
+    empty.textContent = scope === 'selection'
+      ? 'No explicitly recorded events for this selection.'
+      : 'No retained history events.';
+    historyList.append(empty);
+  } else {
+    for (const event of events) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'history-event';
+      button.dataset.eventId = String(event.id);
+      button.textContent = formatHistoryEventLabel(event, world.config.daysPerYear);
+      button.setAttribute('aria-current', event.id === selectedHistoryEventId ? 'true' : 'false');
+      historyList.append(button);
+    }
+  }
+
+  if (selectedHistoryEventId === null) {
+    historyDetail.textContent = 'Select an event';
+    return;
+  }
+
+  const selectedEvent = findHistoryEvent(world, selectedHistoryEventId);
+  if (!selectedEvent) {
+    historyDetail.textContent = [
+      `EVENT #${selectedHistoryEventId}`,
+      'not retained in bounded world history'
+    ].join('\n');
+    return;
+  }
+  historyDetail.textContent = formatHistoryEventDetail(world, selectedEvent, world.config.daysPerYear);
+}
+
 function resolveSelection() {
   if (!selection) return null;
   if (selection.kind === 'tile') return { kind: 'tile', ...tileAt(world, selection.x, selection.y) };
@@ -319,4 +391,5 @@ function resize() {
 
 updateStats();
 updateInspector();
+updateHistoryTimeline();
 requestAnimationFrame(frame);
