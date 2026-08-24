@@ -2,6 +2,8 @@
 
 A deterministic, headless-first emergent world simulation sandbox inspired by the *god game* genre.
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/biandeshen/WorldBoxSR)
+
 The project goal is **not** to copy WorldBox code, assets, branding, or proprietary content. The goal is to independently build a small world that becomes interesting to watch because simple rules create history.
 
 ## First principle
@@ -30,6 +32,18 @@ Universal natural-fauna auto-initialization is **not a v0.1 blocker**. It moves 
 - [v0.1 release checklist](docs/backlog/v0.1.md)
 - [v0.1 reproducible demo](docs/demos/v0.1.0.md)
 - [v0.1.0 release notes](docs/releases/v0.1.0.md)
+
+## Browser-only development with Codespaces
+
+The repository includes a Node 22 dev-container configuration. Open the repository in GitHub Codespaces and the codespace will start `npm run dev`, forward port `8080`, and open the WorldBoxSR preview inside the browser editor. The forwarded port stays private by default.
+
+Use the codespace terminal for the same validation commands used locally and in CI:
+
+```bash
+npm test
+npm run smoke
+npm run sim -- --seed 42 --years 100 --population 30
+```
 
 ## Run
 
