@@ -8,13 +8,13 @@ import { createGrazer } from '../engine/model/grazer.js';
 const SIZES = [16, 24, 32, 48];
 const SEEDS = Array.from({ length: 12 }, (_, index) => index + 1);
 const FOUNDERS = 10;
-const YEARS = 60;
+const YEARS = 120;
 const FINAL_WINDOW_YEARS = 20;
 const FINAL_VEGETATION_WINDOW_YEARS = 5;
 const INIT_AGE_SALT = 0x1b56c4e9;
 
 
-test('temporary fixed-10 grazer founder cross-size screen', () => {
+test('temporary fixed-10 grazer founder cross-size 120-year validation', () => {
   const rows = [];
 
   for (const size of SIZES) {
@@ -109,7 +109,7 @@ test('temporary fixed-10 grazer founder cross-size screen', () => {
   }
 
   assert.equal(rows.length, SIZES.length * SEEDS.length);
-  console.log(`GRAZER_FOUNDER_SIZE_STAGE1 ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_FOUNDER_SIZE_STAGE2 ${JSON.stringify({ rows })}`);
 });
 
 function seedNaturalFounders(world, count) {
