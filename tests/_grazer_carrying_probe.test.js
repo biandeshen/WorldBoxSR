@@ -6,14 +6,14 @@ import { summarizeWorld } from '../engine/core/metrics.js';
 import { createGrazer } from '../engine/model/grazer.js';
 
 const SEEDS = [1, 4, 9];
-const DENSITIES = [5, 20, 100, 300];
-const YEARS = 5;
-const CHECKPOINTS = new Set([1, 2, 3, 5]);
+const DENSITIES = [100, 150, 200, 250, 300];
+const YEARS = 10;
+const CHECKPOINTS = new Set([1, 2, 3, 5, 10]);
 const SAMPLE_INTERVAL_DAYS = 30;
 const SPAWN_CELL_CAP = 32;
-const ARTIFACT_PATH = 'tmp-research/grazer-carrying-5y.json';
+const ARTIFACT_PATH = 'tmp-research/grazer-carrying-10y.json';
 
-test('temporary 5-year grazer carrying-pressure bracket', () => {
+test('temporary 10-year grazer carrying-pressure refinement', () => {
   const rows = [];
 
   for (const seed of SEEDS) {
@@ -44,6 +44,7 @@ test('temporary 5-year grazer carrying-pressure bracket', () => {
         creatureDeaths: final.creatureDeaths,
         creatureMeals: final.creatureMeals,
         mealsPerInitialGrazer: round(final.creatureMeals / density),
+        mealsPerSurvivor: final.grazers > 0 ? round(final.creatureMeals / final.grazers) : null,
         vegetation: round(final.vegetation),
         vegetationCapacity: round(final.vegetationCapacity),
         vegetationUtilization: round(final.vegetationUtilization),
@@ -59,7 +60,7 @@ test('temporary 5-year grazer carrying-pressure bracket', () => {
   assert.equal(rows.every((row) => row.checkpoints.length === CHECKPOINTS.size), true);
   mkdirSync('tmp-research', { recursive: true });
   writeFileSync(ARTIFACT_PATH, `${JSON.stringify(result, null, 2)}\n`);
-  console.log(`GRAZER_CARRYING_5Y ${JSON.stringify(result)}`);
+  console.log(`GRAZER_CARRYING_10Y ${JSON.stringify(result)}`);
 });
 
 function seedGrazers(world, count) {
@@ -81,6 +82,7 @@ function compactCheckpoint(world, summary, year) {
     living: summary.grazers,
     deaths: summary.creatureDeaths,
     meals: summary.creatureMeals,
+    mealsPerLivingGrazer: summary.grazers > 0 ? round(summary.creatureMeals / summary.grazers) : null,
     vegetationUtilization: round(summary.vegetationUtilization),
     occupiedCells: occupiedCreatureCells(world)
   };
