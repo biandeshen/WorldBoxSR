@@ -30,18 +30,21 @@ jobs:
       - name: Capture runtime and screenshots
         run: bash tools/capture-visual-evidence.sh
       - name: Upload visual evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: visual-evidence
           path: artifacts/visual
+          if-no-files-found: warn
           retention-days: 14
       - name: Summarize visual gate
+        if: always()
         run: |
           {
             echo '## Visual QA'
             echo ''
             echo '- Production Vite build served through the real project-site base path.'
-            echo '- Headless Chromium confirmed the Phaser runtime readiness marker.'
-            echo '- `Renderer failed` was absent from the rendered DOM.'
-            echo '- Artifact `visual-evidence` contains fixed 1440×900 Phaser and legacy screenshots for seed 45.'
+            echo '- Headless Chromium must confirm a fully warmed Phaser showcase.'
+            echo '- `Renderer failed` must be absent from the rendered DOM.'
+            echo '- Artifact `visual-evidence` preserves rendered DOM/logs and, on success, fixed 1440×900 Phaser + legacy screenshots for seed 45.'
           } >> "$GITHUB_STEP_SUMMARY"
