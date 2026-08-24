@@ -73,8 +73,14 @@ test('demography uses existing reproduction eligibility and geographic radius-1 
   const s1 = rows.find((row) => row.settlementId === 1);
   assert.equal(s1.population, 4);
   assert.equal(s1.minors, 1);
+  assert.equal(s1.minorFemales, 1);
+  assert.equal(s1.minorMales, 0);
   assert.equal(s1.adults, 3);
   assert.equal(s1.reproductiveAgeFemales, 2);
+  assert.equal(s1.reproductiveAgeMales, 0);
+  assert.equal(s1.laterAdultFemales, 0);
+  assert.equal(s1.laterAdultMales, 1);
+  assert.equal(s1.femaleReplacementPipelineMembers, 3);
   assert.equal(s1.adultMales, 1);
   assert.equal(s1.eligibleFemales, 2);
   assert.equal(s1.eligibleMales, 1); // older male remains eligible: no male fertility end exists
