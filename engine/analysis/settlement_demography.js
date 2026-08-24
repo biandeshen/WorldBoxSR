@@ -28,10 +28,19 @@ export function deriveSettlementDemography(world) {
     const members = settlement.active ? (membersBySettlement.get(settlement.id) ?? []) : [];
     const ages = members.map((human) => human.ageDays / world.config.daysPerYear);
     const adults = members.filter((human) => isAdult(world, human));
-    const minors = members.length - adults.length;
+    const minorFemales = members.filter((human) => human.sex === 'F' && !isAdult(world, human));
+    const minorMales = members.filter((human) => human.sex === 'M' && !isAdult(world, human));
+    const minors = minorFemales.length + minorMales.length;
     const females = members.filter((human) => human.sex === 'F').length;
     const males = members.filter((human) => human.sex === 'M').length;
     const reproductiveAgeFemales = members.filter((human) => isReproductiveAgeFemale(world, human));
+    const reproductiveAgeMales = members.filter((human) => isReproductiveAgeMale(world, human));
+    const laterAdultFemales = adults.filter(
+      (human) => human.sex === 'F' && human.ageDays / world.config.daysPerYear > world.config.femaleFertilityEndYears
+    );
+    const laterAdultMales = adults.filter(
+      (human) => human.sex === 'M' && human.ageDays / world.config.daysPerYear > world.config.femaleFertilityEndYears
+    );
     const adultMales = adults.filter((human) => human.sex === 'M');
     const eligibleFemales = members.filter((human) => isEligibleFemale(world, human));
     const eligibleSettlementMales = members.filter((human) => isEligibleMale(world, human));
@@ -46,6 +55,7 @@ export function deriveSettlementDemography(world) {
 
     const eligibleFemalesWithoutLocalMaleOpportunity =
       eligibleFemales.length - eligibleFemalesWithLocalMaleOpportunity;
+    const femaleReplacementPipelineMembers = minorFemales.length + reproductiveAgeFemales.length;
 
     return {
       settlementId: settlement.id,
@@ -55,9 +65,15 @@ export function deriveSettlementDemography(world) {
       females,
       males,
       minors,
+      minorFemales: minorFemales.length,
+      minorMales: minorMales.length,
       adults: adults.length,
       dependentToAdultRatio: adults.length > 0 ? minors / adults.length : null,
       reproductiveAgeFemales: reproductiveAgeFemales.length,
+      reproductiveAgeMales: reproductiveAgeMales.length,
+      laterAdultFemales: laterAdultFemales.length,
+      laterAdultMales: laterAdultMales.length,
+      femaleReplacementPipelineMembers,
       adultMales: adultMales.length,
       eligibleFemales: eligibleFemales.length,
       eligibleMales: eligibleSettlementMales.length,
@@ -84,6 +100,12 @@ export function isAdult(world, human) {
 
 export function isReproductiveAgeFemale(world, human) {
   if (!human.alive || human.kind !== 'human' || human.sex !== 'F') return false;
+  const ageYears = human.ageDays / world.config.daysPerYear;
+  return ageYears >= world.config.adultAgeYears && ageYears <= world.config.femaleFertilityEndYears;
+}
+
+export function isReproductiveAgeMale(world, human) {
+  if (!human.alive || human.kind !== 'human' || human.sex !== 'M') return false;
   const ageYears = human.ageDays / world.config.daysPerYear;
   return ageYears >= world.config.adultAgeYears && ageYears <= world.config.femaleFertilityEndYears;
 }
