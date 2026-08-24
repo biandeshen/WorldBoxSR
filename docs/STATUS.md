@@ -12,11 +12,11 @@ Last updated: 2026-08-24
 - emergent settlement formation, weak home cohesion, abandonment, territory, and causal history;
 - behavior-neutral settlement resource accounting;
 - persistent historical co-parent (`parental_union`) edges;
-- derived social/reproduction research instruments;
+- derived social, scarcity, and demographic research instruments;
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
 - a minimal Canvas client/inspector that remains downstream of authoritative simulation state.
 
-Clean CI for the Sprint 004 research layer before the temporary probe: **131/131 tests + smoke**.
+Sprint 005 mechanics passed **139/139 permanent tests + smoke** before the temporary long-run probes. Final clean CI must retain that permanent suite only.
 
 ## Completed architecture corrections
 
@@ -42,9 +42,7 @@ The best current abstraction is a **fluid local social field**, not a stable hou
 
 #79/#80 implemented and tested a conservative, off-by-default settlement shared-food-store prototype, then rejected it before merge. The mechanism was mechanically correct and resource-conserving, but its causal scope was too broad.
 
-At year 200 across seeds 1/4/9/45/80/98, the population center moved only modestly, and seed45 remained unchanged. However seed98 changed from **404 → 452** people and from **6 active + 1 abandoned settlement** to **7 active + 0 abandoned**.
-
-A targeted audit showed that the rescued settlement was exactly resource-rich **Pineford (#5)**. It was already rescued before using any stored food, because storage use elsewhere changed the demographic/spatial trajectory. The runtime storage code and probes were removed before #80 merged.
+Seed98 storage changed the baseline from 6 active + 1 abandoned settlement to 7 active + 0 abandoned. The rescued settlement was resource-rich Pineford (#5), and the rescue began before Pineford itself used storage. Runtime storage was removed before #80 merged.
 
 Storage v0 is a preserved negative experiment, not shipped simulation behavior.
 
@@ -54,13 +52,11 @@ Storage v0 is a preserved negative experiment, not shipped simulation behavior.
 
 All 100 seeds completed successfully. Year-200 population median/mean are **489 / 496.68** versus **483 / 495.7** before social cohesion. The minimum rose from **8 to 128** while the center stayed almost unchanged. Median settled-population share is ~86% and median territory coverage ~83%.
 
-### Settlement resource accounting
-
-Resource accounting remains derived-only, but it contains real predictive signal. In the targeted year-100 → year-200 study, territorial food remaining fraction correlated **0.780** with absolute settlement population growth across 37 settlements (**0.864** excluding seed45). Per-member resource measures were also strongly predictive outside the sparse sentinel.
+Only **3/100 worlds** contain any naturally abandoned settlement by year200: seeds 49, 62, and 98, one each.
 
 ### Settlement scarcity episodes
 
-#81/#82 separates true aggregate territorial shortage from local meal-path blockage and access mismatch.
+#81/#82 showed that genuine resource pressure is common but does not classify settlement survival.
 
 Across seeds `1/4/9/45/80/98` × 200 years, six-seed median settlement-sample shares were:
 
@@ -68,38 +64,79 @@ Across seeds `1/4/9/45/80/98` × 200 years, six-seed median settlement-sample sh
 - local meal-path blockage: **29.00%**;
 - access mismatch: **0.00%**.
 
-Only seed9 showed a meaningful access-mismatch tail: **8.19% of its local-blockage samples**. In the other five sampled worlds, local blockage occurred only while aggregate territorial meal coverage was already below one meal per member.
+Pineford declines from 11 → 8 → 7 → 3 → 0 while territorial meal coverage rises from ~21 to ~80 meals/member and while the tracker records **zero scarcity, zero local blockage, and zero access mismatch episodes**. Its failure is not economic.
 
-So real settlement-level resource pressure exists; local blockage is not generally just a pathing artifact. But scarcity is **not a survival classifier**: many growing settlements spend large portions of the second century in shortage.
+### Settlement demographic viability
 
-The decisive counterexample is seed98 Pineford (#5):
+#83/#84 decomposes sampled settlement population change exactly from stable human-ID flows. Every long-run research interval reconciles:
 
-- year100: pop11, ~96% food remaining, **21.07 meals/member** of territorial coverage;
-- year120: pop8, **29.50 meals/member**;
-- year140: pop7, **33.85 meals/member**;
-- year160: pop3, **79.93 meals/member**;
-- then abandonment.
+`population delta = surviving newborn additions + external spawns + entries + switches in - deaths - exits - switches out`
 
-Across its full observed decline Pineford had **zero territorial-shortage episodes, zero local-blockage episodes, zero access-mismatch episodes, and zero hungry members at the sampled sentinel checkpoints**.
+The six-seed year100 cohort contains 41 settlements:
 
-Its failure is therefore demographic/social/spatial rather than economic under the current model.
+| Outcome | Count | Median pop Δ | Median newborn-death stock balance | Median non-death membership balance |
+| --- | ---: | ---: | ---: | ---: |
+| later abandoned | 1 | -11 | **-13** | **+2** |
+| active but declined | 5 | -5 | **+21** | **-25** |
+| stable/growing | 35 | +36 | **+38** | **+4** |
 
-## Active causal gate — Sprint 005 / #83
+There is no single settlement-decline mechanism. Active declines can have healthy natural replacement but lose members through redistribution; the true abandonment is a replacement failure despite slightly positive non-death membership.
 
-The next derived-only research question is **settlement demographic viability and member replacement**.
+#### Pineford
 
-Before adding any persistence, migration, fertility, household, or economy behavior, decompose settlement population change into:
+At year100 Pineford has population 11 but already **0 female minors and 0 reproductive-age females**. By year120 there are no females; by year140 all remaining members are older males.
 
-1. deaths vs births/replacement;
-2. membership inflow vs outflow;
-3. direct switching/capture by other settlements;
-4. age/sex and reproductive-age structure;
-5. local reproductive opportunity under the existing Chebyshev-1 reproduction rule.
+From year100 to extinction:
 
-Seed98 Pineford is again the sentinel: explain its `11 → 8 → 7 → 3 → 0` decline and compare it with a similarly small settlement that recovers or grows.
+- surviving newborn additions: 0;
+- deaths: 13;
+- non-death membership balance: +2;
+- exact population change: -11.
 
-A persistence mechanic is justified only if a recurrent, interpretable failure mode appears across multiple settlements/seeds. If Pineford is an idiosyncratic emergent extinction path, preserve it rather than inventing a rescue rule.
+Its female replacement pipeline first reaches zero around year63 and remains continuously absent for roughly 86 observed years before abandonment.
+
+#### All natural abandonments
+
+All three known natural abandonments were audited:
+
+- seed49 Briarfield: no female replacement pipeline from founding, zero births, entrants eventually die;
+- seed62 Aldervale: early outflow-driven failure; pipeline disappears near the terminal phase;
+- seed98 Pineford: long aging/sex-composition replacement dead end.
+
+Across the 3 abandoned settlements, median zero-female-pipeline share is **62.65%** and median longest zero-pipeline observed span is ~**70 years**. Across 25 settlements still active in those same worlds, medians are **0.51%** and **60 days**.
+
+Persistent female-pipeline loss is a strong viability warning/terminal state, but it is **not a universal upstream cause**.
+
+## Architecture decision — preserve natural settlement extinction
+
+Do **not** add fertility bonuses, migration attraction, member locking, household rescue, food storage, or a special settlement-persistence rule.
+
+Reasons:
+
+1. natural abandonment is rare: 3/100 worlds by year200;
+2. the three failures are causally heterogeneous;
+3. active member redistribution is often normal rather than pathological;
+4. scripting away rare coherent extinction would flatten emergent history;
+5. the product principle is emergence over scripting, not survival normalization.
+
+Settlement extinction is valid world history.
+
+## Active gate — Sprint 006 / #85
+
+The next high-value step is **history legibility**, not another settlement rescue experiment.
+
+The client currently shows present state but cannot inspect authoritative world history. Sprint 006 adds a minimal causal timeline/event inspector using existing stable event IDs and serialized causal references.
+
+The first version must:
+
+- browse recent world events;
+- filter directly attributable human/settlement events without inventing historical membership;
+- inspect event IDs and cause/reference links;
+- keep unresolved references explicit when bounded history has evicted the parent event;
+- remain a pure consumer of `world.history`.
+
+This directly advances the product principles **Legible causality** and **History is a first-class output** while preserving the emergent outcomes the research just explained.
 
 ## Project-management rule
 
-Do not jump to kingdoms/war or attach behavior to convenient labels. Research observations are not automatically authoritative entities. Add the smallest causal mechanism supported by experiments, keep negative results, and remove mechanisms that flatten world diversity or create uncontrolled demographic feedback.
+Do not jump to kingdoms/war or attach behavior to convenient labels. Research observations are not automatically authoritative entities. Add the smallest causal mechanism supported by experiments, preserve coherent negative/rare outcomes, and make the world's actual history explainable.
