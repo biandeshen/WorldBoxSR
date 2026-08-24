@@ -108,21 +108,36 @@ test('temporary 6-seed 200-year settlement demographic viability probe', () => {
       const post100Conditions = subtractConditions(tracked.conditionSamples, start.conditionSamples);
       const post100Intervals = tracked.activeIntervalsObserved - start.activeIntervalsObserved;
       const finalPopulation = settlement.active ? settlement.population : 0;
+      const stockNaturalReplacementBalance = post100Flow.newbornAdditions - post100Flow.deaths;
+      const nonDeathMembershipBalance =
+        post100Flow.entrantsFromNone + post100Flow.switchesIn -
+        post100Flow.exitsToNone - post100Flow.switchesOut;
+      const populationDelta = finalPopulation - start.population;
+      const expectedPopulationDelta =
+        stockNaturalReplacementBalance +
+        nonDeathMembershipBalance +
+        post100Flow.externalSpawnAdditions;
+      assert.equal(
+        expectedPopulationDelta,
+        populationDelta,
+        `seed ${seed} settlement ${settlementId} post100 stock flow does not reconcile`
+      );
+
       const item = {
         seed,
         settlementId,
         name: start.name,
         startPopulation: start.population,
         finalPopulation,
-        populationDelta: finalPopulation - start.population,
+        populationDelta,
         abandoned: !settlement.active,
         post100Intervals,
         post100Flow,
-        naturalReplacementBalance: post100Flow.birthsProducedByPriorMembers - post100Flow.deaths,
-        survivingNewbornAdditionBalance: post100Flow.newbornAdditions - post100Flow.deaths,
-        nonDeathMembershipBalance:
-          post100Flow.entrantsFromNone + post100Flow.switchesIn -
-          post100Flow.exitsToNone - post100Flow.switchesOut,
+        stockNaturalReplacementBalance,
+        producedNewbornBalance: post100Flow.birthsProducedByPriorMembers - post100Flow.deaths,
+        newbornAssignmentBalance:
+          post100Flow.newbornAdditions - post100Flow.birthsProducedByPriorMembers,
+        nonDeathMembershipBalance,
         conditionShares: Object.fromEntries(
           CONDITION_KEYS.map((key) => [key, share(post100Conditions[key], post100Intervals)])
         ),
@@ -204,10 +219,15 @@ function summarizeGroup(items) {
     startPopulationMedian: medianNullable(items.map((item) => item.startPopulation)),
     populationDeltaMedian: medianNullable(items.map((item) => item.populationDelta)),
     deathsMedian: medianNullable(items.map((item) => item.post100Flow.deaths)),
-    survivingBirthProductionMedian: medianNullable(
+    survivingNewbornAdditionsMedian: medianNullable(items.map((item) => item.post100Flow.newbornAdditions)),
+    stockNaturalReplacementBalanceMedian: medianNullable(
+      items.map((item) => item.stockNaturalReplacementBalance)
+    ),
+    survivingNewbornProductionMedian: medianNullable(
       items.map((item) => item.post100Flow.birthsProducedByPriorMembers)
     ),
-    naturalReplacementBalanceMedian: medianNullable(items.map((item) => item.naturalReplacementBalance)),
+    producedNewbornBalanceMedian: medianNullable(items.map((item) => item.producedNewbornBalance)),
+    newbornAssignmentBalanceMedian: medianNullable(items.map((item) => item.newbornAssignmentBalance)),
     entrantsMedian: medianNullable(items.map((item) => item.post100Flow.entrantsFromNone + item.post100Flow.switchesIn)),
     outflowMedian: medianNullable(items.map((item) => item.post100Flow.exitsToNone + item.post100Flow.switchesOut)),
     nonDeathMembershipBalanceMedian: medianNullable(items.map((item) => item.nonDeathMembershipBalance)),
