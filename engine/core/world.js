@@ -3,7 +3,7 @@ import { mergeConfig } from '../model/config.js';
 import { createHuman } from '../model/human.js';
 import { pushEvent, worldSubject } from '../model/events.js';
 import { regenerateFood, regenerateVegetation } from '../systems/environment.js';
-import { updateGrazerReproduction, updateGrazers } from '../systems/grazers.js';
+import { updateGrazerOldAgeMortality, updateGrazerReproduction, updateGrazers } from '../systems/grazers.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
@@ -89,6 +89,7 @@ export function tickWorld(world, ticks = 1) {
     updateGrazers(world);
     updateHumans(world);
     world.day += 1;
+    updateGrazerOldAgeMortality(world);
     updateGrazerReproduction(world);
     updateSettlements(world);
   }
