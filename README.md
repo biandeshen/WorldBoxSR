@@ -8,18 +8,25 @@ The project goal is **not** to copy WorldBox code, assets, branding, or propriet
 
 > Make the world worth watching before making the world look beautiful.
 
-## Current milestone: v0.1 — A Living World
+## Current release target: v0.1.0 — A Living World
 
-The first playable vertical slice is intentionally small:
+The project is now in **release hardening**, not open-ended feature discovery.
+
+The v0.1 vertical slice already contains:
 
 - deterministic seeded world simulation;
-- terrain fertility and renewable food;
-- humans that move, get hungry, eat, age, reproduce, and die;
-- minimal deterministic settlements that emerge from persistent local adult clusters;
-- save/load with deterministic continuation;
-- headless CLI for long-running simulations;
-- metrics and regression tests;
-- later: settlement behavior, kingdoms, diplomacy, war, god powers, history UI.
+- procedural terrain and renewable food/vegetation;
+- humans that move, get hungry, eat, age, reproduce, die and form ancestry;
+- settlements, abandonment, territory and causal history;
+- typed grazer ecology available through explicit spawning/research configuration;
+- default-off grazer reproduction and gradual old-age mortality;
+- deterministic save/load continuation;
+- headless CLI, Simulation Lab, metrics, regressions and performance baselines;
+- lightweight client rendering, inspectors, timeline/history and minimal god tools.
+
+Universal natural-fauna auto-initialization is **not a v0.1 blocker**. It moves to v0.2 Living Ecology with a declared support matrix instead of holding the first release until every map size/seed is solved.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the finite version plan and [`docs/backlog/v0.1.md`](docs/backlog/v0.1.md) for the release checklist.
 
 ## Run
 
@@ -44,9 +51,9 @@ engine/          deterministic simulation core
 client/          rendering/input layer (kept separate from simulation)
 content/         data-driven creatures, biomes, powers, civilizations
 simulation_lab/  batch runs, metrics, experiments
- tools/           headless CLI and developer tools
- tests/           deterministic/regression/invariant tests
- docs/            architecture, ADRs, product rules, roadmap, team model
+tools/           headless CLI and developer tools
+tests/           deterministic/regression/invariant tests
+docs/            architecture, ADRs, product rules, roadmap, team model
 ```
 
 ## AI development model
@@ -54,7 +61,3 @@ simulation_lab/  batch runs, metrics, experiments
 The project is run as a small AI team with one Lead/Architect and focused Simulation, World, Client, Test/Research, and Content roles. Agents work through scoped tasks, tests, review gates, and architecture decision records rather than independently rewriting the project.
 
 See [`AGENTS.md`](AGENTS.md) and [`docs/team/agent-operating-model.md`](docs/team/agent-operating-model.md).
-
-## Status
-
-Phase 0 implementation has started. See [`docs/backlog/v0.1.md`](docs/backlog/v0.1.md).
