@@ -18,33 +18,41 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Current release target: v0.2.0 — Playable World
+## Current release: v0.2.0 — Playable World
 
-The only current product-development priority is to make the public demo materially more game-like before adding deeper simulation breadth.
+v0.2 turns the deterministic v0.1 world into a browser-playable god-game vertical slice:
 
-v0.2 focuses on:
+- Phaser 4.2.1 presentation over the authoritative simulation engine;
+- Vite 8.1.0 browser/Pages build;
+- readable terrain, coastlines, vegetation and water depth;
+- interpolated humans and grazers with persistent inspection selection;
+- visible settlement structures, names, flags and authoritative territory;
+- responsive pan/zoom/world framing;
+- a direct Human / Grazer / Erase / Lightning power dock with target preview, effects and minimal SFX;
+- reduced-motion/reduced-flash treatment for strong effects;
+- autonomous world-event pulse backed by causal history;
+- deterministic seed45 showcase with an executable 5-second readability target and 30-second autonomous-event gate;
+- production Chromium Visual QA over the same `/WorldBoxSR/` path used by Pages.
 
-- Phaser 4 presentation over the existing deterministic engine;
-- Vite browser/Pages build;
-- coherent pixel-art/tile/sprite presentation instead of debug primitives;
-- readable terrain, coastlines, vegetation and biome detail;
-- animated/interpolated humans and creatures;
-- visible settlement growth, structures, identity and territory;
-- a compact god-power UI with immediate feedback;
-- a default scenario that looks alive immediately;
-- a 5-second readability gate and a 30-second visible-event gate.
+The old Canvas renderer remains available in v0.2 only as `?renderer=legacy` A/B/regression evidence. The default product is Phaser.
 
-Non-correctness ecology research is frozen until this visible product gate passes. Product discovery deliberately sequences civilization, god-power and world-story stages ahead of the deeper Living Ecology stage, which is now v0.6.
-
-- [v0.2 Playable World backlog](docs/backlog/v0.2.md)
+- [v0.2 canonical browser demo / QA](docs/demos/v0.2.0.md)
+- [v0.2.0 release notes](docs/releases/v0.2.0.md)
+- [v0.2 evidence backlog](docs/backlog/v0.2.md)
 - [v0.1 reproducible demo](docs/demos/v0.1.0.md)
 - [v0.1.0 release notes](docs/releases/v0.1.0.md)
+
+## Next product stage: v0.3 — Civilizations Rise
+
+The next stage is player-visible civilization dynamics: polity/kingdom identity, rulers and succession, diplomacy, war/peace, conquest/rebellion, and territory/history that visibly tells those stories.
+
+Deeper Living Ecology work remains intentionally later (currently v0.6). Non-correctness ecology research stays frozen while the player-facing civilization, god-hand and world-story loops are being built.
 
 ## Public playable demo
 
 https://biandeshen.github.io/WorldBoxSR/
 
-The Pages build is validated in normal CI and publishes only the browser runtime rather than the full repository tree.
+The Pages build is validated in normal CI and by a real Chromium visual gate. It publishes the browser product rather than the full repository tree.
 
 ## Browser-only development with Codespaces
 
