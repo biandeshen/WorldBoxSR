@@ -16,6 +16,6 @@ jobs:
       - run: npm test
       - uses: actions/upload-artifact@v4
         with:
-          name: grazer-reproduction-10y
-          path: tmp-research/grazer-reproduction-10y.json
+          name: grazer-reproduction-20y
+          path: tmp-research/grazer-reproduction-20y.json
       - run: npm run smoke
