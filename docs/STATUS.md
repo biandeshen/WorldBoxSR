@@ -16,7 +16,7 @@ Last updated: 2026-08-24
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
 - a minimal Canvas client/inspector that remains downstream of authoritative simulation state.
 
-Current clean CI after #76: **123/123 tests + smoke**.
+Clean CI for the Sprint 004 research layer before the temporary probe: **131/131 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -38,6 +38,16 @@ Repeated adult dyads can recur for years, but #73/#74 showed annual top-partner 
 
 The best current abstraction is a **fluid local social field**, not a stable household roster. No residential-group entity is justified yet.
 
+### Broad local-meal storage is not a valid scarcity buffer
+
+#79/#80 implemented and tested a conservative, off-by-default settlement shared-food-store prototype, then rejected it before merge. The mechanism was mechanically correct and resource-conserving, but its causal scope was too broad.
+
+At year 200 across seeds 1/4/9/45/80/98, the population center moved only modestly, and seed45 remained unchanged. However seed98 changed from **404 → 452** people and from **6 active + 1 abandoned settlement** to **7 active + 0 abandoned**.
+
+A targeted audit showed that the rescued settlement was exactly resource-rich **Pineford (#5)**. It was already rescued before using any stored food, because storage use elsewhere changed the demographic/spatial trajectory. The runtime storage code and probes were removed before #80 merged.
+
+Storage v0 is a preserved negative experiment, not shipped simulation behavior.
+
 ## Empirical checkpoints
 
 ### Post-social 100×200 baseline
@@ -48,22 +58,47 @@ All 100 seeds completed successfully. Year-200 population median/mean are **489 
 
 Resource accounting remains derived-only, but it contains real predictive signal. In the targeted year-100 → year-200 study, territorial food remaining fraction correlated **0.780** with absolute settlement population growth across 37 settlements (**0.864** excluding seed45). Per-member resource measures were also strongly predictive outside the sparse sentinel.
 
-Important counterexample: seed98 settlement #5 had ~96% food remaining at year100 and still died out by year200. Economy is therefore not a universal explanation for settlement survival.
+### Settlement scarcity episodes
 
-## Active causal gate — Sprint 003
+#81/#82 separates true aggregate territorial shortage from local meal-path blockage and access mismatch.
 
-The next behavioral experiment is the **narrow settlement shared-food-storage A/B** already approved by the resource-accounting study.
+Across seeds `1/4/9/45/80/98` × 200 years, six-seed median settlement-sample shares were:
 
-Constraints:
+- one-meal territorial shortage: **40.74%**;
+- local meal-path blockage: **29.00%**;
+- access mismatch: **0.00%**.
 
-- deterministic, bounded store attached only to active settlements;
-- explicit territorial-surplus inflow;
-- store is consumed only under local scarcity;
-- disabled configuration must preserve existing behavior/RNG path exactly;
-- no jobs, trade, taxation, buildings, production bonuses, classes, or kingdoms;
-- multi-seed A/B before any default behavior ships;
-- seed45 guards against population over-amplification;
-- seed98 guards against storage becoming a magic survival mechanism for demographically dead settlements.
+Only seed9 showed a meaningful access-mismatch tail: **8.19% of its local-blockage samples**. In the other five sampled worlds, local blockage occurred only while aggregate territorial meal coverage was already below one meal per member.
+
+So real settlement-level resource pressure exists; local blockage is not generally just a pathing artifact. But scarcity is **not a survival classifier**: many growing settlements spend large portions of the second century in shortage.
+
+The decisive counterexample is seed98 Pineford (#5):
+
+- year100: pop11, ~96% food remaining, **21.07 meals/member** of territorial coverage;
+- year120: pop8, **29.50 meals/member**;
+- year140: pop7, **33.85 meals/member**;
+- year160: pop3, **79.93 meals/member**;
+- then abandonment.
+
+Across its full observed decline Pineford had **zero territorial-shortage episodes, zero local-blockage episodes, zero access-mismatch episodes, and zero hungry members at the sampled sentinel checkpoints**.
+
+Its failure is therefore demographic/social/spatial rather than economic under the current model.
+
+## Active causal gate — Sprint 005 / #83
+
+The next derived-only research question is **settlement demographic viability and member replacement**.
+
+Before adding any persistence, migration, fertility, household, or economy behavior, decompose settlement population change into:
+
+1. deaths vs births/replacement;
+2. membership inflow vs outflow;
+3. direct switching/capture by other settlements;
+4. age/sex and reproductive-age structure;
+5. local reproductive opportunity under the existing Chebyshev-1 reproduction rule.
+
+Seed98 Pineford is again the sentinel: explain its `11 → 8 → 7 → 3 → 0` decline and compare it with a similarly small settlement that recovers or grows.
+
+A persistence mechanic is justified only if a recurrent, interpretable failure mode appears across multiple settlements/seeds. If Pineford is an idiosyncratic emergent extinction path, preserve it rather than inventing a rescue rule.
 
 ## Project-management rule
 
