@@ -3,66 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>worldboxSR prototype</title>
-  <style>
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0e1116; }
-    #game { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
-    #hud {
-      position: fixed; left: 16px; top: 16px; padding: 12px 14px; border: 1px solid #ffffff22;
-      background: #111720dd; border-radius: 10px; backdrop-filter: blur(8px);
-      width: min(430px, calc(100vw - 60px)); max-height: calc(100vh - 60px); overflow: auto;
-      box-shadow: 0 8px 30px #0008;
-    }
-    #row, #history-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    button, input, select { background: #1d2632; color: #eef3f8; border: 1px solid #ffffff22; border-radius: 6px; padding: 7px 9px; }
-    button { cursor: pointer; }
-    button:hover { background: #273546; }
-    #stats { margin-top: 9px; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd6e2; }
-    #hint { margin-top: 7px; font-size: 12px; color: #91a3b7; max-width: 400px; }
-    #inspector, #history-detail {
-      white-space: pre-wrap; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: #d9e4ee;
-    }
-    #inspector { margin-top: 10px; padding-top: 9px; border-top: 1px solid #ffffff18; }
-    #timeline { margin-top: 10px; padding-top: 9px; border-top: 1px solid #ffffff18; }
-    #history-scope-label { display: block; margin-bottom: 7px; color: #fff; font-size: 12px; }
-    #history-controls select { padding: 5px 7px; font-size: 12px; }
-    #history-list { margin-top: 8px; display: grid; gap: 4px; max-height: 190px; overflow: auto; }
-    .history-event {
-      width: 100%; padding: 6px 8px; text-align: left; font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
-      white-space: normal;
-    }
-    .history-event[aria-current="true"] { outline: 1px solid #ffffff88; background: #2b3b50; }
-    #history-empty { color: #91a3b7; font-size: 12px; padding: 5px 1px; }
-    #history-detail { margin-top: 8px; padding: 8px; background: #0c1118aa; border-radius: 6px; min-height: 34px; }
-    strong { color: #fff; }
-  </style>
+  <meta name="theme-color" content="#0a1118" />
+  <title>WorldBoxSR — Playable World</title>
+  <link rel="stylesheet" href="./ui.css" />
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <section id="hud">
+  <div id="phaser-root" aria-label="WorldBoxSR world view"></div>
+  <canvas id="game" aria-label="WorldBoxSR legacy world view"></canvas>
+
+  <header id="topbar">
+    <div class="brand">
+      <strong>WorldBoxSR</strong>
+      <small>Playable World</small>
+    </div>
+
+    <div id="stats" aria-label="world summary"></div>
+
     <div id="row">
-      <strong>worldboxSR</strong>
-      <input id="seed" value="42" size="7" aria-label="seed" />
-      <button id="reset">Reset</button>
-      <button id="pause">Pause</button>
-      <button id="reset-camera">Reset view</button>
-      <select id="tool" aria-label="god tool">
-        <option value="spawn_human" selected>Spawn human</option>
-        <option value="spawn_grazer">Spawn grazer</option>
-        <option value="erase">Erase humans</option>
-        <option value="lightning">Lightning</option>
-      </select>
-      <select id="speed" aria-label="simulation speed">
-        <option value="1">1 day/frame</option>
-        <option value="10" selected>10 days/frame</option>
-        <option value="60">60 days/frame</option>
-        <option value="360">1 year/frame</option>
+      <input id="seed" value="45" size="7" aria-label="seed" title="World seed" />
+      <button id="reset" type="button" title="Create the showcase world from this seed">↻ World</button>
+      <button id="pause" type="button">Ⅱ Pause</button>
+      <button id="reset-camera" type="button" title="Fit the world in view">⌂ View</button>
+      <select id="speed" aria-label="simulation speed" title="Simulation speed">
+        <option value="1">1 day / step</option>
+        <option value="10">10 days / step</option>
+        <option value="60" selected>60 days / step</option>
+        <option value="360">1 year / step</option>
       </select>
     </div>
-    <div id="stats"></div>
-    <div id="inspector">No selection</div>
-    <section id="timeline" aria-label="world history timeline">
+  </header>
+
+  <aside id="inspector-panel" aria-label="world inspector">
+    <div id="boot-status">Starting renderer…</div>
+    <div id="inspector">Alt-click a tile or entity to inspect it.</div>
+
+    <details id="timeline">
+      <summary>Chronicle</summary>
       <strong id="history-scope-label">World history</strong>
       <div id="history-controls">
         <select id="history-scope" aria-label="history scope">
@@ -76,9 +52,25 @@
       </div>
       <div id="history-list" aria-label="history events"></div>
       <div id="history-detail">Select an event</div>
-    </section>
-    <div id="hint">Primary click: apply selected tool · Shift-click: spawn 10 (Spawn tools only) · Drag: pan · Wheel: zoom · Right-click / Alt-click / tap: inspect (repeat to cycle targets).</div>
-  </section>
-  <script type="module" src="./main.js"></script>
+    </details>
+  </aside>
+
+  <footer id="power-dock">
+    <label>
+      God power
+      <select id="tool" aria-label="god tool">
+        <option value="spawn_human" selected>✦ Spawn human</option>
+        <option value="spawn_grazer">🐾 Spawn grazer</option>
+        <option value="erase">✕ Erase humans</option>
+        <option value="lightning">⚡ Lightning</option>
+      </select>
+    </label>
+    <div id="hint">Click: power · Shift-click: spawn 10 · Drag: pan · Wheel: zoom · Alt-click: inspect</div>
+    <a id="renderer-link" href="?renderer=legacy" title="Open the v0.1 Canvas renderer for comparison">v0.1 renderer ↗</a>
+  </footer>
+
+  <div id="event-toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./bootstrap.js"></script>
 </body>
 </html>
