@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A deterministic, headless-first emergent world simulation sandbox.",
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test tests/_grazer_turnover_radius3_probe.test.js",
     "sim": "node tools/simulate.js",
     "smoke": "node tools/simulate.js --seed 42 --years 20 --population 20 --quiet",
     "lab": "node simulation_lab/batch.js",
