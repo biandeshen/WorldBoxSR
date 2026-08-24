@@ -2,7 +2,9 @@
 
 A deterministic emergent-world god-game sandbox.
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/biandeshen/WorldBoxSR)
+**[▶ Play the public demo](https://biandeshen.github.io/WorldBoxSR/)** · [Open in GitHub Codespaces](https://codespaces.new/biandeshen/WorldBoxSR)
+
+[![GitHub Pages](https://img.shields.io/badge/Play-GitHub%20Pages-2ea44f?logo=github)](https://biandeshen.github.io/WorldBoxSR/) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/biandeshen/WorldBoxSR)
 
 The project goal is **not** to copy WorldBox code, assets, branding, or proprietary content. The goal is to independently build a small world where simple rules create histories that are both interesting underneath and compelling to watch on screen.
 
@@ -50,9 +52,11 @@ Deeper Living Ecology work remains intentionally later (currently v0.6). Non-cor
 
 ## Public playable demo
 
-https://biandeshen.github.io/WorldBoxSR/
+**Play:** https://biandeshen.github.io/WorldBoxSR/
 
-The Pages build is validated in normal CI and by a real Chromium visual gate. It publishes the browser product rather than the full repository tree.
+The Pages build is validated in normal CI and by a real Chromium visual gate. It publishes the browser product rather than the full repository tree. CI also verifies that the generated `.pages/index.html` is the WorldBoxSR game page and that it references compiled assets under `/WorldBoxSR/assets/` before deployment is allowed.
+
+Repository setting requirement: **Settings → Pages → Build and deployment → Source must be `GitHub Actions`**. If the Pages URL ever shows repository/docs content instead of the game, check this setting first; the authoritative deploy workflow is `.github/workflows/pages.yml`.
 
 ## Browser-only development with Codespaces
 
@@ -65,6 +69,7 @@ npm test
 npm run smoke
 npm run sim -- --seed 42 --years 100 --population 30
 npm run pages:build
+npm run pages:check
 ```
 
 ## GitHub-hosted simulation runs
@@ -82,6 +87,7 @@ npm test
 npm run sim -- --seed 42 --years 100 --population 30
 npm run dev   # open http://127.0.0.1:8080
 npm run pages:build
+npm run pages:check
 ```
 
 ## Repository map

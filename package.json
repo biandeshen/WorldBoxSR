@@ -15,6 +15,7 @@
     "dev:legacy": "node tools/serve.js",
     "build": "vite build",
     "pages:build": "vite build",
+    "pages:check": "node tools/check-pages-build.js",
     "bench": "node tools/benchmark.js"
   },
   "dependencies": {
