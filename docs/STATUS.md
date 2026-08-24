@@ -15,9 +15,10 @@ Last updated: 2026-08-24
 - derived social, scarcity, and demographic research instruments;
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
 - a lightweight Canvas client that consumes authoritative simulation state;
-- deterministic history queries plus a causal timeline/event inspector for world, human, and settlement history.
+- deterministic history queries plus a causal timeline/event inspector for world, human, and settlement history;
+- deterministic `spawn_human` and exact-tile `erase` god interventions exposed through a minimal client tool selector.
 
-Clean CI after Sprint 006 / #85 is **152/152 tests + smoke**.
+Clean CI after Sprint 007 / #87: **160/160 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -124,23 +125,43 @@ Settlement extinction is valid world history.
 
 ## Completed product gate — Sprint 006 / #85
 
-The world history is now directly inspectable instead of only visible through current state.
+The world history is directly inspectable instead of only visible through current state.
 
-Sprint 006 adds:
+Sprint 006 adds deterministic history queries and a lightweight causal timeline/event inspector. Human/settlement filters use only facts explicitly recorded in authoritative events; missing/evicted causal references remain visible rather than being fabricated. The timeline is a pure consumer of `world.history`.
 
-- deterministic world-event ordering and bounded slicing;
-- stable event lookup and typed causal-reference resolution;
-- explicit human/settlement history filters using only facts actually recorded in events;
-- visible unresolved event/command/entity references rather than fabricated resolution;
-- a lightweight client timeline with world vs selection scope, newest/oldest order, clickable event details, and causal references;
-- explicit empty/evicted states;
-- a tested truth boundary preventing current settlement membership from being retroactively attached to old birth/death events.
+## Completed god-intervention gate — Sprint 007 / #87
 
-The timeline is a pure consumer of `world.history`; no simulation behavior or event semantics were changed for visual richness.
+The project now has a second player intervention with the opposite effect of spawning: **exact-tile erase**.
+
+The important result is the reusable causal seam, not the feature count:
+
+`player command → god.erase event → shared human death lifecycle → social bookkeeping → inspectable history`
+
+Sprint 007 delivered:
+
+- `model/human_lifecycle.js` as the shared authoritative human-death path;
+- natural old-age/starvation death routed through that helper with legacy event shape preserved;
+- deterministic `erase` command targeting all living humans on one tile in stable ID order;
+- `god.erase` event followed by causally linked `human.died` events with cause `erased`;
+- normal parental-union mortality bookkeeping;
+- no direct off-cadence settlement membership/lifecycle mutation;
+- no RNG consumption from erase;
+- valid empty-tile erase as an explicit zero-target god action;
+- command-ID validation corrected so rejected impassable `spawn_human` no longer consumes an ID;
+- minimal client tool selector for Spawn human / Erase humans, while inspect controls remain unchanged.
+
+The final feature head passed **160/160 tests + smoke**.
 
 ## Next decision gate
 
-Do not immediately add another rescue rule or promote labels into kingdoms. With settlement causality now both measured and inspectable, choose the next increment from existing evidence/backlog: territory/current-state legibility, a behavior-neutral causal-history improvement, richer world resources, or another simulation primitive only if it has a clear causal hypothesis.
+Do **not** build a generic powers framework merely because spawn and erase now exist. The next increment should unlock a new causal layer rather than generalize prematurely.
+
+Strong candidates are:
+
+- richer world/resource structure, which can create new endogenous pressures and future god-intervention targets;
+- a genuinely different god power only if its mechanics require reusable damage/environment infrastructure;
+- territory/ownership visualization when current-state legibility becomes the bottleneck;
+- civilization structure only after a concrete intermediate causal primitive justifies it.
 
 ## Project-management rule
 

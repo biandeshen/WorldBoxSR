@@ -16,6 +16,7 @@ const stats = document.querySelector('#stats');
 const inspector = document.querySelector('#inspector');
 const pauseButton = document.querySelector('#pause');
 const speedSelect = document.querySelector('#speed');
+const toolSelect = document.querySelector('#tool');
 const seedInput = document.querySelector('#seed');
 const historyScopeSelect = document.querySelector('#history-scope');
 const historyOrderSelect = document.querySelector('#history-order');
@@ -106,7 +107,7 @@ canvas.addEventListener('pointerup', (event) => {
     cycleSelectionAt(tile.x, tile.y);
     return;
   }
-  spawnAt(tile.x, tile.y, drag.shiftKey ? 10 : 1);
+  applyToolAt(tile.x, tile.y, drag.shiftKey);
 });
 
 canvas.addEventListener('pointercancel', () => { pointerDrag = null; });
@@ -124,6 +125,14 @@ canvas.addEventListener('wheel', (event) => {
   zoomCameraAt(camera, factor, point.x, point.y);
 }, { passive: false });
 
+function applyToolAt(x, y, shiftKey) {
+  if (toolSelect.value === 'erase') {
+    eraseAt(x, y);
+    return;
+  }
+  spawnAt(x, y, shiftKey ? 10 : 1);
+}
+
 function spawnAt(x, y, count) {
   try {
     applyCommand(world, { type: 'spawn_human', x, y, count });
@@ -133,6 +142,13 @@ function spawnAt(x, y, count) {
   } catch (error) {
     if (!/impassable/.test(String(error?.message))) throw error;
   }
+}
+
+function eraseAt(x, y) {
+  applyCommand(world, { type: 'erase', x, y });
+  updateStats();
+  updateInspector();
+  updateHistoryTimeline();
 }
 
 function cycleSelectionAt(x, y) {

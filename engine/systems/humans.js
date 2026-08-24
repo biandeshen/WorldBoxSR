@@ -1,9 +1,9 @@
 import { createHuman } from '../model/human.js';
+import { killHuman } from '../model/human_lifecycle.js';
 import { entityRef, pushEvent } from '../model/events.js';
 import {
   addChildToParentalUnion,
-  ensureParentalUnion,
-  recordParentalUnionPartnerDeath
+  ensureParentalUnion
 } from '../model/parental_union.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 import { keyedChance, keyedIndex } from '../core/keyed_random.js';
@@ -110,7 +110,7 @@ function updateAgeAndHealth(world, human) {
 
   const ageYears = human.ageDays / world.config.daysPerYear;
   if (ageYears >= world.config.hardMaxAgeYears) {
-    kill(world, human, 'old_age');
+    killHuman(world, human, { cause: 'old_age' });
     return;
   }
 
@@ -119,12 +119,12 @@ function updateAgeAndHealth(world, human) {
       (world.config.hardMaxAgeYears - world.config.oldAgeYears);
     const dailyRisk = 0.00005 + progress * progress * 0.003;
     if (world.rng.chance(dailyRisk)) {
-      kill(world, human, 'old_age');
+      killHuman(world, human, { cause: 'old_age' });
       return;
     }
   }
 
-  if (human.health <= 0) kill(world, human, 'starvation');
+  if (human.health <= 0) killHuman(world, human, { cause: 'starvation' });
 }
 
 function reproduce(world) {
@@ -198,21 +198,6 @@ function reproduce(world) {
       generation: child.generation
     });
   }
-}
-
-function kill(world, human, cause) {
-  if (!human.alive) return;
-  human.alive = false;
-  human.causeOfDeath = cause;
-  world.counters.deaths += 1;
-  pushEvent(world, {
-    type: 'human.died',
-    subject: entityRef('human', human.id),
-    entityId: human.id,
-    cause,
-    ageYears: human.ageDays / world.config.daysPerYear
-  });
-  recordParentalUnionPartnerDeath(world, human.id);
 }
 
 function clamp01(value) {

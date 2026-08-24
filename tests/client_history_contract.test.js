@@ -28,3 +28,16 @@ test('history timeline DOM contract exists in the client shell', () => {
     assert.match(main, new RegExp(`#${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), `client/main.js does not query #${id}`);
   }
 });
+
+test('god tool selector exposes spawn and erase while browser entry consumes the selected tool', () => {
+  const html = readFileSync(indexPath, 'utf8');
+  const main = readFileSync(mainPath, 'utf8');
+
+  assert.match(html, /id=["']tool["']/);
+  assert.match(html, /value=["']spawn_human["']/);
+  assert.match(html, /value=["']erase["']/);
+  assert.match(main, /querySelector\(['"]#tool['"]\)/);
+  assert.match(main, /toolSelect\.value === ['"]erase['"]/);
+  assert.match(main, /type: ['"]erase['"]/);
+  assert.match(main, /shiftKey \? 10 : 1/);
+});
