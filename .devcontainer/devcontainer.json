@@ -1,0 +1,12 @@
+{
+  "name": "WorldBoxSR",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "WorldBoxSR",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postStartCommand": "nohup npm run dev > /tmp/worldboxsr-dev.log 2>&1 &"
+}
