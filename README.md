@@ -6,11 +6,16 @@ A deterministic emergent-world god-game sandbox.
 
 The project goal is **not** to copy WorldBox code, assets, branding, or proprietary content. The goal is to independently build a small world where simple rules create histories that are both interesting underneath and compelling to watch on screen.
 
-## Current principle
+## Product identity
 
-> If progress cannot be seen or felt in the playable demo, it does not count as enough product progress by itself.
+> **A living pixel god sandbox where worlds visibly grow, collapse, and remember why.**
 
-The deterministic simulation foundation matters, but v0.1 exposed an imbalance: WorldBoxSR became much stronger as a research/test system than as a visible game. v0.2 explicitly corrects that.
+The deterministic simulation foundation is a strategic asset, but it is not a substitute for visible game quality. If progress cannot be seen or felt in the playable demo, it does not count as enough product progress by itself.
+
+- [Master product blueprint](docs/product/master-blueprint.md)
+- [Benchmark and competitor research](docs/product/benchmark-research.md)
+- [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
+- [Release roadmap](docs/ROADMAP.md)
 
 ## Current release target: v0.2.0 — Playable World
 
@@ -18,17 +23,18 @@ The only current product-development priority is to make the public demo materia
 
 v0.2 focuses on:
 
-- original pixel-art/tile/sprite presentation instead of debug primitives;
+- Phaser 4 presentation over the existing deterministic engine;
+- Vite browser/Pages build;
+- coherent pixel-art/tile/sprite presentation instead of debug primitives;
 - readable terrain, coastlines, vegetation and biome detail;
 - animated/interpolated humans and creatures;
-- visible settlement growth, structures, labels/flags and territory;
-- a compact god-power UI with immediate visual feedback;
+- visible settlement growth, structures, identity and territory;
+- a compact god-power UI with immediate feedback;
 - a default scenario that looks alive immediately;
 - a 5-second readability gate and a 30-second visible-event gate.
 
-Non-correctness ecology research is frozen until this visible product gate passes. The former Living Ecology plan is preserved for v0.3.
+Non-correctness ecology research is frozen until this visible product gate passes. Product discovery deliberately sequences civilization, god-power and world-story stages ahead of the deeper Living Ecology stage, which is now v0.6.
 
-- [Finite release roadmap](docs/ROADMAP.md)
 - [v0.2 Playable World backlog](docs/backlog/v0.2.md)
 - [v0.1 reproducible demo](docs/demos/v0.1.0.md)
 - [v0.1.0 release notes](docs/releases/v0.1.0.md)
@@ -73,7 +79,7 @@ npm run pages:build
 
 ```text
 engine/          deterministic authoritative simulation core
-client/          rendering/input layer (kept separate from simulation)
+client/          presentation/input layer kept separate from simulation
 content/         data-driven creatures, biomes, powers, civilizations
 simulation_lab/  batch runs, metrics, experiments
 tools/           headless CLI and developer/build tools
