@@ -34,7 +34,8 @@ export const DEFAULT_CONFIG = Object.freeze({
   grazerStarvationThreshold: 0.9,
   grazerStarvationDamagePerDay: 0.025,
   grazerRecoveryPerDay: 0.004,
-  grazerPassiveMoveChance: 0.12
+  grazerPassiveMoveChance: 0.12,
+  grazerBirthChancePerEligiblePairPerDay: 0
 });
 
 export function mergeConfig(overrides = {}) {
