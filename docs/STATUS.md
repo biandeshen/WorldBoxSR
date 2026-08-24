@@ -16,7 +16,7 @@ Last updated: 2026-08-24
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
 - a minimal Canvas client/inspector that remains downstream of authoritative simulation state.
 
-Current clean CI after #76: **123/123 tests + smoke**.
+Current clean CI after #80: **123/123 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -38,6 +38,16 @@ Repeated adult dyads can recur for years, but #73/#74 showed annual top-partner 
 
 The best current abstraction is a **fluid local social field**, not a stable household roster. No residential-group entity is justified yet.
 
+### Broad local-meal storage is not a valid scarcity buffer
+
+#79/#80 implemented and tested a conservative, off-by-default settlement shared-food-store prototype, then rejected it before merge. The mechanism was mechanically correct and resource-conserving, but its causal scope was too broad.
+
+At year 200 across seeds 1/4/9/45/80/98, the population center moved only modestly, and seed45 remained unchanged. However seed98 changed from **404 → 452** people and from **6 active + 1 abandoned settlement** to **7 active + 0 abandoned**.
+
+A targeted audit showed that the rescued settlement was exactly resource-rich **Pineford (#5)**: baseline year-100 food remaining was ~96%, and it normally declined to 8/7/3 people at years 120/140/160 before abandonment. With storage enabled it was already 16 at year100 and 29 at year120 while Pineford itself had **zero storage withdrawals and zero store meals**. Storage use elsewhere changed the demographic/spatial trajectory and indirectly rescued it.
+
+The runtime storage code and probes were removed before #80 merged. Storage v0 is a preserved negative experiment, not shipped simulation behavior.
+
 ## Empirical checkpoints
 
 ### Post-social 100×200 baseline
@@ -50,20 +60,19 @@ Resource accounting remains derived-only, but it contains real predictive signal
 
 Important counterexample: seed98 settlement #5 had ~96% food remaining at year100 and still died out by year200. Economy is therefore not a universal explanation for settlement survival.
 
-## Active causal gate — Sprint 003
+## Active causal gate — Sprint 004
 
-The next behavioral experiment is the **narrow settlement shared-food-storage A/B** already approved by the resource-accounting study.
+The next step is **settlement-level scarcity episode research**, derived-only and behavior-neutral.
 
-Constraints:
+Before any storage v1, distinguish:
 
-- deterministic, bounded store attached only to active settlements;
-- explicit territorial-surplus inflow;
-- store is consumed only under local scarcity;
-- disabled configuration must preserve existing behavior/RNG path exactly;
-- no jobs, trade, taxation, buildings, production bonuses, classes, or kingdoms;
-- multi-seed A/B before any default behavior ships;
-- seed45 guards against population over-amplification;
-- seed98 guards against storage becoming a magic survival mechanism for demographically dead settlements.
+1. **territorial scarcity** — owned food is genuinely low relative to current membership;
+2. **local meal-path blockage** — hungry current members cannot eat on the current tile or any one-step passable neighbor using the existing meal rule;
+3. **access mismatch** — local blockage occurs while settlement territory still contains at least one full meal per member.
+
+Measure episode duration/recurrence and later shrinkage/recovery/abandonment across multiple seeds, with seed98 Pineford as a required sentinel. A future storage mechanism is justified only if recurrent settlement-local scarcity exists and can be gated transparently without broad world coupling.
+
+If scarcity is mostly access mismatch or demographic/spatial failure, do **not** retry storage by parameter search; investigate the relevant access or membership mechanism instead.
 
 ## Project-management rule
 
