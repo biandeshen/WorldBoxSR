@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0a1118" />
   <title>WorldBoxSR — Playable World</title>
   <link rel="stylesheet" href="./ui.css" />
+  <link rel="stylesheet" href="./world_event_pulse.css" />
 </head>
 <body>
   <div id="phaser-root" aria-label="WorldBoxSR world view"></div>
@@ -61,6 +62,8 @@
     </details>
   </aside>
 
+  <div id="world-event-pulse" role="log" aria-live="polite" aria-label="recent world events"></div>
+
   <footer id="power-dock">
     <div class="power-dock-title">
       <span>GOD POWERS</span>
@@ -99,5 +102,6 @@
   <script type="module" src="./bootstrap.js"></script>
   <script type="module" src="./presentation/camera_runtime.js"></script>
   <script type="module" src="./presentation/world_overlay_runtime.js"></script>
+  <script type="module" src="./presentation/world_event_pulse_runtime.js"></script>
 </body>
 </html>
