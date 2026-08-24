@@ -25,7 +25,16 @@ export const DEFAULT_CONFIG = Object.freeze({
   settlementMembershipRadius: 3,
   settlementHomeBiasChance: 0.05,
   settlementAbandonmentDays: 360,
-  settlementTerritoryRadius: 3
+  settlementTerritoryRadius: 3,
+  grazerHungerPerDay: 0.006,
+  grazerHungryThreshold: 0.35,
+  grazerMinimumEdibleVegetation: 0.2,
+  grazerVegetationPerMeal: 0.8,
+  grazerEatAmount: 0.58,
+  grazerStarvationThreshold: 0.9,
+  grazerStarvationDamagePerDay: 0.025,
+  grazerRecoveryPerDay: 0.004,
+  grazerPassiveMoveChance: 0.12
 });
 
 export function mergeConfig(overrides = {}) {
