@@ -1,33 +1,75 @@
+import { playToolSound } from './audio_feedback.js';
+import { currentEffectProfile } from './effect_preferences.js';
+
 export function playToolEffect(scene, effect, tileX, tileY, tileSize) {
   const x = (tileX + 0.5) * tileSize;
   const y = (tileY + 0.5) * tileSize;
+  const profile = currentEffectProfile();
+  playToolSound(effect);
 
-  if (effect === 'lightning') return playLightning(scene, x, y, tileSize);
-  if (effect === 'erase') return playErase(scene, x, y, tileSize);
-  if (effect === 'spawn_grazer') return playSpawn(scene, x, y, tileSize, 0xf0bf68, 7);
-  return playSpawn(scene, x, y, tileSize, 0x8ad6ff, 6);
+  if (effect === 'lightning') return playLightning(scene, x, y, tileSize, profile);
+  if (effect === 'erase') return playErase(scene, x, y, tileSize, profile);
+  if (effect === 'spawn_grazer') return playSpawn(scene, x, y, tileSize, 0xf0bf68, 7, profile);
+  return playSpawn(scene, x, y, tileSize, 0x8ad6ff, 6, profile);
 }
 
-function playLightning(scene, x, y, tileSize) {
+function playLightning(scene, x, y, tileSize, profile) {
   const bolt = scene.add.graphics().setDepth(1002);
   const top = Math.max(0, y - tileSize * 9);
-  drawBolt(bolt, x, top, x, y, tileSize, 0xfaf4ca, 1);
-  drawBolt(bolt, x - tileSize * 0.08, top + tileSize * 0.8, x + tileSize * 0.04, y, tileSize, 0x8dd9ff, 0.72);
+  drawBolt(bolt, x, top, x, y, tileSize, 0xfaf4ca, profile.reducedMotion ? 0.7 : 1);
+  drawBolt(
+    bolt,
+    x - tileSize * 0.08,
+    top + tileSize * 0.8,
+    x + tileSize * 0.04,
+    y,
+    tileSize,
+    0x8dd9ff,
+    profile.reducedMotion ? 0.32 : 0.72
+  );
 
-  const flash = scene.add.circle(x, y, tileSize * 0.65, 0xfff2a4, 0.88).setDepth(1001);
-  const core = scene.add.circle(x, y, tileSize * 0.16, 0xffffff, 1).setDepth(1003);
+  const flash = scene.add.circle(x, y, tileSize * 0.65, 0xfff2a4, profile.flashAlpha).setDepth(1001);
+  const core = scene.add.circle(x, y, tileSize * 0.16, 0xffffff, profile.reducedMotion ? 0.5 : 1).setDepth(1003);
   const ring = scene.add.circle(x, y, tileSize * 0.2, 0xffffff, 0.02)
-    .setStrokeStyle(Math.max(1.5, tileSize * 0.085), 0xffd95d, 0.96)
+    .setStrokeStyle(
+      Math.max(1.5, tileSize * 0.085),
+      0xffd95d,
+      profile.reducedMotion ? 0.55 : 0.96
+    )
     .setDepth(1000);
 
-  const sparks = createSparks(scene, x, y, tileSize, 0xffe36c, 10, 1003);
-  scene.cameras.main.shake(130, 0.0058);
+  const sparks = createSparks(
+    scene,
+    x,
+    y,
+    tileSize,
+    0xffe36c,
+    scaledSparkCount(10, profile),
+    1003
+  );
+  if (profile.cameraShake) scene.cameras.main.shake(130, 0.0058);
 
-  scene.tweens.add({ targets: bolt, alpha: 0, duration: 250, onComplete: () => bolt.destroy() });
-  scene.tweens.add({ targets: flash, alpha: 0, scale: 2.1, duration: 390, ease: 'Quad.Out', onComplete: () => flash.destroy() });
-  scene.tweens.add({ targets: core, alpha: 0, scale: 0.1, duration: 190, onComplete: () => core.destroy() });
-  scene.tweens.add({ targets: ring, alpha: 0, scale: 3.5, duration: 470, ease: 'Cubic.Out', onComplete: () => ring.destroy() });
-  animateSparks(scene, sparks, x, y, tileSize, 360);
+  const flashDuration = profile.reducedMotion ? 210 : 390;
+  const ringDuration = profile.reducedMotion ? 240 : 470;
+  scene.tweens.add({ targets: bolt, alpha: 0, duration: profile.reducedMotion ? 150 : 250, onComplete: () => bolt.destroy() });
+  scene.tweens.add({
+    targets: flash,
+    alpha: 0,
+    scale: profile.flashScale,
+    duration: flashDuration,
+    ease: 'Quad.Out',
+    onComplete: () => flash.destroy()
+  });
+  scene.tweens.add({ targets: core, alpha: 0, scale: 0.1, duration: profile.reducedMotion ? 120 : 190, onComplete: () => core.destroy() });
+  scene.tweens.add({
+    targets: ring,
+    alpha: 0,
+    scale: profile.ringScale,
+    duration: ringDuration,
+    ease: 'Cubic.Out',
+    onComplete: () => ring.destroy()
+  });
+  animateSparks(scene, sparks, x, y, tileSize * (profile.reducedMotion ? 0.55 : 1), profile.reducedMotion ? 190 : 360);
 }
 
 function drawBolt(graphics, x0, y0, x1, y1, tileSize, color, alpha) {
@@ -49,34 +91,74 @@ function drawBolt(graphics, x0, y0, x1, y1, tileSize, color, alpha) {
   graphics.strokePath();
 }
 
-function playSpawn(scene, x, y, tileSize, color, sparkCount) {
+function playSpawn(scene, x, y, tileSize, color, sparkCount, profile) {
   const outer = scene.add.circle(x, y, tileSize * 0.24, color, 0.04)
-    .setStrokeStyle(Math.max(1.5, tileSize * 0.075), color, 0.94)
+    .setStrokeStyle(Math.max(1.5, tileSize * 0.075), color, profile.reducedMotion ? 0.65 : 0.94)
     .setDepth(999);
-  const inner = scene.add.circle(x, y, tileSize * 0.13, 0xffffff, 0.78).setDepth(1000);
-  const halo = scene.add.circle(x, y, tileSize * 0.42, color, 0.15).setDepth(998);
-  const sparks = createSparks(scene, x, y, tileSize, color, sparkCount, 1001);
+  const inner = scene.add.circle(x, y, tileSize * 0.13, 0xffffff, profile.reducedMotion ? 0.46 : 0.78).setDepth(1000);
+  const halo = scene.add.circle(x, y, tileSize * 0.42, color, profile.reducedMotion ? 0.07 : 0.15).setDepth(998);
+  const sparks = createSparks(scene, x, y, tileSize, color, scaledSparkCount(sparkCount, profile), 1001);
 
-  scene.tweens.add({ targets: outer, alpha: 0, scale: 3.1, duration: 390, ease: 'Quad.Out', onComplete: () => outer.destroy() });
-  scene.tweens.add({ targets: halo, alpha: 0, scale: 1.55, duration: 300, onComplete: () => halo.destroy() });
-  scene.tweens.add({ targets: inner, alpha: 0, scale: 0.15, duration: 245, onComplete: () => inner.destroy() });
-  animateSparks(scene, sparks, x, y, tileSize, 330);
+  scene.tweens.add({
+    targets: outer,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.7 : 3.1,
+    duration: profile.reducedMotion ? 190 : 390,
+    ease: 'Quad.Out',
+    onComplete: () => outer.destroy()
+  });
+  scene.tweens.add({
+    targets: halo,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.18 : 1.55,
+    duration: profile.reducedMotion ? 160 : 300,
+    onComplete: () => halo.destroy()
+  });
+  scene.tweens.add({ targets: inner, alpha: 0, scale: 0.15, duration: profile.reducedMotion ? 130 : 245, onComplete: () => inner.destroy() });
+  animateSparks(
+    scene,
+    sparks,
+    x,
+    y,
+    tileSize * (profile.reducedMotion ? 0.55 : 1),
+    profile.reducedMotion ? 170 : 330
+  );
 }
 
-function playErase(scene, x, y, tileSize) {
-  const pulse = scene.add.circle(x, y, tileSize * 0.18, 0xff7770, 0.08)
-    .setStrokeStyle(Math.max(1.5, tileSize * 0.07), 0xff7770, 0.86)
+function playErase(scene, x, y, tileSize, profile) {
+  const pulse = scene.add.circle(x, y, tileSize * 0.18, 0xff7770, profile.reducedMotion ? 0.04 : 0.08)
+    .setStrokeStyle(Math.max(1.5, tileSize * 0.07), 0xff7770, profile.reducedMotion ? 0.58 : 0.86)
     .setDepth(998);
   const mark = scene.add.graphics().setDepth(1000);
-  mark.lineStyle(Math.max(2, tileSize * 0.085), 0xff8b84, 0.95);
+  mark.lineStyle(Math.max(2, tileSize * 0.085), 0xff8b84, profile.reducedMotion ? 0.7 : 0.95);
   const radius = tileSize * 0.34;
   mark.lineBetween(x - radius, y - radius, x + radius, y + radius);
   mark.lineBetween(x + radius, y - radius, x - radius, y + radius);
-  const sparks = createSparks(scene, x, y, tileSize, 0xff6f69, 6, 999);
+  const sparks = createSparks(scene, x, y, tileSize, 0xff6f69, scaledSparkCount(6, profile), 999);
 
-  scene.tweens.add({ targets: pulse, alpha: 0, scale: 2.9, duration: 360, ease: 'Quad.Out', onComplete: () => pulse.destroy() });
-  scene.tweens.add({ targets: mark, alpha: 0, scale: 1.55, duration: 320, onComplete: () => mark.destroy() });
-  animateSparks(scene, sparks, x, y, tileSize * 0.7, 280);
+  scene.tweens.add({
+    targets: pulse,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.5 : 2.9,
+    duration: profile.reducedMotion ? 180 : 360,
+    ease: 'Quad.Out',
+    onComplete: () => pulse.destroy()
+  });
+  scene.tweens.add({
+    targets: mark,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.12 : 1.55,
+    duration: profile.reducedMotion ? 170 : 320,
+    onComplete: () => mark.destroy()
+  });
+  animateSparks(
+    scene,
+    sparks,
+    x,
+    y,
+    tileSize * (profile.reducedMotion ? 0.35 : 0.7),
+    profile.reducedMotion ? 150 : 280
+  );
 }
 
 function createSparks(scene, x, y, tileSize, color, count, depth) {
@@ -105,4 +187,8 @@ function animateSparks(scene, sparks, x, y, radius, duration) {
       onComplete: () => spark.destroy()
     });
   });
+}
+
+function scaledSparkCount(baseCount, profile) {
+  return Math.max(2, Math.round(baseCount * profile.sparkRatio));
 }
