@@ -115,6 +115,7 @@ export function worldView(world) {
       elevation: tile.elevation,
       moisture: tile.moisture,
       fertility: tile.fertility,
+      ownerSettlementId: tile.ownerSettlementId ?? null,
       foodRatio: tile.foodCapacity ? tile.food / tile.foodCapacity : 0,
       vegetationRatio: tile.vegetationCapacity ? tile.vegetation / tile.vegetationCapacity : 0
     })),
