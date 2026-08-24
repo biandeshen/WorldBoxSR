@@ -8,218 +8,176 @@ Last updated: 2026-08-24
 
 - seeded, serializable RNG and fixed-tick world state;
 - procedural elevation/moisture, land/ocean, renewable food, and renewable vegetation biomass;
-- human hunger, movement, eating, aging, reproduction, death, ancestry, and lineage history;
+- human hunger, movement, eating, aging, reproduction, death, ancestry, lineage history, settlements, territory, and causal history;
 - a typed creature domain with explicit-spawn grazer ecology, default-off authoritative grazer reproduction, and default-off authoritative gradual old-age mortality;
-- emergent settlement formation, weak home cohesion, abandonment, territory, and causal history;
-- behavior-neutral settlement resource accounting;
-- persistent historical co-parent (`parental_union`) edges;
-- derived social, scarcity, demographic, and ecology research instruments;
+- behavior-neutral settlement resource accounting plus derived social/scarcity/demographic/ecology research instruments;
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
-- a lightweight Canvas client that consumes authoritative simulation state;
-- deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
-- deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
+- a lightweight Canvas client with deterministic history queries, causal timeline/event inspection, typed grazer inspection, and Spawn human / Spawn grazer / Erase / Lightning tools.
 
-Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**.
+Default worlds **still contain zero creatures**. Sprint 021 proves a natural 10-founder grazer initializer on validated 24×24 worlds, but no runtime natural initializer has been accepted yet.
 
-Grazer old-age mortality now exists behind `grazerOldAgeMortalityEnabled: false`. When enabled it uses the exact Sprint 019 gradual hazard, keyed randomness, no hard lifespan, and the normal typed creature-death lifecycle. Existing/default worlds preserve previous behavior because the switch is false and older v11 snapshots restore the missing key to false.
+Grazer reproduction is authoritative only when `grazerBirthChancePerEligiblePairPerDay > 0`; default is `0`. Partner search is Chebyshev radius **3**, while each parent's vegetation eligibility remains radius **1** with threshold `0.50`.
+
+Grazer old-age mortality is authoritative behind `grazerOldAgeMortalityEnabled: false`. When enabled it uses the exact validated gradual hazard, keyed randomness, no scheduled lifespan, and the normal typed `creature.died` lifecycle. Existing v11 snapshots that lack the switch restore it as false.
 
 ## Architecture decisions that remain binding
 
 ### Lineage is not household
 
-The original `household` prototype was renamed to **lineage** after 200-year worlds produced surviving records with tens to hundreds of living descendants. Lineage is persistent ancestry identity only; it has no co-residence, storage, inheritance, or movement behavior.
+Lineage is persistent ancestry identity only. It has no co-residence, storage, inheritance, or movement behavior.
 
 ### Co-parent edge is not spouse
 
-`parental_union` is historical shared-birth evidence. The 13-seed 200-year baseline showed high one-off co-parent turnover and low repeated shared parenting. It is not spouse/current-partner state and has no exclusivity or behavior.
+`parental_union` records historical shared-birth evidence. It is not spouse/current-partner state and has no exclusivity or behavior.
 
 ### Repeated contact is not a general social bond or residential group
 
-Dyadic and local co-presence studies show real recurrence but high identity turnover. The best current abstraction is a **fluid local social field**, not an authoritative `social_bond`, household, or residential-group roster.
+Dyadic and local co-presence research finds real recurrence but high identity turnover. The best current abstraction is a **fluid local social field**, not an authoritative household/social-bond roster.
 
-### Broad local-meal storage is not a valid scarcity buffer
+### Broad local-meal storage is rejected
 
-Settlement shared-food-storage v0 was implemented off by default, tested, and rejected before merge. It rescued a resource-rich settlement through effects outside the intended scarcity scope. Runtime storage was removed; the negative experiment is preserved as evidence.
+Settlement shared-food-storage v0 was mechanically valid but causally too broad: it rescued a resource-rich settlement through effects outside the intended scarcity scope. Runtime storage was removed; the negative experiment is preserved.
 
-### Natural settlement extinction is valid world history
+### Natural settlement extinction is valid history
 
-Across the 100×200 baseline only three worlds contain a naturally abandoned settlement. Detailed flow reconciliation showed heterogeneous causes, including replacement-pipeline failure and outflow. Do not add generic fertility, migration, member-locking, storage, or persistence rescue rules merely to normalize survival.
+Only 3/100 worlds in the 200-year baseline contain a natural abandonment, and their causes are heterogeneous. Do not add generic fertility, migration, member-locking, food-storage, or persistence rescue rules merely to normalize survival.
 
-### Measured carrying capacity is not a population controller
+### Measured carrying capacity is evidence, not a controller
 
-Sprint 011 found that overloaded grazer populations converge toward landscape-specific survivor plateaus, normalizing to roughly one long-run grazer per 14.8–15.0 vegetation-capacity units. This is empirical validation evidence only. Runtime reproduction never reads total vegetation capacity, a target population, or that ratio; abundance must remain a result of local condition/resource feedback.
+Sprint 011 measured landscape-specific grazer survivor plateaus (~115 / ~165 / ~130 on seeds 1/4/9 when overloaded), roughly one long-run grazer per 14.8–15.0 vegetation-capacity units. Runtime ecology never reads that ratio or a target population.
 
-### Encounter distance and resource locality are distinct mechanics
+### Encounter distance and resource locality are distinct
 
-Sprint 015/016 intentionally separates partner encounter opportunity from resource eligibility. A grazer may discover an eligible reproduction partner within Chebyshev radius 3, but each parent's vegetation condition still measures only its own radius-1 neighborhood. Do not broaden the vegetation test merely because partner discovery is wider, and do not generalize this one radius into a public interaction framework without a second use.
+A reproduction partner may be discovered within radius 3, while each parent's resource eligibility remains radius 1. Do not broaden resource locality merely because encounter range is wider, and do not introduce a generic interaction-radius framework without a second proven use.
 
-### Hard lifespan bands and founder-age tuning remain rejected
+### Hard lifespan bands and founder-age tuning are rejected
 
-Sprint 017 showed that hard keyed lifespan bands fail carrying-pressure turnover even after radius-3 reproduction became authoritative. Sprint 018 showed that spreading founder ages across 0–6 years delays/softens the same collapse but does not rescue any 200-founder landscape.
+Hard keyed 12–18y and diagnostic 18–24y lifespan bands fail carrying-pressure turnover even after radius-3 reproduction. Spreading founders over age0–6 delays/softens the collapse but does not rescue the 200-founder worlds. Do not search more hard lifespan endpoints or founder-age ranges.
 
-Do not search more hard lifespan endpoints or founder-age ranges.
+### Natural grazer mortality uses a gradual hazard
 
-### Natural grazer mortality uses a gradual hazard, not a scheduled lifespan
-
-Sprint 019 identified and Sprint 020 promoted the exact gradual hazard:
+Sprint 019 identified and Sprint 020 promoted:
 
 `pAnnual(age) = 0 before age 12; otherwise min(0.50, 0.01 * 2 ^ ((ageYears - 12) / 3))`
 
-with exact annual-to-daily conversion and keyed daily randomness. It has no hard maximum age and no per-creature death schedule/state.
+with exact annual-to-daily conversion and a keyed daily chance. There is no hard maximum age or per-creature scheduled death state.
 
-The runtime switch is default-off. When enabled, the hazard runs after daily grazer action/starvation and authoritative day increment, but before reproduction. Therefore starvation remains the earlier causal death path and an old-age death cannot reproduce later that day.
+The old-age pass runs after grazer action/starvation and authoritative day increment, but before reproduction. Starvation is therefore an earlier distinct cause, and an old-age death cannot reproduce later that day. Snapshot schema remains v11.
 
-Old-age removal reuses `creature.died` with `cause: old_age`; sequential world RNG is untouched. Snapshot schema remains v11 because config is already persisted and merged with defaults on restore.
+### A validated 24×24 natural initializer is not yet a universal/default initializer
 
-## Empirical checkpoints
+Sprint 021 validates exactly this research initializer on 24×24 worlds:
 
-### Post-social 100×200 baseline
+- sort passable tiles by initial vegetation descending, then y/x;
+- use the 32 richest passable cells;
+- place founders round-robin;
+- assign keyed founder age in `[0,6y]` from world seed + future creature ID + dedicated salt;
+- use normal grazer defaults otherwise.
 
-All 100 seeds completed successfully. Year-200 population median/mean are **489 / 496.68** versus **483 / 495.7** before social cohesion. The minimum rose from **8 to 128** while the center stayed almost unchanged. Median settled-population share is ~86% and median territory coverage ~83%.
+Ten founders are the smallest pre-registered count that passes seeds1–12 at 60 years, and the exact 10-founder initializer passes seeds1–30 at 120 years. This supports a 24×24 natural-fauna initializer; it does **not** prove a fixed count of 10 is correct for arbitrary world sizes and does not authorize a default-on compatibility change.
 
-Only **3/100 worlds** contain any naturally abandoned settlement by year200: seeds 49, 62, and 98, one each.
+## Human / settlement empirical checkpoint
 
-### Settlement scarcity and demography
+The post-social 100×200 baseline completes all 100 seeds. Year-200 population median/mean are **489 / 496.68**; median settled-population share is ~86% and median territory coverage ~83%. Only seeds 49, 62, and 98 contain one naturally abandoned settlement each.
 
-Six-seed settlement scarcity research showed real resource pressure is common but is not a survival classifier. Pineford abandonment occurs with zero measured scarcity episodes while territorial food coverage rises.
-
-Exact sampled population-flow accounting reconciles:
+Exact sampled settlement flow accounting reconciles:
 
 `population delta = surviving newborn additions + external spawns + entries + switches in - deaths - exits - switches out`
 
-The known natural abandonments are causally heterogeneous. Persistent loss of the female replacement pipeline is a strong viability warning/terminal state in several cases, but is not a universal upstream cause.
+Known abandonments are causally heterogeneous; persistent loss of the female replacement pipeline can be a terminal warning but is not a universal upstream cause.
 
-## Completed product/history gate — Sprint 006 / #85
+## Ecology progression
 
-World history is directly inspectable through deterministic queries and a lightweight causal timeline/event inspector. Filters use only facts explicitly recorded in authoritative events; missing or evicted references remain visible rather than being fabricated.
+### Sprint 010 / #93 — first endogenous grazer loop
 
-## Completed god-intervention gate — Sprint 007 / #87
+Explicit-spawn grazers consume renewable vegetation, move with keyed randomness, can starve, and emit typed death history. Creature IDs are independent from human IDs. Default worlds remain creature-free.
 
-Exact-tile `erase` uses the shared authoritative human death lifecycle:
+### Sprint 011 / #95 — carrying pressure
 
-`player command → god.erase event → shared human death lifecycle → social bookkeeping → inspectable history`
-
-Erase consumes no RNG and does not imply a generic powers framework.
-
-## Completed world-resource gate — Sprint 008 / #89
-
-Vegetation biomass is a second renewable authoritative resource. Capacity derives from moisture, regeneration is independent of food, ocean stays zero, persistence is deterministic, and divergent vegetation config remains behavior-neutral to humans/settlements when no ecology consumes it.
-
-## Completed environment-disturbance gate — Sprint 009 / #91
-
-Lightning provides the first player-driven vegetation causal loop:
-
-`player lightning → exact-tile vegetation reset + shared human death lifecycle → inspectable history → deterministic vegetation recovery`
-
-No wildfire, burning-state, AOE, damage framework, or generic power registry was introduced.
-
-## Completed ecology gate — Sprint 010 / #93
-
-The project gained its first endogenous non-human loop: **explicit-spawn grazers consume renewable vegetation and can starve when the resource is unavailable**.
-
-Creature identity is independent from human identity (`world.creatures`, `nextCreatureId`, typed event references, typed history queries), preventing animals from shifting future human keyed-random behavior.
-
-Grazer v0 ages, becomes hungry, consumes vegetation, moves locally toward vegetation, uses keyed randomness, can starve, and emits typed death history. Default worlds contain **zero creatures**.
-
-## Completed carrying-pressure gate — Sprint 011 / #95
-
-A multi-seed no-reproduction study found a clear landscape-dependent carrying-pressure regime.
-
-- `5/20` grazers: 100% survival with vegetation near capacity;
-- `100` grazers: 96%–100% survival after 5 years with substantial drawdown;
-- `300` grazers: 39%–55% survival and vegetation near ~3%–5%.
-
-At 10 years, overloaded worlds converge toward roughly seed1 **114–115**, seed4 **164–165**, seed9 **127–130**. The normalized empirical scale is ~1 long-run grazer per 14.8–15.0 vegetation-capacity units, used only as an external validation measurement.
+A no-reproduction multi-seed study finds a clear resource-limited regime. At 10 years, overloaded worlds converge toward roughly seed1 **114–115**, seed4 **164–165**, seed9 **127–130**.
 
 Evidence: `docs/experiments/2026-08-24-grazer-carrying-pressure.md`.
 
-## Completed reproduction research gate — Sprint 012 / #97
+### Sprint 012 / #97 — reproduction research
 
-A pre-registered local reproduction rule was tested before runtime state was added: adulthood, health >=0.95, hunger below the existing hungry threshold, each parent's radius-1 local vegetation >=0.50, one-year successful-birth cooldown, stable pairing, and keyed chance `0.001` per eligible pair/day.
-
-Low-density populations grow while vegetation remains abundant; overloaded populations produce some early births, then resource pressure shuts births down and they return to the landscape-specific carrying envelope. A 20-year extension showed the birth gate remains self-suppressing.
+A local adult/health/hunger/resource/cooldown pair rule with keyed chance `0.001` grows low-density populations and self-suppresses under resource pressure without a population target.
 
 Evidence: `docs/experiments/2026-08-24-grazer-reproduction-probe.md`.
 
-## Completed authoritative reproduction gate — Sprint 013 / #100
+### Sprint 013 / #100 — authoritative reproduction
 
-The Sprint 012 rule is authoritative behind `grazerBirthChancePerEligiblePairPerDay`, default **0**.
+The research rule becomes authoritative behind default-zero birth chance. Only `lastBirthDay` is persisted per grazer; successful births emit typed `creature.born` history. Snapshot schema becomes v11 with deterministic v10 migration.
 
-Each grazer persists only `lastBirthDay` for reproduction state. A successful birth creates one age-0 grazer, cools down both parents, increments `creatureBirths`, and emits typed `creature.born` history with the newborn subject and both parent creature causes/IDs.
+### Sprint 014 / #103 — hard senescence rejected under radius 1
 
-Snapshot schema is **v11** with deterministic v10 migration. Enabled save/load continuation preserves cooldowns, events, counters, IDs, creature state, and future keyed outcomes exactly. Reproduction consumes no sequential RNG. There is no sex, mate bond, creature genealogy, gestation, litter, predator framework, species registry, or global population controller.
-
-## Completed natural-turnover research gate — Sprint 014 / #103
-
-Simple deterministic grazer senescence was tested as keyed research logic and rejected for runtime under radius-1 encounter geometry. Low-density `18–24` looked viable, but carrying-pressure worlds collapsed. Widening to `18–30` / `18–36` only delayed the same problem.
+Simple keyed lifespan bands fail carrying-pressure recovery. No runtime senescence ships.
 
 Evidence: `docs/experiments/2026-08-24-grazer-natural-turnover.md`.
 
-## Completed encounter-recovery research gate — Sprint 015 / #105
+### Sprint 015 / #105 — encounter recovery
 
-Keeping reproduction/resource semantics fixed, radius 3 is the smallest tested partner-search geometry where all six 100/200-founder turnover-stress worlds recover. A 90-year extension confirms multi-generation persistence and bounded resource cycles.
+Keeping reproduction/resource semantics fixed, partner radius 3 is the smallest tested geometry where all six 100/200-founder turnover-stress worlds recover and remain multi-generational through extension runs.
 
 Evidence: `docs/experiments/2026-08-24-grazer-encounter-recovery.md`.
 
-## Completed authoritative encounter gate — Sprint 016 / #107
+### Sprint 016 / #107 — authoritative partner radius 3
 
-Grazer reproduction partner discovery now accepts an eligible second parent within Chebyshev radius **3**. Each parent's local vegetation measurement remains radius **1** and every other reproduction semantic remains unchanged. The radius is a private mechanic constant; snapshot schema remains v11.
+Partner discovery becomes radius 3 while resource eligibility remains radius 1. No schema or public interaction framework change.
 
-## Completed radius-3 turnover re-evaluation — Sprint 017 / #110
+### Sprint 017 / #110 — hard lifespan re-evaluation
 
-The hard 12–18y lifespan passes low-density pre-gating but fails carrying pressure, including extinction of all three 200-founder worlds. A diagnostic 18–24y band also fails. No senescence ships and hard lifespan endpoint search stops.
+The 12–18y candidate passes low density but fails carrying pressure; all 200-founder worlds go extinct. A diagnostic 18–24y band also fails. Hard lifespan search stops.
 
 Evidence: `docs/experiments/2026-08-24-grazer-turnover-radius3.md`.
 
-## Completed founder-cohort diagnostic — Sprint 018 / #112
+### Sprint 018 / #112 — founder synchronization diagnostic
 
-Changing only founder age from synchronized age2 to keyed 0–6y heterogeneity softens/delays hard-lifespan collapse but does not robustly rescue it. All 200-founder worlds still go extinct. Founder-age tuning stops.
+Keyed age0–6 founder heterogeneity delays/softens the hard-lifespan collapse but still cannot rescue any 200-founder world. Founder-age tuning stops.
 
 Evidence: `docs/experiments/2026-08-24-grazer-founder-age-synchronization.md`.
 
-## Completed gradual-mortality research gate — Sprint 019 / #114
+### Sprint 019 / #114 — gradual mortality research
 
-One pre-registered gradual age-dependent hazard was tested without changing reproduction, resources, encounter radius, or founder age.
-
-The 60-year gate passes 9/9 worlds, so the exact same curve advances to 120 years. At year120 the final populations for seeds `1/4/9` are:
+One pre-registered gradual hazard remains multi-generational through 120 years across seeds1/4/9 × founders20/100/200. Year120 populations are:
 
 - 20 founders: **47 / 104 / 72**;
 - 100 founders: **91 / 119 / 52**;
 - 200 founders: **102 / 134 / 86**.
 
-All 9 worlds have nonzero births in years101–120 and substantial replacement-parent reproduction. Vegetation still reaches expected carrying-pressure minima and later recovers, producing long resource–population cycles. Old-age deaths span roughly age12 into the mid-30s. Sequential RNG remains unchanged.
+Old-age deaths span roughly age12 into the mid-30s rather than clustering at a hard cutoff; resource-population cycles remain intact.
 
 Evidence: `docs/experiments/2026-08-24-grazer-gradual-mortality-hazard.md`.
 
-## Completed authoritative gradual-mortality gate — Sprint 020 / #116
+### Sprint 020 / #116 — authoritative gradual mortality
 
-The exact Sprint 019 hazard is now implemented behind `grazerOldAgeMortalityEnabled: false`.
+The exact Sprint 019 curve becomes authoritative behind `grazerOldAgeMortalityEnabled: false`. Tests pin default-off behavior neutrality, causal `old_age` history, starvation precedence, enabled save/load, v11 missing-key compatibility, zero sequential RNG use, and the exact 60-year 9-world research fingerprint.
 
-Implementation remains deliberately small:
+### Sprint 021 / #118 — broad natural-initialization research
 
-- one default-false config key;
-- private fixed hazard constants;
-- one keyed old-age update between day increment and reproduction;
-- reuse of the existing typed grazer death lifecycle;
-- no lifespan field, scheduled death day, new counter, generic mortality framework, or snapshot-version bump.
+Stage 1 tests seeds1–12 × founder counts10/20/40 for 60 years. All counts pass; the pre-registered smallest-candidate rule selects **10 founders**.
 
-Tests pin default-off behavior neutrality, pre-12 immunity, deterministic exact keyed death, typed `old_age` history, starvation precedence, v11 missing-key fallback, enabled save/load continuation, and the exact Sprint 019 60-year population/birth fingerprint across all nine seed/density worlds.
+Stage 2 runs that exact 10-founder initializer on seeds1–30 for 120 years. All **30/30** worlds pass:
 
-The authoritative year-60 population fingerprint is:
+- year120 population: min **15**, median **68**, mean **71.2**, max **166**;
+- minimum population after year20: min **9**, median **22.5**;
+- maximum observed living population: **167**;
+- births in years101–120: min **7**, median **57**, max **159**;
+- no extinctions; replacement-parent reproduction in every world;
+- only **3 starvation deaths total** across all 30 runs;
+- sequential RNG unchanged in every world;
+- vegetation repeatedly depletes and recovers rather than remaining collapsed.
 
-- 20 founders: **93 / 109 / 128**;
-- 100 founders: **11 / 69 / 130**;
-- 200 founders: **26 / 62 / 124**.
+Weak seeds remain cyclic rather than terminal: seed2 ends at 15 with 9 final-window births; seed7 and seed26 recover after minima of 9; seed29 has only 7 final-window births but ends at 30 with extensive replacement reproduction.
 
-Birth fingerprints are `199/260/249`, `48/148/185`, and `55/111/170`. Full CI and smoke pass.
+Evidence: `docs/experiments/2026-08-24-natural-grazer-initialization.md`.
 
 ## Next decision gate
 
-The grazer loop now has measured resource pressure, authoritative reproduction, corrected encounter geometry, and validated natural turnover. The next question should be **activation**, not more grazer mechanics.
+Resolve **world-size scaling and activation compatibility** before adding a runtime natural-fauna initializer.
 
-Before making fauna part of ordinary generated worlds, research a small deterministic natural grazer initialization across a broader landscape-seed set with reproduction and old-age mortality enabled. The gate should determine whether an initial fauna can sustain bounded multi-generation ecology without a population controller and without making the result depend on one favorable three-seed sample.
+The next work should determine a simple founder-count rule across different map sizes/land areas without turning measured carrying capacity into a population target. It should then make an explicit product decision among opt-in config, ecology preset, or future new-world default while preserving old/default behavior unless deliberately changed.
 
-Do not add predators, additional species, or default animals until this natural-initialization gate passes. Default worlds remain creature-free for now.
+Do not hard-code `10` for every map size. Do not add predators, another species, or human/settlement animal interaction until activation itself is coherent.
 
 Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
