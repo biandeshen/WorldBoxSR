@@ -9,99 +9,102 @@ import { regenerateFood, regenerateVegetation } from '../engine/systems/environm
 import { updateGrazerReproduction, updateGrazers } from '../engine/systems/grazers.js';
 
 const SEEDS = [1, 4, 9];
-const LIFESPAN_BANDS = [
-  { name: '8-12', minYears: 8, maxYears: 12 },
-  { name: '12-18', minYears: 12, maxYears: 18 },
-  { name: '18-24', minYears: 18, maxYears: 24 }
+const DENSITIES = [100, 200];
+const MODES = [
+  { name: 'none', lifespan: null },
+  { name: '18-24', lifespan: { minYears: 18, maxYears: 24 } }
 ];
-const FOUNDER_COUNT = 20;
 const FOUNDER_AGE_YEARS = 2;
 const YEARS = 30;
 const SAMPLE_INTERVAL_DAYS = 30;
 const LIFESPAN_SALT = 0x718c3b2d;
-const ARTIFACT_PATH = 'tmp-research/grazer-turnover-stage1.json';
+const ARTIFACT_PATH = 'tmp-research/grazer-turnover-stage2.json';
 
-test('temporary deterministic grazer lifespan bracket', () => {
+test('temporary 18-24 year grazer turnover carrying-pressure check', () => {
   const rows = [];
 
-  for (const band of LIFESPAN_BANDS) {
-    for (const seed of SEEDS) {
-      const world = createWorld({
-        seed,
-        width: 24,
-        height: 24,
-        population: 0,
-        config: { grazerBirthChancePerEligiblePairPerDay: 0.001 }
-      });
-      seedAdultGrazers(world, FOUNDER_COUNT);
-      const rngBefore = world.rng.snapshot();
-      let oldAgeDeaths = 0;
-      let birthsAfterFoundersGone = 0;
-      let minVegetationUtilization = summarizeWorld(world).vegetationUtilization;
-      let founderExtinctionDay = null;
-      const checkpoints = [];
-      const totalDays = YEARS * world.config.daysPerYear;
+  for (const density of DENSITIES) {
+    for (const mode of MODES) {
+      for (const seed of SEEDS) {
+        const world = createWorld({
+          seed,
+          width: 24,
+          height: 24,
+          population: 0,
+          config: { grazerBirthChancePerEligiblePairPerDay: 0.001 }
+        });
+        seedAdultGrazers(world, density);
+        const rngBefore = world.rng.snapshot();
+        let oldAgeDeaths = 0;
+        let birthsAfterFoundersGone = 0;
+        let minVegetationUtilization = summarizeWorld(world).vegetationUtilization;
+        let founderExtinctionDay = null;
+        const checkpoints = [];
+        const totalDays = YEARS * world.config.daysPerYear;
 
-      for (let elapsed = 0; elapsed < totalDays; elapsed += 1) {
-        regenerateFood(world);
-        regenerateVegetation(world);
-        updateGrazers(world);
-        world.day += 1;
-        oldAgeDeaths += applyResearchSenescence(world, band);
+        for (let elapsed = 0; elapsed < totalDays; elapsed += 1) {
+          regenerateFood(world);
+          regenerateVegetation(world);
+          updateGrazers(world);
+          world.day += 1;
+          if (mode.lifespan) oldAgeDeaths += applyResearchSenescence(world, mode.lifespan);
 
-        const foundersAlive = countFounders(world);
-        if (foundersAlive === 0 && founderExtinctionDay === null) founderExtinctionDay = world.day;
-        const birthsBefore = world.counters.creatureBirths;
-        updateGrazerReproduction(world);
-        if (foundersAlive === 0) birthsAfterFoundersGone += world.counters.creatureBirths - birthsBefore;
+          const foundersAlive = countFounders(world, density);
+          if (foundersAlive === 0 && founderExtinctionDay === null) founderExtinctionDay = world.day;
+          const birthsBefore = world.counters.creatureBirths;
+          updateGrazerReproduction(world);
+          if (foundersAlive === 0) birthsAfterFoundersGone += world.counters.creatureBirths - birthsBefore;
 
-        if (world.day % SAMPLE_INTERVAL_DAYS === 0 || world.day === totalDays) {
-          minVegetationUtilization = Math.min(
-            minVegetationUtilization,
-            summarizeWorld(world).vegetationUtilization
-          );
+          if (world.day % SAMPLE_INTERVAL_DAYS === 0 || world.day === totalDays) {
+            minVegetationUtilization = Math.min(
+              minVegetationUtilization,
+              summarizeWorld(world).vegetationUtilization
+            );
+          }
+          if (world.day % world.config.daysPerYear === 0) {
+            checkpoints.push(compactCheckpoint(world, density, oldAgeDeaths));
+          }
         }
-        if (world.day % world.config.daysPerYear === 0) {
-          checkpoints.push(compactCheckpoint(world, oldAgeDeaths));
+
+        const summary = summarizeWorld(world);
+        const livingAges = world.creatures.map((grazer) => grazer.ageDays / world.config.daysPerYear);
+        const replacementParentBirths = world.history.filter((event) => (
+          event.type === 'creature.born'
+          && Array.isArray(event.parentCreatureIds)
+          && event.parentCreatureIds.some((id) => id > density)
+        )).length;
+
+        assert.deepEqual(world.rng.snapshot(), rngBefore, `${density} ${mode.name} seed ${seed} consumed sequential RNG`);
+        assert.equal(checkpoints.length, YEARS);
+        if (mode.lifespan) {
+          assert.notEqual(founderExtinctionDay, null, `${density} ${mode.name} seed ${seed} founders must turn over`);
         }
+        rows.push({
+          mode: mode.name,
+          seed,
+          initialGrazers: density,
+          survivingGrazers: summary.grazers,
+          creatureBirths: summary.creatureBirths,
+          starvationDeaths: summary.creatureDeaths,
+          oldAgeDeaths,
+          birthsAfterFoundersGone,
+          replacementParentBirths,
+          founderExtinctionDay,
+          founderExtinctionYear: founderExtinctionDay === null ? null : round(founderExtinctionDay / world.config.daysPerYear),
+          vegetationUtilization: round(summary.vegetationUtilization),
+          minVegetationUtilization: round(minVegetationUtilization),
+          meanLivingAgeYears: livingAges.length ? round(livingAges.reduce((a, b) => a + b, 0) / livingAges.length) : null,
+          oldestLivingAgeYears: livingAges.length ? round(Math.max(...livingAges)) : null,
+          checkpoints
+        });
       }
-
-      const summary = summarizeWorld(world);
-      const livingAges = world.creatures.map((grazer) => grazer.ageDays / world.config.daysPerYear);
-      const replacementParentBirths = world.history.filter((event) => (
-        event.type === 'creature.born'
-        && Array.isArray(event.parentCreatureIds)
-        && event.parentCreatureIds.some((id) => id > FOUNDER_COUNT)
-      )).length;
-
-      assert.deepEqual(world.rng.snapshot(), rngBefore, `${band.name} seed ${seed} consumed sequential RNG`);
-      assert.equal(checkpoints.length, YEARS);
-      assert.notEqual(founderExtinctionDay, null, `${band.name} seed ${seed} founders must turn over inside horizon`);
-      rows.push({
-        band: band.name,
-        seed,
-        initialGrazers: FOUNDER_COUNT,
-        survivingGrazers: summary.grazers,
-        creatureBirths: summary.creatureBirths,
-        starvationDeaths: summary.creatureDeaths,
-        oldAgeDeaths,
-        birthsAfterFoundersGone,
-        replacementParentBirths,
-        founderExtinctionDay,
-        founderExtinctionYear: round(founderExtinctionDay / world.config.daysPerYear),
-        vegetationUtilization: round(summary.vegetationUtilization),
-        minVegetationUtilization: round(minVegetationUtilization),
-        meanLivingAgeYears: livingAges.length ? round(livingAges.reduce((a, b) => a + b, 0) / livingAges.length) : null,
-        oldestLivingAgeYears: livingAges.length ? round(Math.max(...livingAges)) : null,
-        checkpoints
-      });
     }
   }
 
-  assert.equal(rows.length, LIFESPAN_BANDS.length * SEEDS.length);
+  assert.equal(rows.length, DENSITIES.length * MODES.length * SEEDS.length);
   mkdirSync('tmp-research', { recursive: true });
   writeFileSync(ARTIFACT_PATH, `${JSON.stringify({ rows }, null, 2)}\n`);
-  console.log(`GRAZER_TURNOVER_STAGE1 ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_TURNOVER_STAGE2 ${JSON.stringify({ rows })}`);
 });
 
 function seedAdultGrazers(world, count) {
@@ -142,11 +145,11 @@ function lifespanDays(world, creatureId, band) {
   return minDays + Math.floor(keyedUnit(world.seed, creatureId, 0, LIFESPAN_SALT) * span);
 }
 
-function countFounders(world) {
-  return world.creatures.filter((grazer) => grazer.id <= FOUNDER_COUNT).length;
+function countFounders(world, founderCount) {
+  return world.creatures.filter((grazer) => grazer.id <= founderCount).length;
 }
 
-function compactCheckpoint(world, oldAgeDeaths) {
+function compactCheckpoint(world, founderCount, oldAgeDeaths) {
   const summary = summarizeWorld(world);
   return {
     year: world.day / world.config.daysPerYear,
@@ -154,7 +157,7 @@ function compactCheckpoint(world, oldAgeDeaths) {
     births: summary.creatureBirths,
     starvationDeaths: summary.creatureDeaths,
     oldAgeDeaths,
-    foundersAlive: countFounders(world),
+    foundersAlive: countFounders(world, founderCount),
     vegetationUtilization: round(summary.vegetationUtilization)
   };
 }
