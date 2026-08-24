@@ -5,6 +5,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = normalize(join(fileURLToPath(new URL('..', import.meta.url))));
+const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 8080);
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8' };
 
@@ -22,8 +23,10 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`worldboxSR prototype: http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  const address = server.address();
+  const boundPort = typeof address === 'object' && address ? address.port : port;
+  console.log(`worldboxSR prototype: http://${host}:${boundPort}`);
 });
 
 function respond(res, status, body) {

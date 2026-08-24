@@ -8,5 +8,5 @@
       "onAutoForward": "openPreview"
     }
   },
-  "postStartCommand": "nohup npm run dev > /tmp/worldboxsr-dev.log 2>&1 &"
+  "postStartCommand": "bash .devcontainer/start-dev.sh"
 }
