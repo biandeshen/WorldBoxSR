@@ -24,8 +24,16 @@ test('world invariants survive a multi-decade run', () => {
     assert.ok(Number.isFinite(tile.food));
     assert.ok(tile.food >= -1e-10);
     assert.ok(tile.food <= tile.foodCapacity + 1e-10);
+    assert.ok(Number.isFinite(tile.vegetation));
+    assert.ok(Number.isFinite(tile.vegetationCapacity));
+    assert.ok(tile.vegetation >= -1e-10);
+    assert.ok(tile.vegetation <= tile.vegetationCapacity + 1e-10);
     assert.equal(tile.passable, tile.biome !== 'ocean');
-    if (!tile.passable) assert.equal(tile.foodCapacity, 0);
+    if (!tile.passable) {
+      assert.equal(tile.foodCapacity, 0);
+      assert.equal(tile.vegetationCapacity, 0);
+      assert.equal(tile.vegetation, 0);
+    }
   }
 
   const settlementIds = new Set();

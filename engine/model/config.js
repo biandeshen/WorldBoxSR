@@ -2,6 +2,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   daysPerYear: 360,
   waterLevel: 0.28,
   foodRegrowthPerDay: 0.045,
+  vegetationRegrowthPerDay: 0.006,
   hungerPerDay: 0.012,
   hungryThreshold: 0.35,
   starvationThreshold: 0.9,

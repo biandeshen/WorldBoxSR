@@ -7,7 +7,7 @@ Last updated: 2026-08-24
 `main` contains a deterministic living-world simulation with:
 
 - seeded, serializable RNG and fixed-tick world state;
-- procedural elevation/moisture, land/ocean, renewable food, and movement constraints;
+- procedural elevation/moisture, land/ocean, renewable food, and renewable vegetation biomass;
 - human hunger, movement, eating, aging, reproduction, death, ancestry, and lineage history;
 - emergent settlement formation, weak home cohesion, abandonment, territory, and causal history;
 - behavior-neutral settlement resource accounting;
@@ -18,7 +18,7 @@ Last updated: 2026-08-24
 - deterministic history queries plus a causal timeline/event inspector for world, human, and settlement history;
 - deterministic `spawn_human` and exact-tile `erase` god interventions exposed through a minimal client tool selector.
 
-Clean CI after Sprint 007 / #87: **160/160 tests + smoke**.
+Clean CI after Sprint 008 / #89: **166/166 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -131,37 +131,43 @@ Sprint 006 adds deterministic history queries and a lightweight causal timeline/
 
 ## Completed god-intervention gate — Sprint 007 / #87
 
-The project now has a second player intervention with the opposite effect of spawning: **exact-tile erase**.
+The project has an exact-tile `erase` intervention in addition to `spawn_human`, using a shared authoritative death lifecycle.
 
-The important result is the reusable causal seam, not the feature count:
+The reusable seam is:
 
 `player command → god.erase event → shared human death lifecycle → social bookkeeping → inspectable history`
 
-Sprint 007 delivered:
+Erase consumes no RNG, does not directly force settlement lifecycle off-cadence, and does not imply a generic powers framework.
 
-- `model/human_lifecycle.js` as the shared authoritative human-death path;
-- natural old-age/starvation death routed through that helper with legacy event shape preserved;
-- deterministic `erase` command targeting all living humans on one tile in stable ID order;
-- `god.erase` event followed by causally linked `human.died` events with cause `erased`;
-- normal parental-union mortality bookkeeping;
-- no direct off-cadence settlement membership/lifecycle mutation;
-- no RNG consumption from erase;
-- valid empty-tile erase as an explicit zero-target god action;
-- command-ID validation corrected so rejected impassable `spawn_human` no longer consumes an ID;
-- minimal client tool selector for Spawn human / Erase humans, while inspect controls remain unchanged.
+## Completed world-resource gate — Sprint 008 / #89
 
-The final feature head passed **160/160 tests + smoke**.
+The world now has a second renewable authoritative resource: **vegetation biomass**.
+
+Vegetation v0:
+
+- derives land capacity transparently from existing moisture: `2 + 8 * moisture`;
+- derives initial biomass from capacity and already-existing fertility without another RNG draw;
+- regenerates daily with a moisture-dependent rate and hard capacity clamp;
+- remains exactly zero on ocean;
+- is serialized under snapshot schema **v9**;
+- exposes total biomass/capacity/utilization through derived metrics;
+- is not consumed or read by humans or settlements yet.
+
+A dedicated 20-year semantic comparison drove vegetation along radically different trajectories (`regrowth 0` vs `1`) and still produced exactly identical human, food, settlement, lineage, union, causal-history, counter, ID, and RNG state. The independent seed45 regression also remained green.
+
+Vegetation is therefore a real environmental substrate without becoming a hidden demographic parameter.
 
 ## Next decision gate
 
-Do **not** build a generic powers framework merely because spawn and erase now exist. The next increment should unlock a new causal layer rather than generalize prematurely.
+Do not add more resource fields or a generic powers framework just because the substrate exists.
 
-Strong candidates are:
+The next high-value step should create the **first real causal loop involving vegetation**. Strong candidates are:
 
-- richer world/resource structure, which can create new endogenous pressures and future god-intervention targets;
-- a genuinely different god power only if its mechanics require reusable damage/environment infrastructure;
-- territory/ownership visualization when current-state legibility becomes the bottleneck;
-- civilization structure only after a concrete intermediate causal primitive justifies it.
+- a minimal endogenous creature/herbivore that consumes vegetation and can be spawned, creating the first ecology loop;
+- a genuinely different disturbance such as lightning/fire that removes vegetation and uses the god-intervention/history seam;
+- territory visualization only if current-state legibility becomes the bottleneck.
+
+Prefer an endogenous simulation loop over a purely presentational increment. Whichever path is chosen should remain narrow and prove its own mechanics before abstraction.
 
 ## Project-management rule
 

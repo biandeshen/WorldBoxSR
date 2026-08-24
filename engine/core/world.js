@@ -2,13 +2,14 @@ import { SeededRng } from './rng.js';
 import { mergeConfig } from '../model/config.js';
 import { createHuman } from '../model/human.js';
 import { pushEvent, worldSubject } from '../model/events.js';
-import { regenerateFood } from '../systems/environment.js';
+import { regenerateFood, regenerateVegetation } from '../systems/environment.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
+import { initialVegetationForTile, vegetationCapacityForTile } from '../world/vegetation.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 8;
+export const SNAPSHOT_VERSION = 9;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -49,7 +50,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
       const passable = biome !== 'ocean';
       const fertility = passable ? fertilitySample : 0;
       const capacity = passable ? 1.5 + fertility * 8.5 : 0;
-      world.tiles.push({
+      const tile = {
         x,
         y,
         elevation,
@@ -59,9 +60,14 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
         fertility,
         foodCapacity: capacity,
         food: capacity * initialFoodRatio,
+        vegetationCapacity: 0,
+        vegetation: 0,
         settlementCandidateDays: 0,
         ownerSettlementId: null
-      });
+      };
+      tile.vegetationCapacity = vegetationCapacityForTile(tile);
+      tile.vegetation = initialVegetationForTile(tile);
+      world.tiles.push(tile);
     }
   }
 
@@ -75,6 +81,7 @@ export function tickWorld(world, ticks = 1) {
   if (!Number.isInteger(ticks) || ticks < 0) throw new RangeError('ticks must be a non-negative integer');
   for (let i = 0; i < ticks; i += 1) {
     regenerateFood(world);
+    regenerateVegetation(world);
     updateHumans(world);
     world.day += 1;
     updateSettlements(world);

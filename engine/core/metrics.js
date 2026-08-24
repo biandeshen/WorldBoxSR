@@ -7,6 +7,8 @@ export function summarizeWorld(world) {
   const hungerTotal = humans.reduce((sum, human) => sum + human.hunger, 0);
   const foodTotal = world.tiles.reduce((sum, tile) => sum + tile.food, 0);
   const capacityTotal = world.tiles.reduce((sum, tile) => sum + tile.foodCapacity, 0);
+  const vegetationTotal = world.tiles.reduce((sum, tile) => sum + tile.vegetation, 0);
+  const vegetationCapacityTotal = world.tiles.reduce((sum, tile) => sum + tile.vegetationCapacity, 0);
   const settledPopulation = humans.filter((human) => human.settlementId !== null).length;
   const activeSettlements = world.settlements.filter((settlement) => settlement.active).length;
   const passableTiles = world.tiles.filter((tile) => tile.passable).length;
@@ -52,6 +54,9 @@ export function summarizeWorld(world) {
     averageHunger: humans.length ? hungerTotal / humans.length : 0,
     food: foodTotal,
     foodCapacity: capacityTotal,
-    foodUtilization: capacityTotal ? foodTotal / capacityTotal : 0
+    foodUtilization: capacityTotal ? foodTotal / capacityTotal : 0,
+    vegetation: vegetationTotal,
+    vegetationCapacity: vegetationCapacityTotal,
+    vegetationUtilization: vegetationCapacityTotal ? vegetationTotal / vegetationCapacityTotal : 0
   };
 }
