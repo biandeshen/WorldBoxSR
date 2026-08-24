@@ -1,4 +1,5 @@
-import { settlementColor, targetStyle, territoryCells, territorySignature } from './world_overlay.js';
+import { polityColor } from './polity_style.js';
+import { targetStyle, territoryCells, territorySignature } from './world_overlay.js';
 
 const TILE_SIZE = 28;
 const TERRITORY_DEPTH = 6;
@@ -54,13 +55,13 @@ function redrawTerritory(force) {
   territoryGraphics.clear();
 
   for (const cell of territoryCells(scene.view)) {
-    const color = settlementColor(cell.ownerSettlementId);
+    const color = polityColor(cell.colorIndex);
     const x = cell.x * TILE_SIZE;
     const y = cell.y * TILE_SIZE;
 
-    territoryGraphics.fillStyle(color, 0.085);
+    territoryGraphics.fillStyle(color, 0.09);
     territoryGraphics.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
-    territoryGraphics.lineStyle(Math.max(1.2, TILE_SIZE * 0.055), color, 0.66);
+    territoryGraphics.lineStyle(Math.max(1.2, TILE_SIZE * 0.055), color, 0.72);
 
     if (cell.edges.left) territoryGraphics.lineBetween(x + 1, y + 1, x + 1, y + TILE_SIZE - 1);
     if (cell.edges.right) territoryGraphics.lineBetween(x + TILE_SIZE - 1, y + 1, x + TILE_SIZE - 1, y + TILE_SIZE - 1);
@@ -72,10 +73,7 @@ function redrawTerritory(force) {
 function drawTarget(screenX, screenY) {
   if (!scene?.view || !targetGraphics) return;
   const camera = scene.cameras.main;
-  if (
-    screenX < camera.x || screenY < camera.y ||
-    screenX >= camera.x + camera.width || screenY >= camera.y + camera.height
-  ) {
+  if (screenX < camera.x || screenY < camera.y || screenX >= camera.x + camera.width || screenY >= camera.y + camera.height) {
     clearTarget();
     return;
   }

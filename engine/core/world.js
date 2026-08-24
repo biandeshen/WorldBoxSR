@@ -9,9 +9,10 @@ import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { initialVegetationForTile, vegetationCapacityForTile } from '../world/vegetation.js';
 import { updateSettlements } from '../systems/settlements.js';
+import { updatePolities } from '../systems/polities.js';
 
-export const SNAPSHOT_VERSION = 11;
-const PREVIOUS_SNAPSHOT_VERSION = 10;
+export const SNAPSHOT_VERSION = 12;
+const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11]);
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -26,6 +27,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     nextEntityId: 1,
     nextCreatureId: 1,
     nextSettlementId: 1,
+    nextPolityId: 1,
     nextLineageId: 1,
     nextUnionId: 1,
     nextEventId: 1,
@@ -35,6 +37,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     entities: [],
     creatures: [],
     settlements: [],
+    polities: [],
     lineages: [],
     unions: [],
     history: [],
@@ -92,6 +95,7 @@ export function tickWorld(world, ticks = 1) {
     updateGrazerOldAgeMortality(world);
     updateGrazerReproduction(world);
     updateSettlements(world);
+    updatePolities(world);
   }
   return world;
 }
@@ -130,6 +134,7 @@ export function snapshotWorld(world) {
     nextEntityId: world.nextEntityId,
     nextCreatureId: world.nextCreatureId,
     nextSettlementId: world.nextSettlementId,
+    nextPolityId: world.nextPolityId,
     nextLineageId: world.nextLineageId,
     nextUnionId: world.nextUnionId,
     nextEventId: world.nextEventId,
@@ -144,6 +149,7 @@ export function snapshotWorld(world) {
     })),
     creatures: world.creatures.map((creature) => ({ ...creature })),
     settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
+    polities: world.polities.map((polity) => ({ ...polity, settlementIds: [...polity.settlementIds] })),
     lineages: world.lineages.map((lineage) => ({
       ...lineage,
       memberIds: [...lineage.memberIds],
@@ -160,10 +166,12 @@ export function snapshotWorld(world) {
 }
 
 export function worldFromSnapshot(snapshot) {
-  if (snapshot.snapshotVersion !== SNAPSHOT_VERSION && snapshot.snapshotVersion !== PREVIOUS_SNAPSHOT_VERSION) {
-    throw new Error(`Unsupported snapshot version: ${snapshot.snapshotVersion}`);
+  const version = snapshot.snapshotVersion;
+  if (version !== SNAPSHOT_VERSION && !LEGACY_SNAPSHOT_VERSIONS.has(version)) {
+    throw new Error(`Unsupported snapshot version: ${version}`);
   }
-  const migratingV10 = snapshot.snapshotVersion === PREVIOUS_SNAPSHOT_VERSION;
+  const migratingPreV11 = version === 10;
+  const migratingPreV12 = version === 10 || version === 11;
   return {
     snapshotVersion: SNAPSHOT_VERSION,
     seed: snapshot.seed,
@@ -174,6 +182,7 @@ export function worldFromSnapshot(snapshot) {
     nextEntityId: snapshot.nextEntityId,
     nextCreatureId: snapshot.nextCreatureId,
     nextSettlementId: snapshot.nextSettlementId,
+    nextPolityId: migratingPreV12 ? 1 : (snapshot.nextPolityId ?? 1),
     nextLineageId: snapshot.nextLineageId,
     nextUnionId: snapshot.nextUnionId,
     nextEventId: snapshot.nextEventId,
@@ -188,9 +197,17 @@ export function worldFromSnapshot(snapshot) {
     })),
     creatures: snapshot.creatures.map((creature) => ({
       ...creature,
-      lastBirthDay: migratingV10 ? null : (creature.lastBirthDay ?? null)
+      lastBirthDay: migratingPreV11 ? null : (creature.lastBirthDay ?? null)
     })),
-    settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
+    settlements: snapshot.settlements.map((settlement) => ({
+      ...settlement,
+      memberIds: [...settlement.memberIds],
+      polityId: migratingPreV12 ? null : (settlement.polityId ?? null)
+    })),
+    polities: migratingPreV12 ? [] : (snapshot.polities ?? []).map((polity) => ({
+      ...polity,
+      settlementIds: [...polity.settlementIds]
+    })),
     lineages: snapshot.lineages.map((lineage) => ({
       ...lineage,
       memberIds: [...lineage.memberIds],
@@ -204,7 +221,7 @@ export function worldFromSnapshot(snapshot) {
     history: snapshot.history.map((event) => ({ ...event })),
     counters: {
       ...snapshot.counters,
-      creatureBirths: migratingV10 ? 0 : (snapshot.counters.creatureBirths ?? 0)
+      creatureBirths: migratingPreV11 ? 0 : (snapshot.counters.creatureBirths ?? 0)
     }
   };
 }

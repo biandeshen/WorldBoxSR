@@ -60,12 +60,29 @@ test('world invariants survive a multi-decade run', () => {
     assert.equal(tileAt(world, settlement.x, settlement.y).passable, true);
     assert.equal(settlement.population, settlement.memberIds.length);
     assert.equal(new Set(settlement.memberIds).size, settlement.memberIds.length);
+    assert.ok(Number.isInteger(settlement.polityId), `settlement ${settlement.id} missing polity identity`);
   }
   for (const human of world.entities) {
     if (human.settlementId === null) continue;
     const settlement = settlementById.get(human.settlementId);
     assert.ok(settlement, `missing settlement ${human.settlementId}`);
     assert.ok(settlement.memberIds.includes(human.id));
+  }
+
+  const polityIds = new Set();
+  for (const polity of world.polities) {
+    assert.ok(!polityIds.has(polity.id), `duplicate polity id ${polity.id}`);
+    polityIds.add(polity.id);
+    assert.equal(new Set(polity.settlementIds).size, polity.settlementIds.length);
+    assert.ok(polity.settlementIds.includes(polity.capitalSettlementId));
+    for (const settlementId of polity.settlementIds) {
+      const settlement = settlementById.get(settlementId);
+      assert.ok(settlement, `polity ${polity.id} references missing settlement ${settlementId}`);
+      assert.equal(settlement.polityId, polity.id);
+    }
+    if (polity.active) {
+      assert.ok(polity.settlementIds.some((id) => settlementById.get(id)?.active), `active polity ${polity.id} has no active settlement`);
+    }
   }
 
   const summary = summarizeWorld(world);

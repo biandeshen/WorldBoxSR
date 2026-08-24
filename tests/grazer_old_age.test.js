@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { historyForCreature } from '../engine/analysis/history_query.js';
-import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, SNAPSHOT_VERSION, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createGrazer } from '../engine/model/grazer.js';
 
 function land(world) {
@@ -139,7 +139,7 @@ test('starvation remains earlier and cannot double-kill as old age', () => {
   assert.equal(deaths[0].cause, 'starvation');
 });
 
-test('enabled old-age mortality survives save-load continuation exactly', () => {
+test('enabled old-age mortality survives current save-load continuation exactly', () => {
   const world = mortalityWorld(9501);
   const tile = land(world);
   createGrazer(world, {
@@ -149,7 +149,7 @@ test('enabled old-age mortality survives save-load continuation exactly', () => 
     hunger: 0.1
   });
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 11);
+  assert.equal(snapshot.snapshotVersion, SNAPSHOT_VERSION);
   assert.equal(snapshot.config.grazerOldAgeMortalityEnabled, true);
 
   const restored = worldFromSnapshot(JSON.parse(JSON.stringify(snapshot)));
@@ -163,7 +163,7 @@ test('enabled old-age mortality survives save-load continuation exactly', () => 
   assert.equal(world.history.some((event) => event.type === 'creature.died' && event.cause === 'old_age'), true);
 });
 
-test('existing v11 snapshots without mortality config restore default-off without a schema bump', () => {
+test('existing v11 snapshots without mortality config restore default-off under current schema', () => {
   const world = createWorld({
     seed: 9503,
     width: 12,
@@ -179,11 +179,15 @@ test('existing v11 snapshots without mortality config restore default-off withou
     hunger: 0.1
   });
   const legacyV11 = JSON.parse(JSON.stringify(snapshotWorld(world)));
+  legacyV11.snapshotVersion = 11;
+  delete legacyV11.nextPolityId;
+  delete legacyV11.polities;
+  for (const settlement of legacyV11.settlements) delete settlement.polityId;
   delete legacyV11.config.grazerOldAgeMortalityEnabled;
 
   const restored = worldFromSnapshot(legacyV11);
 
-  assert.equal(restored.snapshotVersion, 11);
+  assert.equal(restored.snapshotVersion, SNAPSHOT_VERSION);
   assert.equal(restored.config.grazerOldAgeMortalityEnabled, false);
   tickWorld(restored, 1000);
   assert.equal(restored.creatures.length, 1);

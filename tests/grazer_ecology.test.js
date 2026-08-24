@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { applyCommand } from '../engine/core/commands.js';
 import { historyForCreature, historyForHuman, resolveHistoryReference } from '../engine/analysis/history_query.js';
-import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, SNAPSHOT_VERSION, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createGrazer } from '../engine/model/grazer.js';
 import { updateGrazers } from '../engine/systems/grazers.js';
 
@@ -158,13 +158,13 @@ test('invalid creature spawns reject before command ID allocation', () => {
   assert.equal(world.nextCreatureId, 1);
 });
 
-test('creature state survives snapshot v11 save-load continuation exactly', () => {
+test('creature state survives current snapshot save-load continuation exactly', () => {
   const world = createWorld({ seed: 9305, width: 12, height: 12, population: 4 });
   const tile = land(world);
   applyCommand(world, { type: 'spawn_creature', species: 'grazer', x: tile.x, y: tile.y, count: 3 });
   tickWorld(world, 400);
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 11);
+  assert.equal(snapshot.snapshotVersion, SNAPSHOT_VERSION);
   assert.equal(snapshot.nextCreatureId, 4);
   assert.equal(snapshot.creatures.length, world.creatures.length);
 

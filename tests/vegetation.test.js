@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { summarizeWorld } from '../engine/core/metrics.js';
-import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, SNAPSHOT_VERSION, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { regenerateVegetation } from '../engine/systems/environment.js';
 import {
   initialVegetationForTile,
@@ -91,11 +91,11 @@ test('different vegetation trajectories leave human, food, settlement, history, 
   );
 });
 
-test('vegetation survives snapshot/save-load exactly under snapshot schema v11', () => {
+test('vegetation survives snapshot/save-load exactly under the current snapshot schema', () => {
   const world = createWorld({ seed: 8904, width: 12, height: 12, population: 12 });
   tickWorld(world, 500);
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 11);
+  assert.equal(snapshot.snapshotVersion, SNAPSHOT_VERSION);
 
   const restored = worldFromSnapshot(JSON.parse(JSON.stringify(snapshot)));
   assert.deepEqual(snapshotWorld(restored), snapshot);
