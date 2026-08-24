@@ -62,7 +62,13 @@ export function createSettlementDemographicViabilityTracker({
         state = createSettlementState(row.settlementId, row.name, 0, world.day - interval);
         settlementStates.set(row.settlementId, state);
       }
-      applyObservation(state, row, flows.get(row.settlementId) ?? emptyFlow(), settlementById.get(row.settlementId), world.day);
+      applyObservation(
+        state,
+        row,
+        flows.get(row.settlementId) ?? emptyFlow(),
+        settlementById.get(row.settlementId),
+        world.day
+      );
     }
 
     previousHumans = currentHumans;
@@ -79,6 +85,16 @@ export function createSettlementDemographicViabilityTracker({
   }
 
   function applyObservation(state, row, flow, settlement, day) {
+    // Historical abandoned settlements remain in world.settlements. Their first
+    // inactive observation closes/reconciles the final interval; later samples
+    // must not dilute active-condition denominators with years of empty ruins.
+    if (state.abandoned && !row.active) {
+      state.lastObservedDay = day;
+      state.lastDemography = compactDemography(row);
+      return;
+    }
+
+    const priorDemography = state.lastDemography;
     const previousPopulation = state.lastPopulation;
     const observedPopulationDelta = row.population - previousPopulation;
     const reconciledPopulationDelta = stockDelta(flow);
@@ -88,7 +104,6 @@ export function createSettlementDemographicViabilityTracker({
     state.lastObservedDay = day;
     state.lastPopulation = row.population;
     state.finalPopulation = row.population;
-    state.lastDemography = compactDemography(row);
     state.intervalsObserved += 1;
     addFlow(state.flowTotals, flow);
     state.observedPopulationDelta += observedPopulationDelta;
@@ -101,7 +116,10 @@ export function createSettlementDemographicViabilityTracker({
       );
     }
 
-    if (row.active) recordDemographySample(state, row);
+    if (row.active) {
+      state.activeIntervalsObserved += 1;
+      recordDemographySample(state, row);
+    }
 
     const nonDeathInflow = flow.entrantsFromNone + flow.switchesIn;
     const nonDeathOutflow = flow.exitsToNone + flow.switchesOut;
@@ -109,8 +127,12 @@ export function createSettlementDemographicViabilityTracker({
       zeroLocalReproductionOpportunity: row.active &&
         row.eligibleFemales > 0 &&
         row.eligibleFemalesWithLocalMaleOpportunity === 0,
+      // Birth production in this interval belongs to mothers' settlement
+      // assignment at the prior sample, so the capacity/context test also uses
+      // the prior sample rather than the post-interval stock.
       noBirthReplacement: row.active &&
-        row.reproductiveAgeFemales > 0 &&
+        priorDemography?.active === true &&
+        priorDemography.reproductiveAgeFemales > 0 &&
         flow.birthsProducedByPriorMembers === 0,
       netMembershipOutflow: row.active && nonDeathOutflow > nonDeathInflow,
       naturalReplacementDeficit: row.active && flow.deaths > flow.birthsProducedByPriorMembers
@@ -124,6 +146,8 @@ export function createSettlementDemographicViabilityTracker({
     for (const type of EPISODE_TYPES) {
       updateEpisode(state, type, episodeConditions[type], row, flow, day);
     }
+
+    state.lastDemography = compactDemography(row);
 
     if (!row.active && !state.abandoned) {
       state.abandoned = true;
@@ -149,7 +173,8 @@ export function createSettlementDemographicViabilityTracker({
     for (const [humanId, before] of previous) {
       const after = current.get(humanId);
       if (!after) {
-        get(before.settlementId)?.deaths++;
+        const flow = get(before.settlementId);
+        if (flow) flow.deaths += 1;
         continue;
       }
       if (before.settlementId === after.settlementId) continue;
@@ -352,6 +377,7 @@ function createSettlementState(settlementId, name, population, day) {
     minPopulation: null,
     maxPopulation: null,
     intervalsObserved: 0,
+    activeIntervalsObserved: 0,
     activeSamples: 0,
     samplesWithEligibleFemales: 0,
     opportunityCoverageSamples: 0,
@@ -486,6 +512,7 @@ function summarizeSettlementState(state) {
     firstObservedDay: state.firstObservedDay,
     lastObservedDay: state.lastObservedDay,
     intervalsObserved: state.intervalsObserved,
+    activeIntervalsObserved: state.activeIntervalsObserved,
     activeSamples,
     finalPopulation: state.finalPopulation,
     minPopulation: state.minPopulation,
@@ -499,7 +526,7 @@ function summarizeSettlementState(state) {
     maxAbsoluteReconciliationError: state.maxAbsoluteReconciliationError,
     conditionSamples: { ...state.conditionSamples },
     conditionShares: Object.fromEntries(
-      EPISODE_TYPES.map((type) => [type, ratio(state.conditionSamples[type], state.intervalsObserved)])
+      EPISODE_TYPES.map((type) => [type, ratio(state.conditionSamples[type], state.activeIntervalsObserved)])
     ),
     episodeCounts: { ...state.completedEpisodeCounts },
     averageDemography: {
@@ -516,12 +543,13 @@ function summarizeSettlementState(state) {
       )
     },
     samplesWithEligibleFemales: state.samplesWithEligibleFemales,
-    meanOpportunityCoverageWhenDefined: ratio(
-      state.opportunityCoverageSum,
-      state.opportunityCoverageSamples
-    ),
+    meanOpportunityCoverageWhenDefined: state.opportunityCoverageSamples > 0
+      ? state.opportunityCoverageSum / state.opportunityCoverageSamples
+      : null,
     minOpportunityCoverage: state.minOpportunityCoverage,
-    lastDemography: state.lastDemography ? { ...state.lastDemography, ageBuckets: { ...state.lastDemography.ageBuckets } } : null
+    lastDemography: state.lastDemography
+      ? { ...state.lastDemography, ageBuckets: { ...state.lastDemography.ageBuckets } }
+      : null
   };
 }
 
