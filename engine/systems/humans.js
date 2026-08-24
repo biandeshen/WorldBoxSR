@@ -7,6 +7,9 @@ import {
 } from '../model/parental_union.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 import { keyedChance, keyedIndex } from '../core/keyed_random.js';
+import { tryEatFromSettlementFoodStorage } from './settlement_food_storage.js';
+
+const MIN_FOOD_FOR_MEAL = 0.2;
 
 export function updateHumans(world) {
   const humans = world.entities.filter((entity) => entity.kind === 'human' && entity.alive);
@@ -31,7 +34,7 @@ function updateNeeds(world, human) {
 function chooseAndPerformAction(world, human) {
   const current = tileAt(world, human.x, human.y);
 
-  if (human.hunger >= world.config.hungryThreshold && current.food >= 0.2) {
+  if (human.hunger >= world.config.hungryThreshold && current.food >= MIN_FOOD_FOR_MEAL) {
     eat(world, human, current);
     return;
   }
@@ -39,7 +42,11 @@ function chooseAndPerformAction(world, human) {
   if (human.hunger >= world.config.hungryThreshold) {
     moveTowardFood(world, human);
     const destination = tileAt(world, human.x, human.y);
-    if (destination.food >= 0.2) eat(world, human, destination);
+    if (destination.food >= MIN_FOOD_FOR_MEAL) {
+      eat(world, human, destination);
+      return;
+    }
+    tryEatFromSettlementFoodStorage(world, human, { minimumFoodForMeal: MIN_FOOD_FOR_MEAL });
     return;
   }
 
