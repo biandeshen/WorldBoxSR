@@ -31,6 +31,7 @@ export function summarizeWorld(world) {
     meals: world.counters.meals,
     creatures: creatures.length,
     grazers: grazers.length,
+    creatureBirths: world.counters.creatureBirths,
     creatureMeals: world.counters.creatureMeals,
     creatureDeaths: world.counters.creatureDeaths,
     settlements: world.settlements.length,
