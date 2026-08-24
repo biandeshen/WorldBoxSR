@@ -10,16 +10,31 @@
     #game { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
     #hud {
       position: fixed; left: 16px; top: 16px; padding: 12px 14px; border: 1px solid #ffffff22;
-      background: #111720dd; border-radius: 10px; backdrop-filter: blur(8px); min-width: 310px;
+      background: #111720dd; border-radius: 10px; backdrop-filter: blur(8px);
+      width: min(430px, calc(100vw - 60px)); max-height: calc(100vh - 60px); overflow: auto;
       box-shadow: 0 8px 30px #0008;
     }
-    #row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    #row, #history-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     button, input, select { background: #1d2632; color: #eef3f8; border: 1px solid #ffffff22; border-radius: 6px; padding: 7px 9px; }
     button { cursor: pointer; }
     button:hover { background: #273546; }
     #stats { margin-top: 9px; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd6e2; }
-    #hint { margin-top: 7px; font-size: 12px; color: #91a3b7; max-width: 370px; }
-    #inspector { margin-top: 10px; padding-top: 9px; border-top: 1px solid #ffffff18; white-space: pre-wrap; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: #d9e4ee; }
+    #hint { margin-top: 7px; font-size: 12px; color: #91a3b7; max-width: 400px; }
+    #inspector, #history-detail {
+      white-space: pre-wrap; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: #d9e4ee;
+    }
+    #inspector { margin-top: 10px; padding-top: 9px; border-top: 1px solid #ffffff18; }
+    #timeline { margin-top: 10px; padding-top: 9px; border-top: 1px solid #ffffff18; }
+    #history-scope-label { display: block; margin-bottom: 7px; color: #fff; font-size: 12px; }
+    #history-controls select { padding: 5px 7px; font-size: 12px; }
+    #history-list { margin-top: 8px; display: grid; gap: 4px; max-height: 190px; overflow: auto; }
+    .history-event {
+      width: 100%; padding: 6px 8px; text-align: left; font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: normal;
+    }
+    .history-event[aria-current="true"] { outline: 1px solid #ffffff88; background: #2b3b50; }
+    #history-empty { color: #91a3b7; font-size: 12px; padding: 5px 1px; }
+    #history-detail { margin-top: 8px; padding: 8px; background: #0c1118aa; border-radius: 6px; min-height: 34px; }
     strong { color: #fff; }
   </style>
 </head>
@@ -41,6 +56,21 @@
     </div>
     <div id="stats"></div>
     <div id="inspector">No selection</div>
+    <section id="timeline" aria-label="world history timeline">
+      <strong id="history-scope-label">World history</strong>
+      <div id="history-controls">
+        <select id="history-scope" aria-label="history scope">
+          <option value="world" selected>World</option>
+          <option value="selection">Selection</option>
+        </select>
+        <select id="history-order" aria-label="history order">
+          <option value="newest" selected>Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+      </div>
+      <div id="history-list" aria-label="history events"></div>
+      <div id="history-detail">Select an event</div>
+    </section>
     <div id="hint">Click: spawn · Shift-click: spawn 10 · Drag: pan · Wheel: zoom · Right-click / Alt-click / tap: inspect (repeat to cycle targets).</div>
   </section>
   <script type="module" src="./main.js"></script>
