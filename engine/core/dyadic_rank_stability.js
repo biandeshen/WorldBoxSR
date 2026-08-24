@@ -35,6 +35,7 @@ export function createDyadicRankStabilityTracker({
     const adultMalesByCell = new Map();
     const focalFemales = [];
     const focalFemaleIds = new Set();
+    const windowsToFinalize = [];
 
     for (const human of world.entities) {
       if (human.kind !== 'human' || !human.alive) continue;
@@ -88,12 +89,13 @@ export function createDyadicRankStabilityTracker({
         enforcePartnerCap(current);
       }
 
-      if (current.daysObserved === normalizedWindowDays) {
-        finalizeCompleteWindow(state);
-      }
+      if (current.daysObserved === normalizedWindowDays) windowsToFinalize.push(state);
     }
 
+    // Capture storage high-water while completed windows still contain their
+    // pair maps. Resetting first would systematically under-report peak state.
     updateHighWater();
+    for (const state of windowsToFinalize) finalizeCompleteWindow(state);
   }
 
   function enforcePartnerCap(window) {
@@ -234,6 +236,10 @@ export function createDyadicRankStabilityTracker({
     const openPartialDays = createStats();
     const streakStats = cloneStats(aggregate.runs.topPartnerStreakLength);
     let openPartialWindows = 0;
+    let activeStreaks = 0;
+    let streaksAtLeast2 = aggregate.runs.streaksAtLeast2;
+    let streaksAtLeast3 = aggregate.runs.streaksAtLeast3;
+    let streaksAtLeast5 = aggregate.runs.streaksAtLeast5;
 
     for (const state of femaleStates.values()) {
       currentPartnerRecords += state.currentWindow.partners.size;
@@ -241,11 +247,14 @@ export function createDyadicRankStabilityTracker({
         openPartialWindows += 1;
         addStat(openPartialDays, state.currentWindow.daysObserved);
       }
-      if (state.currentTopStreakLength > 0) addStat(streakStats, state.currentTopStreakLength);
+      if (state.currentTopStreakLength > 0) {
+        activeStreaks += 1;
+        addStat(streakStats, state.currentTopStreakLength);
+        if (state.currentTopStreakLength >= 2) streaksAtLeast2 += 1;
+        if (state.currentTopStreakLength >= 3) streaksAtLeast3 += 1;
+        if (state.currentTopStreakLength >= 5) streaksAtLeast5 += 1;
+      }
     }
-
-    const finalizedStreaks = aggregate.runs.topPartnerStreakLength.count;
-    const activeStreaks = [...femaleStates.values()].filter((state) => state.currentTopStreakLength > 0).length;
 
     return {
       observations,
@@ -286,11 +295,11 @@ export function createDyadicRankStabilityTracker({
         sameTopAcrossFiveShare: ratio(aggregate.runs.sameTopAcrossFive, aggregate.runs.fiveWindowComparisons),
         sameTopAcrossFiveCoParentShare: meanOrZero(aggregate.runs.sameTopAcrossFiveCoParent),
         topPartnerStreakLength: summarizeStats(streakStats),
-        finalizedStreaks,
+        finalizedStreaks: aggregate.runs.topPartnerStreakLength.count,
         activeStreaks,
-        streaksAtLeast2: aggregate.runs.streaksAtLeast2,
-        streaksAtLeast3: aggregate.runs.streaksAtLeast3,
-        streaksAtLeast5: aggregate.runs.streaksAtLeast5
+        streaksAtLeast2,
+        streaksAtLeast3,
+        streaksAtLeast5
       },
       storage: {
         maxPartnersPerFemaleWindow: partnerCap,
