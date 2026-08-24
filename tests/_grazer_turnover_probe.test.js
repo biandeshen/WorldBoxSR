@@ -10,21 +10,21 @@ import { updateGrazerReproduction, updateGrazers } from '../engine/systems/graze
 
 const SEEDS = [1, 4, 9];
 const DENSITIES = [100, 200];
-const MODES = [
-  { name: 'none', lifespan: null },
-  { name: '18-24', lifespan: { minYears: 18, maxYears: 24 } }
+const LIFESPAN_BANDS = [
+  { name: '18-30', minYears: 18, maxYears: 30 },
+  { name: '18-36', minYears: 18, maxYears: 36 }
 ];
 const FOUNDER_AGE_YEARS = 2;
-const YEARS = 30;
+const YEARS = 45;
 const SAMPLE_INTERVAL_DAYS = 30;
 const LIFESPAN_SALT = 0x718c3b2d;
-const ARTIFACT_PATH = 'tmp-research/grazer-turnover-stage2.json';
+const ARTIFACT_PATH = 'tmp-research/grazer-turnover-stage3.json';
 
-test('temporary 18-24 year grazer turnover carrying-pressure check', () => {
+test('temporary wider deterministic grazer lifespan diagnostic', () => {
   const rows = [];
 
   for (const density of DENSITIES) {
-    for (const mode of MODES) {
+    for (const band of LIFESPAN_BANDS) {
       for (const seed of SEEDS) {
         const world = createWorld({
           seed,
@@ -47,7 +47,7 @@ test('temporary 18-24 year grazer turnover carrying-pressure check', () => {
           regenerateVegetation(world);
           updateGrazers(world);
           world.day += 1;
-          if (mode.lifespan) oldAgeDeaths += applyResearchSenescence(world, mode.lifespan);
+          oldAgeDeaths += applyResearchSenescence(world, band);
 
           const foundersAlive = countFounders(world, density);
           if (foundersAlive === 0 && founderExtinctionDay === null) founderExtinctionDay = world.day;
@@ -74,13 +74,11 @@ test('temporary 18-24 year grazer turnover carrying-pressure check', () => {
           && event.parentCreatureIds.some((id) => id > density)
         )).length;
 
-        assert.deepEqual(world.rng.snapshot(), rngBefore, `${density} ${mode.name} seed ${seed} consumed sequential RNG`);
+        assert.deepEqual(world.rng.snapshot(), rngBefore, `${density} ${band.name} seed ${seed} consumed sequential RNG`);
         assert.equal(checkpoints.length, YEARS);
-        if (mode.lifespan) {
-          assert.notEqual(founderExtinctionDay, null, `${density} ${mode.name} seed ${seed} founders must turn over`);
-        }
+        assert.notEqual(founderExtinctionDay, null, `${density} ${band.name} seed ${seed} founders must turn over`);
         rows.push({
-          mode: mode.name,
+          band: band.name,
           seed,
           initialGrazers: density,
           survivingGrazers: summary.grazers,
@@ -90,7 +88,7 @@ test('temporary 18-24 year grazer turnover carrying-pressure check', () => {
           birthsAfterFoundersGone,
           replacementParentBirths,
           founderExtinctionDay,
-          founderExtinctionYear: founderExtinctionDay === null ? null : round(founderExtinctionDay / world.config.daysPerYear),
+          founderExtinctionYear: round(founderExtinctionDay / world.config.daysPerYear),
           vegetationUtilization: round(summary.vegetationUtilization),
           minVegetationUtilization: round(minVegetationUtilization),
           meanLivingAgeYears: livingAges.length ? round(livingAges.reduce((a, b) => a + b, 0) / livingAges.length) : null,
@@ -101,10 +99,10 @@ test('temporary 18-24 year grazer turnover carrying-pressure check', () => {
     }
   }
 
-  assert.equal(rows.length, DENSITIES.length * MODES.length * SEEDS.length);
+  assert.equal(rows.length, DENSITIES.length * LIFESPAN_BANDS.length * SEEDS.length);
   mkdirSync('tmp-research', { recursive: true });
   writeFileSync(ARTIFACT_PATH, `${JSON.stringify({ rows }, null, 2)}\n`);
-  console.log(`GRAZER_TURNOVER_STAGE2 ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_TURNOVER_STAGE3 ${JSON.stringify({ rows })}`);
 });
 
 function seedAdultGrazers(world, count) {
