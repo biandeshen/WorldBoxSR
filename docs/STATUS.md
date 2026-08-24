@@ -19,7 +19,7 @@ Last updated: 2026-08-24
 - deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
 - deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**. Grazer senescent death is **not** implemented.
+Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**. Grazer senescent death is **not** implemented, and Sprint 017 confirms that no tested hard keyed-uniform lifespan band is eligible for runtime.
 
 ## Architecture decisions that remain binding
 
@@ -51,9 +51,13 @@ Sprint 011 found that overloaded grazer populations converge toward landscape-sp
 
 Sprint 015/016 intentionally separates partner encounter opportunity from resource eligibility. A grazer may discover an eligible reproduction partner within Chebyshev radius 3, but each parent's vegetation condition still measures only its own radius-1 neighborhood. Do not broaden the vegetation test merely because partner discovery is wider, and do not generalize this one radius into a public interaction framework without a second use.
 
-### Natural turnover must be re-tested after encounter correction
+### Hard lifespan bands remain rejected after encounter correction
 
-Sprint 014 rejected simple senescence when authoritative encounter radius was 1. Sprint 015 showed that radius 3 removes the measured post-pressure spatial Allee trap, and Sprint 016 made radius 3 authoritative. That changes replacement dynamics materially, so Sprint 014's lifespan outcomes are no longer sufficient evidence for or against any specific lifespan band. Re-run the lifespan gate instead of promoting the diagnostic `18–36` band by assumption.
+Sprint 014 originally showed that senescence plus radius-1 reproduction creates a post-pressure extinction trap. Sprint 015/016 corrected the measured encounter geometry to radius 3, so Sprint 017 re-ran lifespan evidence from scratch.
+
+The correction helps low-density replacement, but it does **not** make a hard keyed-uniform lifespan band robust at carrying pressure. The pre-registered 12–18y candidate passes the low-density gate yet fails 100/200-founder carrying-pressure worlds. A post-hoc 18–24y diagnostic also fails all 200-founder landscapes and seed1/100.
+
+Do not keep searching lifespan endpoints. The next mortality hypothesis must change the **shape of mortality**—for example a gradual age-dependent hazard and/or realistic founder age structure—while reproduction/resource/encounter rules remain fixed.
 
 ## Empirical checkpoints
 
@@ -65,7 +69,7 @@ Only **3/100 worlds** contain any naturally abandoned settlement by year200: see
 
 ### Settlement scarcity and demography
 
-Six-seed settlement scarcity research showed real resource pressure is common but is not a survival classifier. The known Pineford abandonment occurs with zero measured scarcity episodes while territorial food coverage rises.
+Six-seed settlement scarcity research showed real resource pressure is common but is not a survival classifier. Pineford abandonment occurs with zero measured scarcity episodes while territorial food coverage rises.
 
 Exact sampled population-flow accounting reconciles:
 
@@ -113,19 +117,17 @@ A multi-seed no-reproduction study found a clear landscape-dependent carrying-pr
 - `100` grazers: 96%–100% survival after 5 years with substantial drawdown;
 - `300` grazers: 39%–55% survival and vegetation near ~3%–5%.
 
-At 10 years, overloaded worlds converge toward roughly:
+At 10 years, overloaded worlds converge toward roughly seed1 **114–115**, seed4 **164–165**, seed9 **127–130**. The normalized empirical scale is ~1 long-run grazer per 14.8–15.0 vegetation-capacity units, used only as an external validation measurement.
 
-- seed 1: **114–115**;
-- seed 4: **164–165**;
-- seed 9: **127–130**.
-
-`150` is the transition band. Sequential world RNG remains unchanged. Evidence: `docs/experiments/2026-08-24-grazer-carrying-pressure.md`.
+Evidence: `docs/experiments/2026-08-24-grazer-carrying-pressure.md`.
 
 ## Completed reproduction research gate — Sprint 012 / #97
 
-A pre-registered local reproduction rule was tested before runtime state was added: adulthood, health >=0.95, hunger below the existing hungry threshold, each parent's radius-1 local vegetation >=0.50, one-year successful-birth cooldown, stable adjacent pairing, and keyed chance `0.001` per eligible pair/day.
+A pre-registered local reproduction rule was tested before runtime state was added: adulthood, health >=0.95, hunger below the existing hungry threshold, each parent's radius-1 local vegetation >=0.50, one-year successful-birth cooldown, stable pairing, and keyed chance `0.001` per eligible pair/day.
 
-Low-density populations grow while vegetation remains abundant; overloaded populations produce some early births, then resource pressure shuts births down and they return to the landscape-specific carrying envelope. A 20-year extension showed the birth gate remains self-suppressing. Evidence: `docs/experiments/2026-08-24-grazer-reproduction-probe.md`.
+Low-density populations grow while vegetation remains abundant; overloaded populations produce some early births, then resource pressure shuts births down and they return to the landscape-specific carrying envelope. A 20-year extension showed the birth gate remains self-suppressing.
+
+Evidence: `docs/experiments/2026-08-24-grazer-reproduction-probe.md`.
 
 ## Completed authoritative reproduction gate — Sprint 013 / #100
 
@@ -139,18 +141,7 @@ Snapshot schema is **v11** with deterministic v10 migration. Enabled save/load c
 
 Simple deterministic grazer senescence was tested as keyed research logic and **rejected for runtime under radius-1 encounter geometry**.
 
-Low-density bracket with 20 age-2 founders:
-
-- `8–12` year lifespans: all extinct;
-- `12–18`: final **6 / 2 / 28**;
-- `18–24`: low-density viable at **72 / 62 / 92** after founder turnover.
-
-But `18–24` collapsed carrying-pressure worlds:
-
-- 100 founders: **0 / 7 / 1** instead of no-senescence **114 / 155 / 130**;
-- 200 founders: **0 / 0 / 0** instead of **112 / 161 / 132**.
-
-Widening to `18–30` / `18–36` only delayed the same problem. Diagnosis identified:
+Low-density `18–24` looked viable, but carrying-pressure worlds collapsed. Widening to `18–30` / `18–36` only delayed the same problem. Diagnostic work identified:
 
 `resource depletion suppresses births → senescence reduces population → vegetation recovers → sparse spatial distribution suppresses encounters`
 
@@ -162,71 +153,67 @@ No lifespan field/config/event, snapshot change, or old-age runtime behavior was
 
 Sprint 015 kept birth chance `0.001`, radius-1 local vegetation threshold `0.50`, condition gates, cooldown, stable pairing, and keyed randomness fixed while comparing only partner-search Chebyshev radius `1/2/3`.
 
-### 45-year turnover stress
-
-Using the rejected `18–36` lifespan only as a temporary diagnostic stressor:
-
-- radius 1 reproduces the post-pressure collapse;
-- radius 2 improves recovery but fails seed1 / 100 founders, ending at only **10** despite ~99% vegetation;
-- radius 3 is the smallest tested radius where all six `100/200 × seeds 1/4/9` worlds survive founder turnover and recover.
-
-Radius-3 year45 populations:
-
-- 100 founders: **39 / 99 / 76**;
-- 200 founders: **42 / 61 / 70**.
-
-### 90-year multi-generation check
-
-Radius 3 remains bounded and viable through multiple turnover generations in all 9 `20/100/200 × seeds 1/4/9` worlds:
-
-- 20 founders finish **48 / 53 / 55**;
-- 100 founders finish **46 / 119 / 59**;
-- 200 founders finish **63 / 59 / 100**.
-
-Replacement-generation parents account for most later births. The local vegetation gate still shuts births during depletion, and sequential `world.rng` remains unchanged.
-
-### Compatibility with no senescence
-
-Without senescence, radius 3 changes approach speed but preserves the overloaded carrying envelope:
-
-- 100 founders, radius1 `114/155/130` vs radius3 `115/165/134`;
-- 200 founders, radius1 `112/161/132` vs radius3 `113/168/130`.
+Radius 2 materially improves recovery but fails seed1/100. Radius 3 is the smallest tested geometry where all six 100/200-founder turnover-stress worlds recover. A 90-year extension confirms multi-generation persistence and bounded resource cycles. A no-senescence compatibility study shows radius 3 accelerates low-density approach to carrying pressure but preserves the high-pressure carrying envelope.
 
 Evidence: `docs/experiments/2026-08-24-grazer-encounter-recovery.md`.
 
 ## Completed authoritative encounter gate — Sprint 016 / #107
 
-The Sprint 015 result is now implemented as one narrow runtime change: grazer reproduction partner discovery accepts an eligible second parent within Chebyshev radius **3**.
+Grazer reproduction partner discovery now accepts an eligible second parent within Chebyshev radius **3**.
 
-The implementation deliberately keeps each parent's local vegetation measurement at radius **1** and leaves every other reproduction semantic unchanged. The radius is a private mechanic constant rather than public config; snapshot schema remains v11.
+Each parent's local vegetation measurement remains radius **1** and every other reproduction semantic remains unchanged. The radius is a private mechanic constant rather than public config; snapshot schema remains v11.
 
-Tests prove:
+Tests pin exact distance-3 success and distance-4 rejection, preserve default-off behavior, save/load determinism, sequential RNG isolation, and the multi-seed carrying/reproduction envelope.
 
-- an otherwise eligible distance-3 pair produces exactly one typed birth;
-- an otherwise eligible distance-4 pair cannot reproduce;
-- default-off behavior stays inert;
-- enabled save/load continuation remains exact;
-- sequential RNG isolation remains exact;
-- existing multi-seed low-density and overloaded reproduction regressions remain bounded/resource-limited;
-- full normal CI and smoke pass.
+## Completed radius-3 turnover re-evaluation — Sprint 017 / #110
 
-No senescence, mate bond, sex, genealogy, gestation, migration, population target, predator/species framework, human coupling, or schema change was introduced.
+Natural lifespan evidence was re-run against authoritative radius-3 reproduction.
+
+### Stage 1 — 20 founders
+
+- `8–12y`: final **40 / 36 / 5**; seed9 is not robust;
+- `12–18y`: final **51 / 131 / 101**, with continued post-founder/replacement reproduction on all three seeds;
+- `18–24y`: final **71 / 136 / 92**, but seed9 has no births after complete founder disappearance.
+
+Per the pre-registered rule, only **12–18y** advanced.
+
+### Stage 2 — carrying pressure
+
+The unchanged 12–18y band fails:
+
+- 100 founders: seed1 goes extinct, seed9 ends with 1, only seed4 recovers to 42;
+- 200 founders: **all three seeds go extinct** around years 16–20.
+
+Vegetation first falls into the known ~2%–6% carrying regime and correctly freezes births. Senescence begins before replacement stock is large enough. Vegetation recovers only after the cohort has already collapsed.
+
+### Exploratory 18–24 diagnostic
+
+A post-hoc 18–24y carrying run is diagnostic only, not an acceptance gate. It also fails robustly: seed1/100 goes extinct and all three 200-founder worlds go extinct around years 23–26.
+
+**Decision: no natural senescence ships.** Further hard lifespan-band endpoint search is stopped.
+
+Evidence: `docs/experiments/2026-08-24-grazer-turnover-radius3.md`.
 
 ## Next decision gate
 
-Re-run the grazer natural-turnover/lifespan study against **authoritative radius-3 encounter geometry**.
+Research a **different mortality shape**, not another hard lifespan band.
 
-Do not assume the old low-density bracket or the diagnostic `18–36` band remains correct. The encounter change materially alters replacement probability, so the next research gate should re-test candidate deterministic lifespan bands with the authoritative reproduction implementation and compare low-density replacement plus 100/200 carrying-pressure behavior across seeds `1/4/9`.
+The next experiment should isolate one mortality hypothesis at a time, such as:
 
-Any accepted senescence mechanism must preserve:
+- gradual age-dependent mortality hazard rather than a keyed hard death day;
+- realistic/heterogeneous founder age structure to distinguish cohort synchronization from the mortality curve itself.
 
-- local-resource-driven abundance rather than a population target;
-- multi-generation persistence across landscapes;
-- causal distinction between starvation and old age;
-- typed creature death history;
-- deterministic save/load;
-- keyed/sequential RNG isolation;
-- default-zero creatures and default-off reproduction unless separately changed by evidence.
+Keep fixed:
+
+- authoritative partner radius 3;
+- birth chance `0.001`;
+- local vegetation threshold `0.50`;
+- maturity/health/hunger/cooldown gates;
+- no global population target;
+- separate human/creature identity domains;
+- sequential RNG isolation.
+
+Do not tune reproduction/resource parameters and mortality simultaneously. A mortality model advances only if it survives multiple generations at low density and carrying pressure across all landscapes while preserving resource-limited dynamics and a causal old-age/starvation distinction.
 
 Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
