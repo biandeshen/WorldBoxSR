@@ -10,14 +10,14 @@ import { updateGrazerReproduction, updateGrazers } from '../engine/systems/graze
 
 const SEEDS = [1, 4, 9];
 const DENSITIES = [100, 200];
-const LIFESPAN_BAND = { name: '12-18', minYears: 12, maxYears: 18 };
+const LIFESPAN_BAND = { name: '18-24', minYears: 18, maxYears: 24 };
 const FOUNDER_AGE_YEARS = 2;
 const YEARS = 60;
 const SAMPLE_INTERVAL_DAYS = 30;
 const LIFESPAN_SALT = 0x718c3b2d;
-const ARTIFACT_PATH = 'tmp-research/grazer-turnover-radius3-stage2.json';
+const ARTIFACT_PATH = 'tmp-research/grazer-turnover-radius3-stage3.json';
 
-test('temporary radius-3 12-18 year grazer carrying-turnover validation', () => {
+test('temporary radius-3 18-24 year grazer carrying-turnover validation', () => {
   const rows = [];
 
   for (const density of DENSITIES) {
@@ -104,7 +104,7 @@ test('temporary radius-3 12-18 year grazer carrying-turnover validation', () => 
   assert.equal(rows.length, DENSITIES.length * SEEDS.length);
   mkdirSync('tmp-research', { recursive: true });
   writeFileSync(ARTIFACT_PATH, `${JSON.stringify({ rows }, null, 2)}\n`);
-  console.log(`GRAZER_TURNOVER_RADIUS3_STAGE2 ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_TURNOVER_RADIUS3_STAGE3 ${JSON.stringify({ rows })}`);
 });
 
 function seedAdultGrazers(world, count) {
