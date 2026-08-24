@@ -2,17 +2,17 @@
 
 WorldBoxSR is an open-ended simulation, but development must not be open-ended.
 
-The project ships **coherent watchable slices**, not “the complete world simulation.” Every version has an explicit boundary, explicit non-goals, and a finite research budget.
+The project ships **coherent, visible, playable slices**. Simulation rigor is necessary, but it is not product progress by itself: a release must also be legible and compelling on screen.
 
 ## Delivery units
 
 ### Sprint
 
-One narrow feature, experiment, implementation gate, or validation. A sprint should normally end in one issue/PR pair and leave behind either authoritative code or durable negative evidence.
+One narrow feature, experiment, implementation gate, or validation. A sprint should normally end in one issue/PR pair and leave behind authoritative code, visible product improvement, or durable negative evidence.
 
 ### Stage
 
-A small group of sprints that produces one coherent capability. A stage ends when its exit criteria are met; interesting follow-ups do not keep it open indefinitely.
+A small group of sprints that produces one coherent capability. A stage ends when its explicit product gate passes.
 
 ### Version
 
@@ -21,123 +21,109 @@ A user-visible checkpoint that can be run, watched, tested, documented, and comp
 For pre-1.0 releases:
 
 - `0.x.0` = a new product stage/capability;
-- `0.x.y` = hardening, fixes, small improvements within that capability;
-- optional `alpha/beta/rc` tags may be used during release hardening.
+- `0.x.y` = hardening, fixes, small improvements within that capability.
 
 ## Release discipline
 
-1. **No unbounded research blocker.** A research topic that is not required for correctness, determinism, data integrity, or the stated release experience gets at most **three consecutive rejected hypotheses in one version**. After that, preserve the evidence and defer the topic.
-2. **Natural negative outcomes are not automatically bugs.** Extinction, collapse, or an unusual history is acceptable when it is causally coherent and invariants remain valid.
-3. **Supported scope beats universal scope.** A release may support a declared map size, preset, species set, or activation mode instead of solving every configuration before shipping.
-4. **Every version has non-goals.** A later idea does not become a blocker simply because it is interesting.
-5. **Release gates are product gates, not research perfection gates.** A release is ready when the promised user experience is coherent, deterministic, tested, documented, and reproducible.
+1. **Visible progress is a release requirement.** Green tests alone cannot complete a user-facing version.
+2. **No unbounded research blocker.** Non-correctness research gets at most three consecutive rejected hypotheses in one version before deferral.
+3. **Natural negative outcomes are not automatically bugs.** Extinction/collapse is acceptable when causally coherent and invariants remain valid.
+4. **Supported scope beats universal scope.** A release may support declared presets/configurations instead of solving every seed/map.
+5. **Every version has non-goals.** Later ideas do not become blockers just because they are interesting.
+6. **Visual sprints require visual evidence.** Any visual/game-feel PR must record a before/after screenshot or equivalent demo evidence.
+7. **Infrastructure is subordinate to the playable loop.** Add infrastructure only when it directly unblocks development, verification, or the public demo.
 
 ---
 
 ## v0.1.0 — A Living World
 
-**Status: release-hardening stage.**
+**Status: shipped baseline.**
 
-Goal: ship the first complete watchable vertical slice.
+v0.1 established the deterministic simulation foundation: terrain/resources, human lifecycle and ancestry, settlements/territory/history, save/load, typed grazers, tests/Simulation Lab, minimal Canvas client, god tools, Codespaces/Actions/Pages delivery infrastructure.
 
-### Must exist
-
-- deterministic seeded world and fixed tick loop;
-- terrain/resources and renewable food/vegetation;
-- human hunger, movement, eating, aging, reproduction, death and ancestry;
-- settlements, abandonment, territory and causal history;
-- deterministic save/load continuation;
-- headless CLI, Simulation Lab, regressions and performance baseline;
-- typed grazer ecology available through explicit spawning/research configuration;
-- lightweight client with pan/zoom, world rendering, inspectors and timeline/history;
-- minimal god tools already implemented: spawn, erase and lightning.
-
-### Release exit
-
-- full test suite and smoke are green on the release commit;
-- deterministic save/load and long-run regression gates remain green;
-- a documented demo path can create a seeded world, run it for a long horizon, inspect history, intervene, and reproduce the same run;
-- no open P0 correctness/data-integrity blocker;
-- README/status/release notes describe the actual supported behavior;
-- package/release version becomes `0.1.0`.
-
-### Explicit non-goals
-
-These **do not block v0.1**:
-
-- universal natural-fauna initialization across all map sizes/seeds;
-- default-on fauna;
-- predators or a second animal species;
-- kingdoms, diplomacy, war, conquest or rebellion;
-- meteor/plague;
-- final art/UX polish.
-
-Current compact-fauna research is therefore closed as a v0.1 blocker after Sprint030. Its evidence moves forward to v0.2.
+It is intentionally treated as a **developer-prototype baseline**, not the visual quality target.
 
 ---
 
-## v0.2.0 — Living Ecology
+## v0.2.0 — Playable World
 
-Goal: make ecology a coherent **opt-in world capability** rather than a research-only subsystem.
+**Current target.**
+
+Goal: make the public demo look and feel unmistakably like a game before adding more deep simulation breadth.
+
+### Hard priority rule
+
+Until the v0.2 visible gate passes:
+
+- no new non-correctness ecology research;
+- no new abstract observability subsystem unless it directly improves the playable screen;
+- no infrastructure work unless it blocks the demo loop;
+- every feature sprint must create a visible before/after change or a directly felt interaction improvement.
 
 ### Intended scope
 
-- explicit natural-fauna activation semantics (preset/config, not necessarily default);
-- a documented support matrix for map sizes/presets rather than a universal initializer requirement;
-- one validated natural grazer initialization path for supported configurations;
-- save/load and deterministic continuation with activated ecology;
-- ecology metrics/inspection that make births, deaths, resource pressure and extinction understandable;
-- preserve coherent natural extinction instead of adding a hidden survival controller.
+- replace debug rendering primitives with an original coherent pixel-art/tile/sprite presentation;
+- visibly distinct terrain, coastlines, water depth, vegetation and biome detail;
+- animated/interpolated humans and creatures rather than raw tile jumps;
+- visible settlement growth through buildings/structures, names/flags and territory boundaries;
+- compact god-power toolbar and immediate power feedback/effects;
+- a default scenario/preset that opens into an interesting world instead of an empty-feeling debug sandbox;
+- readable information hierarchy: game first, inspector/debugger second;
+- retain deterministic authoritative simulation underneath the presentation layer.
+
+### Technology policy
+
+The client may adopt a mature 2D rendering/game library if it materially accelerates quality. The old "no third-party runtime dependencies" preference is not a product requirement. Rendering technology must serve the visible experience, not constrain it.
+
+### Exit gates
+
+**5-second gate:** without reading documentation, a new viewer can identify terrain, living units, settlement/civilization presence and god-game controls.
+
+**30-second gate:** within 30 seconds of the default demo (or after using an obvious speed control), at least one legible world change/event occurs.
+
+**Screenshot gate:** every visual sprint carries before/after evidence.
+
+**Comparison gate:** v0.2 must be materially more game-like than the v0.1 Pages baseline; tests and metrics alone cannot satisfy this gate.
 
 ### Non-goals
 
-- guaranteeing animal survival in every seed;
-- solving every compact-map topology;
-- predators/multi-species food webs unless a separate gate justifies them;
-- civilization systems.
+- deep new ecology research;
+- universal fauna initialization;
+- full kingdoms/diplomacy/war;
+- broad new simulation subsystems that are not visible in the current playable loop.
 
 ---
 
-## v0.3.0 — Civilizations
+## v0.3.0 — Living Ecology
 
-Goal: turn settlements and ancestry into historical polities without inventing labels that lack causal structure.
+Goal: return to the existing grazer research and make ecology a coherent opt-in world capability **after** the world is visually playable.
 
-### Intended scope
-
-- kingdom/polity formation;
-- ruler selection/succession;
-- diplomacy relations;
-- war/peace;
-- conquest and rebellion;
-- readable territory/ownership visualization and historical causality for political change.
+Intended scope: supported natural-fauna presets/configurations, deterministic initialization for declared support, save/load continuity, visible ecology feedback, and no hidden survival controller.
 
 ---
 
-## v0.4.0 — God Game
+## v0.4.0 — Civilizations
 
-Goal: make intervention itself a coherent play loop.
-
-### Intended scope
-
-- meteor and plague;
-- stronger power feedback/history integration;
-- god-tool UX and inspection polish;
-- scenario/preset improvements for quickly creating interesting worlds.
+Goal: turn settlements and ancestry into readable historical polities: kingdom formation, rulers/succession, diplomacy, war/peace, conquest/rebellion, and causal territory history.
 
 ---
 
-## v0.5.0 — World Story Alpha
+## v0.5.0 — God Game
 
-Goal: integrate the previous systems into a public-facing alpha that is compelling to watch without developer knowledge.
+Goal: deepen intervention as a play loop: more powers/disasters, stronger feedback, better tool UX and scenario creation.
 
-Focus on onboarding, scenario presets, performance, observability, history navigation, balance between systems, packaging and documentation. New systemic breadth is secondary to making the existing world legible and replayable.
+---
+
+## v0.6.0 — World Story Alpha
+
+Goal: integrate the previous systems into a public-facing alpha compelling to watch without developer knowledge. Focus on onboarding, scenarios, performance, observability, history navigation, pacing and replayability.
 
 ---
 
 ## v1.0 direction
 
-`v1.0` is not “feature complete.” It means the sandbox has a stable identity and compatibility contract: reproducible worlds, coherent causal history, documented save/version policy, a dependable watch/intervene loop, and enough integrated systems that ordinary users can create interesting histories without relying on research scaffolding.
+`v1.0` means a stable sandbox identity and compatibility contract: reproducible worlds, coherent causal history, documented save/version policy, a dependable watch/intervene loop, and enough integrated systems that ordinary users can create interesting histories without research scaffolding.
 
 ## Current decision
 
-As of 2026-08-24, the project is **not in an endless ecology phase**. It is in **v0.1 release hardening**. The next management objective is to close the finite v0.1 release checklist and tag a real version before beginning v0.2 ecology work.
+As of 2026-08-24, the public v0.1 Pages demo demonstrated that the project over-invested in invisible rigor relative to visible product quality. **v0.2 Playable World is now the only product-development priority.** The prior Living Ecology backlog is preserved and deferred to v0.3 rather than discarded.
