@@ -14,7 +14,8 @@ export class EntityLayer {
       rows: view.humans,
       now,
       duration,
-      create: createHumanVisual
+      create: createHumanVisual,
+      updateState: updateHumanState
     });
 
     syncCollection({
@@ -24,7 +25,8 @@ export class EntityLayer {
       rows: view.grazers,
       now,
       duration,
-      create: createGrazerVisual
+      create: createGrazerVisual,
+      updateState: updateGrazerState
     });
   }
 
@@ -39,7 +41,7 @@ export class EntityLayer {
   }
 }
 
-function syncCollection({ scene, tileSize, map, rows, now, duration, create }) {
+function syncCollection({ scene, tileSize, map, rows, now, duration, create, updateState }) {
   const active = new Set();
 
   for (const row of rows) {
@@ -49,27 +51,27 @@ function syncCollection({ scene, tileSize, map, rows, now, duration, create }) {
     let visual = map.get(id);
 
     if (!visual) {
-      const container = create(scene, row, target.x, target.y, tileSize);
-      visual = {
-        container,
-        fromX: target.x,
-        fromY: target.y,
-        toX: target.x,
-        toY: target.y,
-        startedAt: now,
-        duration
-      };
-      map.set(id, visual);
-    } else {
-      visual.fromX = visual.container.x;
-      visual.fromY = visual.container.y;
+      visual = create(scene, row, target.x, target.y, tileSize);
+      visual.fromX = target.x;
+      visual.fromY = target.y;
       visual.toX = target.x;
       visual.toY = target.y;
       visual.startedAt = now;
       visual.duration = duration;
+      map.set(id, visual);
+    } else {
+      visual.fromX = visual.container.x;
+      visual.fromY = visual.anchorY ?? visual.container.y;
+      visual.toX = target.x;
+      visual.toY = target.y;
+      visual.startedAt = now;
+      visual.duration = duration;
+      const dx = visual.toX - visual.fromX;
+      if (Math.abs(dx) > 0.01) visual.facing = dx < 0 ? -1 : 1;
     }
 
-    visual.container.setAlpha(row.health < 0.35 ? 0.62 : 1);
+    visual.anchorY = target.y;
+    updateState(visual, row);
   }
 
   for (const [id, visual] of map) {
@@ -84,40 +86,131 @@ function updateCollection(map, now, tileSize) {
     const elapsed = Math.max(0, now - visual.startedAt);
     const t = visual.duration <= 0 ? 1 : Math.min(1, elapsed / visual.duration);
     const eased = t * (2 - t);
+    const moving = t < 1 && (Math.abs(visual.toX - visual.fromX) > 0.01 || Math.abs(visual.toY - visual.fromY) > 0.01);
+    const bob = Math.sin(now * visual.bobSpeed + visual.bobPhase) * (moving ? visual.moveBob : visual.idleBob);
+
     visual.container.x = lerp(visual.fromX, visual.toX, eased);
-    visual.container.y = lerp(visual.fromY, visual.toY, eased);
+    visual.container.y = lerp(visual.fromY, visual.toY, eased) + bob;
+    visual.container.scaleX = visual.baseScale * visual.facing;
+    visual.container.scaleY = visual.baseScale;
     visual.container.setDepth(30 + visual.container.y / Math.max(1, tileSize));
+
+    if (visual.shadow) {
+      visual.shadow.scaleX = 1 + (moving ? Math.abs(Math.sin(now * 0.018 + visual.bobPhase)) * 0.08 : 0);
+      visual.shadow.alpha = moving ? 0.22 : 0.28;
+    }
   }
 }
 
 function createHumanVisual(scene, human, x, y, tileSize) {
-  const scale = Math.max(0.82, tileSize / 24);
-  const shadow = scene.add.ellipse(0, 5, 9, 4, 0x071015, 0.28);
-  const legs = scene.add.rectangle(0, 3.5, 4.5, 5, 0x27303a, 1);
-  const bodyColor = human.sex === 'F' ? 0xd6657d : 0x4f82b7;
-  const body = scene.add.rectangle(0, -0.5, 7, 8, bodyColor, 1);
-  const belt = scene.add.rectangle(0, 1.5, 7, 1.5, 0xe7c36a, 0.88);
-  const head = scene.add.circle(0, -6.2, 3, 0xe6b98e, 1);
-  const hair = scene.add.rectangle(0, -8, 5.5, 1.8, human.sex === 'F' ? 0x603849 : 0x3b312b, 1);
-  const container = scene.add.container(x, y, [shadow, legs, body, belt, head, hair]);
-  container.setScale(scale);
+  const baseScale = Math.max(0.9, tileSize / 24);
+  const shadow = scene.add.ellipse(0, 5.7, 9.5, 3.7, 0x061015, 0.28);
+  const backArm = scene.add.rectangle(-4.3, -0.5, 2.2, 6.2, 0xe0ad82, 1);
+  const legs = scene.add.rectangle(0, 4, 5, 5.4, 0x26313a, 1);
+  const tunic = scene.add.rectangle(0, -0.2, 8, 8.7, humanColor(human), 1);
+  const tunicLight = scene.add.rectangle(-1.8, -1.4, 2.4, 5.4, lighten(humanColor(human)), 0.78);
+  const belt = scene.add.rectangle(0, 1.8, 8, 1.3, 0xe4c575, 0.88);
+  const frontArm = scene.add.rectangle(4.2, -0.2, 2.2, 6, 0xe8b78c, 1);
+  const head = scene.add.rectangle(0, -6.4, 6.2, 6.2, 0xe6b58b, 1);
+  const hair = scene.add.rectangle(0, -9, 6.6, 2.2, human.sex === 'F' ? 0x5d3546 : 0x3a302a, 1);
+  const facePixel = scene.add.rectangle(2.1, -6.1, 1.2, 1.2, 0x51352c, 0.9);
+  const status = scene.add.circle(0, -13, 2.1, 0xf1c45d, 0).setStrokeStyle(1, 0x151b20, 0);
+  const container = scene.add.container(x, y, [shadow, backArm, legs, tunic, tunicLight, belt, frontArm, head, hair, facePixel, status]);
+  container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-  return container;
+
+  return {
+    container,
+    shadow,
+    tunic,
+    tunicLight,
+    status,
+    baseScale,
+    facing: hashFacing(human.id),
+    bobPhase: human.id * 1.731,
+    bobSpeed: 0.009,
+    idleBob: 0.28,
+    moveBob: 0.72,
+    anchorY: y
+  };
 }
 
 function createGrazerVisual(scene, grazer, x, y, tileSize) {
-  const scale = Math.max(0.82, tileSize / 24);
-  const shadow = scene.add.ellipse(0, 4.5, 12, 4, 0x071015, 0.25);
-  const leg1 = scene.add.rectangle(-3.2, 4.2, 2, 5, 0x493824, 1);
-  const leg2 = scene.add.rectangle(3.2, 4.2, 2, 5, 0x493824, 1);
-  const body = scene.add.rectangle(-0.7, 0, 11, 7, 0xc89a52, 1);
-  const flank = scene.add.rectangle(-1.8, -1, 6, 2.4, 0xe3bb70, 0.88);
-  const head = scene.add.circle(6, -1.8, 3.2, 0xb98245, 1);
-  const ear = scene.add.rectangle(7.7, -4.4, 3.2, 1.4, 0x6b4a2d, 1);
-  const container = scene.add.container(x, y, [shadow, leg1, leg2, body, flank, head, ear]);
-  container.setScale(scale);
+  const baseScale = Math.max(0.9, tileSize / 24);
+  const shadow = scene.add.ellipse(0, 5.2, 13, 3.7, 0x061015, 0.25);
+  const rearLeg = scene.add.rectangle(-3.7, 4.5, 2, 5.2, 0x4a3826, 1);
+  const frontLeg = scene.add.rectangle(3.4, 4.5, 2, 5.2, 0x4a3826, 1);
+  const body = scene.add.rectangle(-0.8, 0, 12, 7.8, 0xc9954d, 1);
+  const flank = scene.add.rectangle(-2.2, -1.3, 6.5, 2.8, 0xe4bb70, 0.9);
+  const neck = scene.add.rectangle(5.1, -1, 3.2, 5.4, 0xb47d43, 1);
+  const head = scene.add.rectangle(7, -2.6, 5.6, 5.2, 0xb47d43, 1);
+  const ear = scene.add.rectangle(7.8, -5.5, 3.2, 1.5, 0x69492f, 1);
+  const muzzle = scene.add.rectangle(9.1, -1.8, 2.4, 2, 0xd6a466, 1);
+  const eye = scene.add.rectangle(7.8, -3.1, 1, 1, 0x211b17, 1);
+  const status = scene.add.circle(0, -10.5, 2.1, 0xf1c45d, 0).setStrokeStyle(1, 0x151b20, 0);
+  const container = scene.add.container(x, y, [shadow, rearLeg, frontLeg, body, flank, neck, head, ear, muzzle, eye, status]);
+  container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-  return container;
+
+  return {
+    container,
+    shadow,
+    status,
+    baseScale,
+    facing: hashFacing(grazer.id + 1000),
+    bobPhase: grazer.id * 2.137,
+    bobSpeed: 0.0075,
+    idleBob: 0.18,
+    moveBob: 0.48,
+    anchorY: y
+  };
+}
+
+function updateHumanState(visual, human) {
+  const color = humanColor(human);
+  visual.tunic.setFillStyle(color, 1);
+  visual.tunicLight.setFillStyle(lighten(color), 0.78);
+  updateStatus(visual, human.health, human.hunger);
+}
+
+function updateGrazerState(visual, grazer) {
+  updateStatus(visual, grazer.health, grazer.hunger);
+}
+
+function updateStatus(visual, health, hunger) {
+  if (health < 0.42) {
+    visual.status.setFillStyle(0xe65d57, 0.95).setStrokeStyle(1, 0x151b20, 0.8);
+    visual.container.setAlpha(0.72);
+    return;
+  }
+
+  if (hunger > 0.68) {
+    visual.status.setFillStyle(0xf0c35f, 0.92).setStrokeStyle(1, 0x151b20, 0.78);
+    visual.container.setAlpha(1);
+    return;
+  }
+
+  visual.status.setFillStyle(0xffffff, 0).setStrokeStyle(1, 0xffffff, 0);
+  visual.container.setAlpha(1);
+}
+
+function humanColor(human) {
+  if (human.settlementId !== null && human.settlementId !== undefined) {
+    const colors = [0xb84f48, 0x4779b7, 0xc99b40, 0x4e9764, 0x825fb1, 0xb45d8b];
+    return colors[(Math.max(1, human.settlementId) - 1) % colors.length];
+  }
+  return human.sex === 'F' ? 0xc96d83 : 0x668db9;
+}
+
+function lighten(color) {
+  const r = Math.min(255, ((color >> 16) & 0xff) + 34);
+  const g = Math.min(255, ((color >> 8) & 0xff) + 34);
+  const b = Math.min(255, (color & 0xff) + 34);
+  return (r << 16) | (g << 8) | b;
+}
+
+function hashFacing(id) {
+  return (Math.imul(id, 2654435761) >>> 0) % 2 === 0 ? 1 : -1;
 }
 
 function tileCenter(x, y, tileSize) {
