@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A deterministic, headless-first emergent world simulation sandbox.",
+  "description": "A deterministic emergent-world god-game sandbox.",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "sim": "node tools/simulate.js",
@@ -11,9 +11,17 @@
     "lab": "node simulation_lab/batch.js",
     "lab:parallel": "node simulation_lab/batch.js --workers 4",
     "scenario": "node simulation_lab/scenario_cli.js",
-    "dev": "node tools/serve.js",
-    "bench": "node tools/benchmark.js",
-    "pages:build": "node tools/build-pages.js"
+    "dev": "vite",
+    "dev:legacy": "node tools/serve.js",
+    "build": "vite build",
+    "pages:build": "vite build",
+    "bench": "node tools/benchmark.js"
+  },
+  "dependencies": {
+    "phaser": "4.2.1"
+  },
+  "devDependencies": {
+    "vite": "8.1.0"
   },
   "engines": {
     "node": ">=22"
