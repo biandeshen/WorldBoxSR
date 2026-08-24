@@ -26,7 +26,7 @@ The original `household` prototype was renamed to **lineage** after 200-year wor
 
 ### Co-parent edge is not spouse
 
-`parental_union` is a historical edge created by an already-occurring shared birth. The 13-seed 200-year baseline showed almost one new co-parent edge per birth, very low repeated共同 parenting, and high multi-union participation. It is not spouse/current-partner state and has no exclusivity or behavior.
+`parental_union` is a historical edge created by an already-occurring shared birth. The 13-seed 200-year baseline showed almost one new co-parent edge per birth, very low repeated shared parenting, and high multi-union participation. It is not spouse/current-partner state and has no exclusivity or behavior.
 
 ### Repeated dyad is not general social bond
 
