@@ -3,14 +3,15 @@ import { mergeConfig } from '../model/config.js';
 import { createHuman } from '../model/human.js';
 import { pushEvent, worldSubject } from '../model/events.js';
 import { regenerateFood, regenerateVegetation } from '../systems/environment.js';
-import { updateGrazers } from '../systems/grazers.js';
+import { updateGrazerReproduction, updateGrazers } from '../systems/grazers.js';
 import { updateHumans } from '../systems/humans.js';
 import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { initialVegetationForTile, vegetationCapacityForTile } from '../world/vegetation.js';
 import { updateSettlements } from '../systems/settlements.js';
 
-export const SNAPSHOT_VERSION = 10;
+export const SNAPSHOT_VERSION = 11;
+const PREVIOUS_SNAPSHOT_VERSION = 10;
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -37,7 +38,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     lineages: [],
     unions: [],
     history: [],
-    counters: { births: 0, deaths: 0, meals: 0, creatureMeals: 0, creatureDeaths: 0 }
+    counters: { births: 0, deaths: 0, meals: 0, creatureMeals: 0, creatureDeaths: 0, creatureBirths: 0 }
   };
 
   const fields = generateWorldFields({ seed: world.seed, width, height });
@@ -88,6 +89,7 @@ export function tickWorld(world, ticks = 1) {
     updateGrazers(world);
     updateHumans(world);
     world.day += 1;
+    updateGrazerReproduction(world);
     updateSettlements(world);
   }
   return world;
@@ -157,11 +159,12 @@ export function snapshotWorld(world) {
 }
 
 export function worldFromSnapshot(snapshot) {
-  if (snapshot.snapshotVersion !== SNAPSHOT_VERSION) {
+  if (snapshot.snapshotVersion !== SNAPSHOT_VERSION && snapshot.snapshotVersion !== PREVIOUS_SNAPSHOT_VERSION) {
     throw new Error(`Unsupported snapshot version: ${snapshot.snapshotVersion}`);
   }
+  const migratingV10 = snapshot.snapshotVersion === PREVIOUS_SNAPSHOT_VERSION;
   return {
-    snapshotVersion: snapshot.snapshotVersion,
+    snapshotVersion: SNAPSHOT_VERSION,
     seed: snapshot.seed,
     rng: SeededRng.fromSnapshot(snapshot.rng),
     width: snapshot.width,
@@ -182,7 +185,10 @@ export function worldFromSnapshot(snapshot) {
       childIds: [...entity.childIds],
       unionIds: [...entity.unionIds]
     })),
-    creatures: snapshot.creatures.map((creature) => ({ ...creature })),
+    creatures: snapshot.creatures.map((creature) => ({
+      ...creature,
+      lastBirthDay: migratingV10 ? null : (creature.lastBirthDay ?? null)
+    })),
     settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     lineages: snapshot.lineages.map((lineage) => ({
       ...lineage,
@@ -195,7 +201,10 @@ export function worldFromSnapshot(snapshot) {
       childIds: [...union.childIds]
     })),
     history: snapshot.history.map((event) => ({ ...event })),
-    counters: { ...snapshot.counters }
+    counters: {
+      ...snapshot.counters,
+      creatureBirths: migratingV10 ? 0 : (snapshot.counters.creatureBirths ?? 0)
+    }
   };
 }
 
