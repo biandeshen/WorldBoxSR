@@ -67,6 +67,20 @@ For initial densities `>= 200`, each landscape converges toward nearly the same 
 
 This is the strongest evidence from the study. High-density worlds are not merely losing an arbitrary fraction of animals; they converge toward a resource-dependent survivor scale.
 
+### Capacity-normalized carrying scale
+
+The three apparently different survivor plateaus nearly collapse to one ratio when normalized by each world's total vegetation capacity.
+
+| Landscape | Vegetation capacity | Median `>=200` plateau | Capacity units per surviving grazer |
+| --- | ---: | ---: | ---: |
+| seed 1 | 1711.37 | 114 | **15.01** |
+| seed 4 | 2435.41 | 165 | **14.76** |
+| seed 9 | 1931.36 | 130 | **14.86** |
+
+So the current v0 energy/resource scale supports approximately **one long-run grazer per 14.8–15.0 units of vegetation capacity** after an overloaded population has self-thinned.
+
+This ratio is an empirical description, **not a population cap to encode**. Its value is as an external validation target: a future reproduction rule should recover resource-dependent carrying pressure through local condition/resource feedback rather than consulting a global target.
+
 ### Transition band
 
 `100` grazers is mostly resource-abundant enough to preserve the starting population for 10 years, although vegetation can continue declining on the poorer landscape.
@@ -99,6 +113,8 @@ A reproduction spike should be accepted for experimentation only if it is:
 - able to recover a low-density population without pinning vegetation permanently near zero.
 
 The initial evaluation should compare low/medium starting densities with reproduction disabled/enabled and reject mechanisms that create runaway oscillation or erase landscape-dependent carrying pressure.
+
+The ~15 capacity-units-per-grazer result is a **measurement guard**, not an input to the reproduction algorithm.
 
 ## Cleanup
 
