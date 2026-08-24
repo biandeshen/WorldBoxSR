@@ -19,7 +19,7 @@ Last updated: 2026-08-24
 - deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
 - deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**. Grazer senescent death is **not** implemented, and Sprint 017 confirms that no tested hard keyed-uniform lifespan band is eligible for runtime.
+Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero. Authoritative partner search is Chebyshev radius **3**, while each parent's local vegetation condition remains radius **1**. Grazer senescent death is **not** implemented. Sprints 017–018 reject tested hard keyed-uniform lifespan bands and reject founder-age synchronization as a sufficient explanation of their carrying-pressure failure.
 
 ## Architecture decisions that remain binding
 
@@ -57,7 +57,9 @@ Sprint 014 originally showed that senescence plus radius-1 reproduction creates 
 
 The correction helps low-density replacement, but it does **not** make a hard keyed-uniform lifespan band robust at carrying pressure. The pre-registered 12–18y candidate passes the low-density gate yet fails 100/200-founder carrying-pressure worlds. A post-hoc 18–24y diagnostic also fails all 200-founder landscapes and seed1/100.
 
-Do not keep searching lifespan endpoints. The next mortality hypothesis must change the **shape of mortality**—for example a gradual age-dependent hazard and/or realistic founder age structure—while reproduction/resource/encounter rules remain fixed.
+Sprint 018 then changed only founder age structure. Spreading founders deterministically over 0–6 years delays complete founder turnover by roughly 1–2 years and improves replacement on some 100-founder worlds, but **all three 200-founder worlds still go extinct**, seed1/100 falls to one survivor, and seed9/100 ends at 16. Founder synchronization is therefore not a sufficient explanation.
+
+Do not keep searching lifespan endpoints or founder-age ranges. The next mortality hypothesis must change the **shape of mortality**: a gradual age-dependent hazard while reproduction/resource/encounter rules remain fixed.
 
 ## Empirical checkpoints
 
@@ -194,14 +196,21 @@ A post-hoc 18–24y carrying run is diagnostic only, not an acceptance gate. It 
 
 Evidence: `docs/experiments/2026-08-24-grazer-turnover-radius3.md`.
 
+## Completed founder-cohort diagnostic — Sprint 018 / #112
+
+Sprint 018 retained the rejected 12–18y hard lifespan and changed only founder starting ages: synchronized age2 vs keyed heterogeneous age0–6.
+
+At 100 founders, year-60 finals change from `0 / 42 / 1` to `1 / 130 / 16` on seeds `1 / 4 / 9`. The broader cohort strongly helps seed4 but does not produce robust persistence across landscapes.
+
+At 200 founders, **both cohorts go extinct on all three seeds**. Heterogeneous founders extend complete founder turnover only from about years `15.8–15.9` to `17.1–17.8`; all three runs still fail to produce replacement-parent births after founders disappear.
+
+Sequential RNG remains unchanged. No runtime mortality state or schema change is accepted.
+
+Evidence: `docs/experiments/2026-08-24-grazer-founder-age-synchronization.md`.
+
 ## Next decision gate
 
-Research a **different mortality shape**, not another hard lifespan band.
-
-The next experiment should isolate one mortality hypothesis at a time, such as:
-
-- gradual age-dependent mortality hazard rather than a keyed hard death day;
-- realistic/heterogeneous founder age structure to distinguish cohort synchronization from the mortality curve itself.
+Research a **gradual age-dependent mortality hazard**, not another hard lifespan band and not another founder-age range.
 
 Keep fixed:
 
@@ -213,7 +222,7 @@ Keep fixed:
 - separate human/creature identity domains;
 - sequential RNG isolation.
 
-Do not tune reproduction/resource parameters and mortality simultaneously. A mortality model advances only if it survives multiple generations at low density and carrying pressure across all landscapes while preserving resource-limited dynamics and a causal old-age/starvation distinction.
+The next experiment should pre-register one simple hazard curve and compare it against no-senescence and/or the rejected hard-lifespan reference without tuning reproduction/resource parameters. A mortality model advances only if it survives multiple generations at low density and carrying pressure across all landscapes while preserving resource-limited dynamics and a causal old-age/starvation distinction.
 
 Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
