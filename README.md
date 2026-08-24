@@ -12,6 +12,7 @@ The project goal is **not** to copy WorldBox code, assets, branding, or propriet
 
 The deterministic simulation foundation is a strategic asset, but it is not a substitute for visible game quality. If progress cannot be seen or felt in the playable demo, it does not count as enough product progress by itself.
 
+- [Product constitution](docs/product/product-constitution.md)
 - [Master product blueprint](docs/product/master-blueprint.md)
 - [Benchmark and competitor research](docs/product/benchmark-research.md)
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
