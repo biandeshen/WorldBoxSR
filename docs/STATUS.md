@@ -4,30 +4,22 @@ Last updated: 2026-08-24
 
 ## Current state
 
-`main` contains a deterministic living-world simulation with:
-
-- seeded, serializable RNG and fixed-tick world state;
-- procedural terrain, renewable food, and renewable vegetation biomass;
-- human hunger/movement/eating/aging/reproduction/death, ancestry, settlements, territory, and causal history;
-- typed grazer ecology with grazing/starvation;
-- default-off authoritative grazer reproduction;
-- default-off authoritative gradual grazer old-age mortality;
-- deterministic save/load, Simulation Lab, long-run regressions, and a lightweight Canvas/history client.
+`main` contains a deterministic living-world simulation with seeded/serializable RNG, procedural terrain/resources, human demography/society/history, typed grazer ecology, default-off authoritative grazer reproduction, default-off gradual grazer old-age mortality, deterministic save/load, Simulation Lab, regressions, and a lightweight Canvas/history client.
 
 Default worlds **still contain zero creatures**. Natural-fauna initialization remains research-only.
 
-Grazer reproduction remains default `0`, partner discovery radius **3**, and each parent's vegetation eligibility radius **1** / threshold `0.50`. Grazer old-age mortality remains behind `grazerOldAgeMortalityEnabled: true`, default `false`; snapshot schema remains v11-compatible.
+Grazer reproduction remains default `0`; partner discovery radius is **3** while each parent's vegetation eligibility remains radius **1** / threshold `0.50`. Grazer old-age mortality remains behind `grazerOldAgeMortalityEnabled: true`, default `false`; snapshot schema remains v11-compatible.
 
 ## Binding decisions
 
 - Lineage is ancestry, not household; `parental_union` is historical shared-birth evidence, not spouse state.
-- Broad settlement food storage and generic settlement survival rescue remain rejected; rare natural extinction is valid history.
-- Measured carrying capacity is evidence, never a runtime population controller.
+- Broad settlement food storage and generic settlement rescue remain rejected; rare coherent natural extinction is valid history.
+- Carrying capacity is evidence, never a runtime population controller.
 - Hard grazer lifespan bands and founder-age tuning remain rejected.
 - Total area/passable land and scalar founder count are not universal compact initializer rules.
-- Single terminal-year population/birth gates, low-population duration, and single-duration birth-gap classifiers are all rejected for compact persistence evaluation.
-- Future initializer work should use direct paired causal outcomes, not synthetic scalar persistence scores.
-- **Sprint029 encounter-safe placement is a research candidate only.** It may advance to fresh validation, but it is not runtime/default fauna.
+- Terminal-year gates, low-population duration, and single-duration birth-gap classifiers are rejected for compact persistence evaluation.
+- Prefer direct paired causal outcomes over synthetic persistence scores.
+- **Initial founder encounter connectivity is a real causal factor in some worlds, but maximizing it is not a universally beneficial placement objective.** Sprint030 fresh validation rejects the Sprint029 encounter-safe algorithm.
 
 ## Authoritative grazer lifecycle
 
@@ -45,15 +37,13 @@ with keyed daily randomness and no hard maximum age. Daily order remains:
 
 Vegetation-rich top32/round-robin placement with keyed founder ages `[0,6y]`; ten founders pass the original 30-seed/120y 24×24 research gate. This remains research-only.
 
-### Sprints022–024 — scalar compact rules rejected
+### Sprints022–024 — compact scalar rules rejected
 
-Fixed10 and simple area scaling fail some 16×16 worlds. Counts `2/4/6/8/10` are strongly non-monotonic. Failures split into initial encounter/establishment failure, later resource-demography recovery failure, and terminal sampling of living cycle troughs.
+Fixed10, simple area scaling, and counts `2/4/6/8/10` are not universal on 16×16. Failure modes split into initial encounter/establishment failure, later resource-demography recovery failure, and terminal sampling of living cycle troughs.
 
-### Sprints025–028 — synthetic persistence thresholds rejected
+### Sprints025–028 — scalar persistence classifiers rejected
 
-Long-horizon follow-up shows one terminal checkpoint is phase-sensitive. A 40y `low-pop OR zero-birth` rule is falsified unseen by seed20×2; a 40y zero-birth-only rule has zero false signals but zero living-world triggers; exact birth-gap derivation then shows decisive overlap between persistent and eventual-extinction worlds.
-
-Late-extinction terminal birthless gaps span ~0.42–29.98y (median ~21.49y), while persistent observed gaps reach ~22.71y; 16/31 late extinctions fall inside the persistent range. Stop scalar threshold search.
+Long-horizon research rejects single terminal checkpoints, prolonged low population, and single birth-gap durations as universal compact persistence classifiers. Persistent and eventual-extinction birth-gap distributions overlap strongly.
 
 Evidence:
 
@@ -62,41 +52,50 @@ Evidence:
 - `docs/experiments/2026-08-24-grazer-zero-birth-stall-validation.md`
 - `docs/experiments/2026-08-24-grazer-birth-stall-sensitivity.md`
 
-### Sprint029 / #134 — encounter-safe placement paired A/B passes research gate
+### Sprint029 / #134 — encounter-safe placement looked promising in derivation
 
-One narrow intervention changes **only founder coordinates inside the existing vegetation-rich top32 candidate pool**. Founder count, IDs, keyed ages, reproduction, mortality, resource behavior, and sequential RNG remain fixed.
+Seeds1–60 × founders2/4 × baseline/intervention, y300:
 
-Paired matrix: seeds1–60 × founders2/4 × baseline/intervention, each through year300.
+- founders2: extinctions 23→22, rescued1/harmed0, zero-birth extinctions6→5, initial zero-pair worlds13→0;
+- founders4: extinctions13→11, rescued2/harmed0.
+
+This produced genuine direct rescues with no paired harms and therefore advanced to frozen fresh validation only.
+
+Evidence: `docs/experiments/2026-08-24-grazer-encounter-safe-placement.md`.
+
+### Sprint030 / #136 — fresh validation rejects encounter-safe placement
+
+Fresh seeds61–120 × founders2/4 × both arms, y300:
 
 #### Two founders
 
-- baseline extinctions: **23**;
-- encounter-safe extinctions: **22**;
+- baseline extinctions: **33**;
+- intervention extinctions: **35**;
 - rescued: **1**;
-- harmed: **0**;
-- zero-birth extinctions: **6 → 5**;
-- initial zero-pair founder worlds: **13 → 0**.
+- harmed: **3**;
+- zero-birth extinctions: 16→14;
+- initial zero-pair worlds: 23→0.
 
 #### Four founders
 
-- baseline extinctions: **13**;
-- encounter-safe extinctions: **11**;
-- rescued: **2**;
-- harmed: **0**.
+- baseline extinctions: **17**;
+- intervention extinctions: **17**;
+- rescued: **3**;
+- harmed: **3**.
 
-Median starvation deaths remain zero across both counts/arms. Two-founder median vegetation minimum is unchanged; four-founder intervention minimum is only modestly lower, without harm excess or systematic starvation.
+Combined rescued=`4`, harmed=`6`, violating the pre-registered validation rule. The founders2 intervention also increases total extinction.
 
-Direct rescues:
+Harms are not explained by a systematic starvation collapse. Examples:
 
-- **seed22×2**: disconnected baseline, 2 total births, extinct ~y34 → connected intervention, 16 births by y20 / 366 total, alive y300 pop23;
-- **seed19×4**: baseline extinct ~y258.7 → intervention alive y300 pop18;
-- **seed33×4**: fragmented founder graph, baseline extinct ~y241.7 → connected intervention alive y300 pop20.
+- seed68×4 baseline survives y300, while the more-connected intervention produces **0 births** and dies ~y26 with vegetation still ~76% at minimum;
+- seed75×4 baseline survives y300, while intervention produces only 1 birth and dies ~y25 with abundant vegetation;
+- seed77/79/120×2 baseline survive but intervention later goes extinct, all with zero starvation.
 
-Important negative evidence: encounter connectivity does not guarantee establishment. Several radius3-connected 2-founder worlds still produce zero births and die. Placement repairs one causal failure mode; it is not a survival controller.
+The intervention still creates real rescues, e.g. seed83×2, seed83×4, seed109×4 and seed120×4. Therefore encounter geometry is causally real but heterogeneous: optimizing initial graph connectivity can rescue some landscapes and harm others by changing exact local geometry/movement/condition trajectories.
 
-**Decision:** the exact frozen encounter-safe algorithm passes the pre-registered paired research gate and may proceed to fresh-seed validation only. Do not tune radius3/top32/counts/ages/ecology before validation; do not promote to runtime/default fauna.
+**Decision: reject the Sprint029 encounter-safe placement candidate.** Do not tune radius3, top32 pool, greedy order, founder counts, ages or ecology inside this hypothesis. Do not promote to runtime/default fauna.
 
-Evidence: `docs/experiments/2026-08-24-grazer-encounter-safe-placement.md`.
+Evidence: `docs/experiments/2026-08-24-grazer-encounter-safe-placement-fresh-validation.md`.
 
 ## Human / settlement checkpoint
 
@@ -104,19 +103,16 @@ The post-social 100×200 baseline completes all 100 seeds; only seeds49/62/98 co
 
 ## Next decision gate
 
-Fresh-seed validation of the **exact Sprint029 encounter-safe placement algorithm**.
+Do **not** continue optimizing initial connectivity as if it were a monotonic objective.
 
-The validation must:
+The next project decision should reconsider compact natural-fauna activation itself before inventing another placement heuristic. Current evidence supports a simpler product boundary:
 
-- use compact seeds not used in the paired derivation matrix;
-- freeze top32 pool, radius3 selection logic, founder counts `2/4`, keyed ages, and all ecology;
-- preserve paired baseline/intervention comparison;
-- use actual extinction/time-to-extinction, births/replacement births, resource minima, and starvation—not a synthetic persistence threshold;
-- require that rescue benefit does not reverse into a harm excess;
-- audit every harmed case if any.
+- 24×24 natural-fauna initialization has a research candidate;
+- 16×16 ecology is highly path-dependent and no tested scalar count/area/placement/persistence rule is robust;
+- default worlds remain creature-free anyway.
 
-Only after fresh validation may a separate issue consider whether this placement belongs in an explicit opt-in natural-fauna initializer. Default worlds remain creature-free.
+A sensible next gate is to compare product policies such as `natural fauna opt-in only on validated world sizes` versus continuing compact auto-initializer research, using existing evidence rather than another immediate parameter/placement search.
 
 ## Project-management rule
 
-Prefer paired causal experiments to scalar warning metrics. Preserve negative and heterogeneous outcomes, separate derivation from validation, and keep runtime changes downstream of evidence.
+Fresh validation outranks derivation wins. Do not tune a rejected candidate inside the same hypothesis. Preserve both rescues and harms, and keep runtime changes downstream of replicated evidence.
