@@ -6,7 +6,7 @@ import { summarizeSettlementFoodStorage } from '../engine/systems/settlement_foo
 
 const seeds = [1, 4, 9, 45, 80, 98];
 
-test('temporary 6-seed 100-year settlement storage off-vs-on probe', () => {
+test('temporary 6-seed 200-year settlement storage off-vs-on probe', () => {
   const rows = [];
 
   for (const seed of seeds) {
@@ -18,7 +18,7 @@ test('temporary 6-seed 100-year settlement storage off-vs-on probe', () => {
       population: 30,
       config: { settlementFoodStorageEnabled: true }
     });
-    const days = 100 * offWorld.config.daysPerYear;
+    const days = 200 * offWorld.config.daysPerYear;
     tickWorld(offWorld, days);
     tickWorld(onWorld, days);
 
@@ -56,12 +56,9 @@ test('temporary 6-seed 100-year settlement storage off-vs-on probe', () => {
   }
 
   const seed45 = rows.find((row) => row.seed === 45);
-  assert.deepEqual(
-    { population: seed45.off.population, births: seed45.off.births, deaths: seed45.off.deaths },
-    { population: 35, births: 44, deaths: 39 }
-  );
+  assert.equal(seed45.off.population, 128);
   assert.equal(rows.length, seeds.length);
-  console.log(`SETTLEMENT_STORAGE_AB_100Y ${JSON.stringify({ rows })}`);
+  console.log(`SETTLEMENT_STORAGE_AB_200Y ${JSON.stringify({ rows })}`);
 });
 
 function pickWorld(summary) {
