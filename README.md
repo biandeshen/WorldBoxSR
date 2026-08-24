@@ -10,9 +10,9 @@ The project goal is **not** to copy WorldBox code, assets, branding, or propriet
 
 ## Current release target: v0.1.0 — A Living World
 
-The project is now in **release hardening**, not open-ended feature discovery.
+The project is in **release hardening**, not open-ended feature discovery.
 
-The v0.1 vertical slice already contains:
+The v0.1 vertical slice contains:
 
 - deterministic seeded world simulation;
 - procedural terrain and renewable food/vegetation;
@@ -26,7 +26,10 @@ The v0.1 vertical slice already contains:
 
 Universal natural-fauna auto-initialization is **not a v0.1 blocker**. It moves to v0.2 Living Ecology with a declared support matrix instead of holding the first release until every map size/seed is solved.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the finite version plan and [`docs/backlog/v0.1.md`](docs/backlog/v0.1.md) for the release checklist.
+- [Finite release roadmap](docs/ROADMAP.md)
+- [v0.1 release checklist](docs/backlog/v0.1.md)
+- [v0.1 reproducible demo](docs/demos/v0.1.0.md)
+- [v0.1.0 release notes](docs/releases/v0.1.0.md)
 
 ## Run
 
@@ -41,7 +44,7 @@ npm run dev   # open http://127.0.0.1:8080
 Example machine-readable run:
 
 ```bash
-node tools/simulate.js --seed 42 --years 100 --population 30 --json
+npm run sim -- --seed 42 --years 100 --population 30 --json
 ```
 
 ## Repository map
