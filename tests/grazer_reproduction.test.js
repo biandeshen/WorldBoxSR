@@ -39,6 +39,28 @@ function reproductionWorld(seed = 9401, config = {}) {
   });
 }
 
+function passablePairAtDistance(world, distance) {
+  const passable = world.tiles.filter((tile) => tile.passable);
+  for (const first of passable) {
+    const second = passable.find((tile) => Math.max(
+      Math.abs(tile.x - first.x),
+      Math.abs(tile.y - first.y)
+    ) === distance);
+    if (second) return [first, second];
+  }
+  throw new Error(`test world must contain passable cells at Chebyshev distance ${distance}`);
+}
+
+function createAdultAt(world, tile) {
+  return createGrazer(world, {
+    x: tile.x,
+    y: tile.y,
+    ageDays: world.config.daysPerYear,
+    hunger: 0.1,
+    health: 1
+  });
+}
+
 test('eligible pair creates one typed grazer birth without sequential RNG', () => {
   const world = reproductionWorld();
   const [parentA, parentB] = createEligiblePair(world);
@@ -75,6 +97,37 @@ test('eligible pair creates one typed grazer birth without sequential RNG', () =
   assert.equal(world.creatures.length, 3);
 });
 
+test('partner search accepts distance three and rejects distance four without changing local resource radius', () => {
+  {
+    const world = reproductionWorld(9402);
+    const [first, second] = passablePairAtDistance(world, 3);
+    const parentA = createAdultAt(world, first);
+    const parentB = createAdultAt(world, second);
+    const rngBefore = world.rng.snapshot();
+
+    assert.equal(updateGrazerReproduction(world), 1);
+    assert.deepEqual(world.rng.snapshot(), rngBefore);
+    const birth = world.history.at(-1);
+    assert.equal(birth.type, 'creature.born');
+    assert.deepEqual(birth.parentCreatureIds, [parentA.id, parentB.id]);
+    assert.equal(world.creatures.at(-1).x, parentA.x);
+    assert.equal(world.creatures.at(-1).y, parentA.y);
+  }
+
+  {
+    const world = reproductionWorld(9403);
+    const [first, second] = passablePairAtDistance(world, 4);
+    createAdultAt(world, first);
+    createAdultAt(world, second);
+    const rngBefore = world.rng.snapshot();
+
+    assert.equal(updateGrazerReproduction(world), 0);
+    assert.equal(world.counters.creatureBirths, 0);
+    assert.equal(world.creatures.length, 2);
+    assert.deepEqual(world.rng.snapshot(), rngBefore);
+  }
+});
+
 test('grazer reproduction rejects each pre-registered eligibility failure', () => {
   {
     const world = reproductionWorld(9410);
@@ -105,19 +158,10 @@ test('grazer reproduction rejects each pre-registered eligibility failure', () =
   }
   {
     const world = reproductionWorld(9415);
-    const first = land(world);
-    const second = world.tiles.find((tile) => tile.passable && Math.max(
-      Math.abs(tile.x - first.x),
-      Math.abs(tile.y - first.y)
-    ) > 1);
-    assert.ok(second, 'test world must contain two non-adjacent land cells');
-    createGrazer(world, {
-      x: first.x, y: first.y, ageDays: world.config.daysPerYear, hunger: 0.1, health: 1
-    });
-    createGrazer(world, {
-      x: second.x, y: second.y, ageDays: world.config.daysPerYear, hunger: 0.1, health: 1
-    });
-    assert.equal(updateGrazerReproduction(world), 0, 'no adjacent eligible partner');
+    const [first, second] = passablePairAtDistance(world, 4);
+    createAdultAt(world, first);
+    createAdultAt(world, second);
+    assert.equal(updateGrazerReproduction(world), 0, 'no eligible partner within radius three');
   }
 });
 
