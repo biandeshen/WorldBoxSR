@@ -1,6 +1,11 @@
 import { createSettlement } from '../model/settlement.js';
 import { entityRef, pushEvent } from '../model/events.js';
 import { tileAt } from '../core/world.js';
+import {
+  initializeSettlementFoodStorage,
+  recordSettlementFoodStorageAbandonment,
+  updateSettlementFoodStorage
+} from './settlement_food_storage.js';
 
 export function updateSettlements(world) {
   const interval = world.config.settlementCheckIntervalDays;
@@ -40,6 +45,7 @@ export function updateSettlements(world) {
   for (const { tile } of eligible) {
     if (tooCloseToSettlement(world, tile.x, tile.y)) continue;
     const settlement = createSettlement(world, { x: tile.x, y: tile.y });
+    initializeSettlementFoodStorage(world, settlement);
     tile.settlementCandidateDays = 0;
     pushEvent(world, {
       type: 'settlement.founded',
@@ -54,6 +60,7 @@ export function updateSettlements(world) {
   updateSettlementMembership(world);
   updateSettlementLifecycle(world, interval);
   updateSettlementTerritory(world);
+  updateSettlementFoodStorage(world);
 }
 
 export function updateSettlementMembership(world) {
@@ -88,6 +95,7 @@ export function updateSettlementLifecycle(world, interval = world.config.settlem
     settlement.abandonedDay = world.day;
     settlement.population = 0;
     settlement.memberIds = [];
+    recordSettlementFoodStorageAbandonment(world, settlement);
     pushEvent(world, {
       type: 'settlement.abandoned',
       subject: entityRef('settlement', settlement.id),
