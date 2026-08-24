@@ -16,6 +16,6 @@ jobs:
       - run: npm test
       - uses: actions/upload-artifact@v4
         with:
-          name: grazer-turnover-radius3-stage2
-          path: tmp-research/grazer-turnover-radius3-stage2.json
+          name: grazer-turnover-radius3-stage3
+          path: tmp-research/grazer-turnover-radius3-stage3.json
       - run: npm run smoke
