@@ -9,7 +9,7 @@ import { updateGrazerReproduction, updateGrazers } from '../engine/systems/graze
 
 const SEEDS = [1, 4, 9];
 const DENSITIES = [20, 100, 200];
-const YEARS = 60;
+const YEARS = 120;
 const SAMPLE_INTERVAL_DAYS = 30;
 const CHECKPOINT_INTERVAL_YEARS = 5;
 const HAZARD_START_YEARS = 12;
@@ -19,7 +19,7 @@ const HAZARD_ANNUAL_CAP = 0.50;
 const HAZARD_SALT = 0x27d4eb2f;
 
 
-test('temporary 60-year gradual grazer mortality-hazard screen', () => {
+test('temporary 120-year gradual grazer mortality-hazard validation', () => {
   const rows = [];
 
   for (const density of DENSITIES) {
@@ -109,7 +109,7 @@ test('temporary 60-year gradual grazer mortality-hazard screen', () => {
   }
 
   assert.equal(rows.length, SEEDS.length * DENSITIES.length);
-  console.log(`GRAZER_MORTALITY_HAZARD_60Y ${JSON.stringify({ rows })}`);
+  console.log(`GRAZER_MORTALITY_HAZARD_120Y ${JSON.stringify({ rows })}`);
 });
 
 function seedAgeTwoFounders(world, count) {
