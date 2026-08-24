@@ -9,7 +9,7 @@ Last updated: 2026-08-24
 - seeded, serializable RNG and fixed-tick world state;
 - procedural elevation/moisture, land/ocean, renewable food, and renewable vegetation biomass;
 - human hunger, movement, eating, aging, reproduction, death, ancestry, and lineage history;
-- a typed creature domain with explicit-spawn grazer ecology;
+- a typed creature domain with explicit-spawn grazer ecology and default-off authoritative grazer reproduction;
 - emergent settlement formation, weak home cohesion, abandonment, territory, and causal history;
 - behavior-neutral settlement resource accounting;
 - persistent historical co-parent (`parental_union`) edges;
@@ -19,7 +19,7 @@ Last updated: 2026-08-24
 - deterministic history queries plus a causal timeline/event inspector for world, human, creature, and settlement history;
 - deterministic Spawn human, Spawn grazer, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Default worlds remain creature-free. Sprint 011 changes research evidence only; it does not change runtime simulation behavior.
+Default worlds remain creature-free. Grazer reproduction exists only when explicitly enabled through a nonzero reproduction chance; its default is zero.
 
 ## Architecture decisions that remain binding
 
@@ -42,6 +42,10 @@ Settlement shared-food-storage v0 was implemented off by default, tested, and re
 ### Natural settlement extinction is valid world history
 
 Across the 100×200 baseline only three worlds contain a naturally abandoned settlement. Detailed flow reconciliation showed heterogeneous causes, including replacement-pipeline failure and outflow. Do not add generic fertility, migration, member-locking, storage, or persistence rescue rules merely to normalize survival.
+
+### Measured carrying capacity is not a population controller
+
+Sprint 011 found that overloaded grazer populations converge toward landscape-specific survivor plateaus, and those plateaus normalize to roughly one long-run grazer per 14.8–15.0 vegetation-capacity units. This is empirical validation evidence only. Runtime reproduction never reads total vegetation capacity, a target population, or that ratio; it is driven by individual condition and local vegetation.
 
 ## Empirical checkpoints
 
@@ -87,17 +91,17 @@ No wildfire, burning-state, AOE, damage framework, or generic power registry was
 
 ## Completed ecology gate — Sprint 010 / #93
 
-The project has its first endogenous non-human loop: **explicit-spawn grazers consume renewable vegetation and can starve when the resource is unavailable**.
+The project gained its first endogenous non-human loop: **explicit-spawn grazers consume renewable vegetation and can starve when the resource is unavailable**.
 
 Creature identity is independent from human identity (`world.creatures`, `nextCreatureId`, typed event references, typed history queries), preventing animals from shifting future human keyed-random behavior.
 
-Grazer v0 ages, becomes hungry, consumes vegetation, moves locally toward vegetation, uses keyed randomness, can starve, and emits typed death history. It does not reproduce, attack humans, consume human food, join settlements, or own territory.
+Grazer v0 ages, becomes hungry, consumes vegetation, moves locally toward vegetation, uses keyed randomness, can starve, and emits typed death history. Sprint 010 intentionally had no reproduction, attack, human-food, settlement, or territory behavior.
 
 Default worlds contain **zero creatures**.
 
 ## Completed carrying-pressure gate — Sprint 011 / #95
 
-The no-reproduction grazer system now has a measured long-horizon carrying-pressure envelope.
+The no-reproduction grazer system has a measured long-horizon carrying-pressure envelope.
 
 A broad 5-year bracket on landscape seeds `1/4/9` showed:
 
@@ -117,29 +121,58 @@ Normalizing those overloaded survivor plateaus by total vegetation capacity coll
 
 The evidence is recorded in `docs/experiments/2026-08-24-grazer-carrying-pressure.md`.
 
-### Decision
+## Completed reproduction research gate — Sprint 012 / #97
 
-The gate passes only for a **narrow off-by-default reproduction experiment**. The current grazer energy/resource scale is already strong enough; do not retune it first.
+A pre-registered local reproduction rule was tested as temporary research logic before runtime state was added.
 
-This does not justify default animals, predators, species infrastructure, a global population controller, or a broad ecology framework.
+Eligible pairs required adulthood, adjacent location, health >= 0.95, hunger at or below the existing hungry threshold, radius-1 local vegetation utilization >= 0.50, and a one-year successful-birth cooldown. Each stable eligible pair used keyed-random birth chance `0.001` per day.
+
+### 10-year evidence
+
+- 20 founders grew to **30 / 31 / 35** across seeds 1/4/9 with zero deaths and ~94%–97% final vegetation utilization.
+- 200 founders produced some early births, then local resource/condition pressure suppressed further births and final populations converged to **115 / 161 / 133**, essentially the no-reproduction plateaus.
+
+### 20-year extension
+
+The unchanged rule was extended for 20/100-founder cases:
+
+- 20 founders reached **65 / 64 / 78** with zero deaths while vegetation remained **80%–91%** utilized;
+- 100 founders settled at **115 / 155 / 134**; cumulative births froze at **23 / 55 / 35** and vegetation stabilized around ~4%–5% in the resource-limited state.
+
+The same rule therefore expands low-density populations, self-suppresses under pressure, stays bounded, preserves landscape-dependent carrying capacity, and consumes no sequential RNG. Evidence is recorded in `docs/experiments/2026-08-24-grazer-reproduction-probe.md`.
+
+## Completed authoritative reproduction gate — Sprint 013 / #100
+
+The Sprint 012 rule is now authoritative runtime behavior behind `grazerBirthChancePerEligiblePairPerDay`, whose default is **0**.
+
+### Minimal state and causal history
+
+Each grazer stores only `lastBirthDay` for the successful-birth cooldown. A successful birth:
+
+- creates one age-0 grazer on a parent tile;
+- writes the same `lastBirthDay` to both parents;
+- increments `creatureBirths`;
+- emits `creature.born` with the newborn as typed subject and both parents as typed creature causes plus `parentCreatureIds`.
+
+There is no sex state, mate bond, creature genealogy, gestation, litter model, predator framework, species registry, or global population controller.
+
+### Determinism and persistence
+
+Reproduction runs after the day’s grazer/human actions and day increment, matching the research probe ordering so newborns first act on the next tick.
+
+Snapshot schema is **v11**. v10 migration deterministically supplies `lastBirthDay: null`, `creatureBirths: 0`, and the default-zero reproduction chance. Enabled save/load continuation preserves cooldowns, events, counters, IDs, creature state, and future keyed outcomes exactly.
+
+Tests cover every eligibility rejection, forced success, parent cooldown, typed parent/child history lookup, default-off inertness, v10 migration, enabled save/load, sequential RNG isolation, and the multi-seed 10-year low-density/overload envelope. Full normal CI and smoke pass.
 
 ## Next decision gate
 
-Test the smallest plausible grazer reproduction mechanism off by default.
+Do **not** enable default animals yet and do not jump to predators/species infrastructure.
 
-The experiment must:
+The grazer life cycle has one remaining structural gap: `ageDays` advances, but a well-fed low-pressure grazer currently has no natural senescent death. With reproduction enabled, starvation can regulate population near carrying pressure, but low-density individuals can otherwise live indefinitely.
 
-- depend on individual condition and local vegetation rather than a global target population;
-- suppress births under hunger/starvation/resource collapse;
-- use keyed randomness and stable ordering so sequential human RNG remains untouched;
-- preserve the separate human/creature identity domains;
-- recover low-density populations without runaway growth or permanent vegetation collapse;
-- stay bounded across multiple landscape seeds and starting densities;
-- reproduce the carrying-pressure envelope from local feedback rather than reading the measured ~15-capacity-units-per-grazer ratio as a control target.
+The next ecology gate should measure and add the smallest coherent natural-turnover mechanism, then re-run the reproduction/carrying envelope. It must preserve keyed/sequential RNG isolation, typed death history, deterministic save/load, and the principle that local resource feedback—not a population target—controls abundance.
 
-If a simple mechanism cannot satisfy those constraints, record the negative result rather than parameter-searching it into success.
-
-Territory visualization, civilization labels, predators, meteor/plague, and art expansion remain lower priority unless they become the actual bottleneck.
+Territory visualization, civilization labels, meteor/plague, predators, and art expansion remain lower priority unless they become the actual bottleneck.
 
 ## Project-management rule
 
