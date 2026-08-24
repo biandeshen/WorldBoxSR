@@ -62,7 +62,9 @@ test('demography uses existing reproduction eligibility and geographic radius-1 
       // Eligible male is assigned to another settlement but is locally usable by
       // the real reproduction rule because partner search ignores settlement ID.
       human({ id: 3, settlementId: 2, sex: 'M', ageYears: 28, x: 2, y: 1 }),
-      human({ id: 4, settlementId: 1, sex: 'M', ageYears: 60, x: 6, y: 5 }),
+      // Male fertility has no upper-age cutoff in the authoritative rule; keep
+      // this eligible older male outside radius1 of both S1 females.
+      human({ id: 4, settlementId: 1, sex: 'M', ageYears: 60, x: 3, y: 3 }),
       human({ id: 5, settlementId: 1, sex: 'F', ageYears: 10, x: 4, y: 4 })
     ]
   });
