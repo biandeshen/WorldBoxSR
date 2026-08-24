@@ -16,9 +16,9 @@ Last updated: 2026-08-24
 - isolated/checkpointable Simulation Lab, deterministic save/load, long-run regressions, and 10k-agent benchmark coverage;
 - a lightweight Canvas client that consumes authoritative simulation state;
 - deterministic history queries plus a causal timeline/event inspector for world, human, and settlement history;
-- deterministic `spawn_human` and exact-tile `erase` god interventions exposed through a minimal client tool selector.
+- deterministic Spawn human, Erase humans, and Lightning god interventions exposed through a minimal client tool selector.
 
-Clean CI after Sprint 008 / #89: **166/166 tests + smoke**.
+Clean CI after Sprint 009 / #91: **172/172 tests + smoke**.
 
 ## Completed architecture corrections
 
@@ -143,31 +143,34 @@ Erase consumes no RNG, does not directly force settlement lifecycle off-cadence,
 
 The world now has a second renewable authoritative resource: **vegetation biomass**.
 
-Vegetation v0:
+Vegetation v0 derives capacity from moisture, regenerates independently of food, remains zero on ocean, persists under snapshot schema v9, and is behavior-neutral to humans/settlements. A 20-year divergent-regrowth semantic comparison preserved human, food, settlement, lineage, union, causal-history, counter, ID, and RNG state exactly.
 
-- derives land capacity transparently from existing moisture: `2 + 8 * moisture`;
-- derives initial biomass from capacity and already-existing fertility without another RNG draw;
-- regenerates daily with a moisture-dependent rate and hard capacity clamp;
-- remains exactly zero on ocean;
-- is serialized under snapshot schema **v9**;
-- exposes total biomass/capacity/utilization through derived metrics;
-- is not consumed or read by humans or settlements yet.
+## Completed environment-disturbance gate — Sprint 009 / #91
 
-A dedicated 20-year semantic comparison drove vegetation along radically different trajectories (`regrowth 0` vs `1`) and still produced exactly identical human, food, settlement, lineage, union, causal-history, counter, ID, and RNG state. The independent seed45 regression also remained green.
+Lightning is the first real causal loop involving vegetation:
 
-Vegetation is therefore a real environmental substrate without becoming a hidden demographic parameter.
+`player lightning → exact-tile vegetation reset + shared human death lifecycle → inspectable history → deterministic vegetation recovery`
+
+Lightning v0:
+
+- accepts any in-bounds tile, including ocean;
+- records vegetation before/after and stable human targets in `god.lightning`;
+- kills exact-tile humans with cause `lightning` linked back to the god event;
+- reuses parental-union mortality bookkeeping;
+- consumes no RNG;
+- does not alter food, terrain, ownership, or force settlement lifecycle off-cadence;
+- relies only on normal vegetation regeneration for recovery;
+- is exposed as the third minimal client god tool.
+
+No wildfire, burning state, damage framework, AOE, or generic power registry was introduced. Final feature CI passed **172/172 tests + smoke**.
 
 ## Next decision gate
 
-Do not add more resource fields or a generic powers framework just because the substrate exists.
+The vegetation substrate now has a player-driven disturbance/recovery loop. Do **not** automatically build wildfire or another power checklist item.
 
-The next high-value step should create the **first real causal loop involving vegetation**. Strong candidates are:
+The next higher-value step should preferably make vegetation matter **endogenously without player action**. The strongest candidate is a minimal herbivore/creature that consumes vegetation, has deterministic bounded movement/survival, and can be spawned through a narrow creature command. That would create the first ecology loop while also exercising the still-open generalized creature-spawn backlog.
 
-- a minimal endogenous creature/herbivore that consumes vegetation and can be spawned, creating the first ecology loop;
-- a genuinely different disturbance such as lightning/fire that removes vegetation and uses the god-intervention/history seam;
-- territory visualization only if current-state legibility becomes the bottleneck.
-
-Prefer an endogenous simulation loop over a purely presentational increment. Whichever path is chosen should remain narrow and prove its own mechanics before abstraction.
+If that path is taken, protect the existing human/settlement baseline: default worlds should not silently gain animals until a multi-seed ecology experiment demonstrates safe coexistence.
 
 ## Project-management rule
 
