@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, isPreview }) => ({
   root: 'client',
-  base: command === 'build' ? '/WorldBoxSR/' : '/',
+  base: command === 'build' || isPreview === true ? '/WorldBoxSR/' : '/',
   server: {
     host: process.env.HOST || '127.0.0.1',
     port: Number(process.env.PORT || 8080),
