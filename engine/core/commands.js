@@ -10,6 +10,8 @@ export function applyCommand(world, command) {
       return spawnHumans(world, command);
     case 'erase':
       return eraseHumans(world, command);
+    case 'lightning':
+      return strikeLightning(world, command);
     default:
       throw new Error(`Unknown command type: ${command.type}`);
   }
@@ -44,9 +46,7 @@ function spawnHumans(world, command) {
 function eraseHumans(world, command) {
   const x = integerInRange(command.x, 0, world.width - 1, 'x');
   const y = integerInRange(command.y, 0, world.height - 1, 'y');
-  const targets = world.entities
-    .filter((entity) => entity.kind === 'human' && entity.alive && entity.x === x && entity.y === y)
-    .sort((a, b) => a.id - b.id);
+  const targets = livingHumansAtTile(world, x, y);
   const entityIds = targets.map((human) => human.id);
 
   const commandId = world.nextCommandId++;
@@ -60,14 +60,50 @@ function eraseHumans(world, command) {
     entityIds
   });
 
+  killTargetHumans(world, targets, 'erased', eraseEvent.id);
+  return entityIds;
+}
+
+function strikeLightning(world, command) {
+  const x = integerInRange(command.x, 0, world.width - 1, 'x');
+  const y = integerInRange(command.y, 0, world.height - 1, 'y');
+  const tile = world.tiles[y * world.width + x];
+  const targets = livingHumansAtTile(world, x, y);
+  const entityIds = targets.map((human) => human.id);
+  const vegetationBefore = tile.vegetation;
+
+  const commandId = world.nextCommandId++;
+  const lightningEvent = pushEvent(world, {
+    type: 'god.lightning',
+    subject: worldSubject(),
+    causes: [commandRef(commandId, command.type)],
+    x,
+    y,
+    vegetationBefore,
+    vegetationAfter: 0,
+    count: entityIds.length,
+    entityIds
+  });
+
+  tile.vegetation = 0;
+  killTargetHumans(world, targets, 'lightning', lightningEvent.id);
+  return entityIds;
+}
+
+function livingHumansAtTile(world, x, y) {
+  return world.entities
+    .filter((entity) => entity.kind === 'human' && entity.alive && entity.x === x && entity.y === y)
+    .sort((a, b) => a.id - b.id);
+}
+
+function killTargetHumans(world, targets, cause, causeEventId) {
   for (const human of targets) {
     killHuman(world, human, {
-      cause: 'erased',
-      causes: [eventRef(eraseEvent.id)]
+      cause,
+      causes: [eventRef(causeEventId)]
     });
   }
   world.entities = world.entities.filter((entity) => entity.alive);
-  return entityIds;
 }
 
 function integerInRange(value, min, max, name) {
