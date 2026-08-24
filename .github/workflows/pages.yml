@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 22
       - name: Install browser toolchain
-        run: npm install --no-audit --no-fund
+        run: npm install --package-lock=false --no-audit --no-fund
       - name: Build static demo
         run: npm run pages:build
       - name: Configure Pages
