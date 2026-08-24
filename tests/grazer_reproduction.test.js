@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { historyForCreature } from '../engine/analysis/history_query.js';
 import { summarizeWorld } from '../engine/core/metrics.js';
-import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, SNAPSHOT_VERSION, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createGrazer } from '../engine/model/grazer.js';
 import { updateGrazerReproduction } from '../engine/systems/grazers.js';
 
@@ -213,7 +213,7 @@ test('default-off reproduction leaves cooldown state behaviorally inert', () => 
   assert.deepEqual(second.tiles, first.tiles);
 });
 
-test('snapshot v10 migrates deterministically to inert v11 reproduction state', () => {
+test('snapshot v10 migrates deterministically to inert reproduction state under current schema', () => {
   const world = createWorld({ seed: 9430, width: 12, height: 12, population: 2 });
   const tile = land(world);
   createGrazer(world, { x: tile.x, y: tile.y, ageDays: 50 });
@@ -225,12 +225,12 @@ test('snapshot v10 migrates deterministically to inert v11 reproduction state', 
 
   const restored = worldFromSnapshot(legacy);
 
-  assert.equal(restored.snapshotVersion, 11);
+  assert.equal(restored.snapshotVersion, SNAPSHOT_VERSION);
   assert.equal(restored.config.grazerBirthChancePerEligiblePairPerDay, 0);
   assert.equal(restored.counters.creatureBirths, 0);
   assert.equal(restored.creatures[0].lastBirthDay, null);
   const migrated = snapshotWorld(restored);
-  assert.equal(migrated.snapshotVersion, 11);
+  assert.equal(migrated.snapshotVersion, SNAPSHOT_VERSION);
   assert.equal(migrated.creatures[0].lastBirthDay, null);
   assert.equal(migrated.counters.creatureBirths, 0);
 });
