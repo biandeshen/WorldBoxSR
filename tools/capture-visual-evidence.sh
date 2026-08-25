@@ -9,38 +9,23 @@ ready_marker="Phaser 4 · authoritative simulation · showcase ready"
 
 browser=""
 for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
-  if command -v "$candidate" >/dev/null 2>&1; then
-    browser="$(command -v "$candidate")"
-    break
-  fi
+  if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
 done
-
-if [[ -z "$browser" ]]; then
-  echo "Visual QA requires Chrome/Chromium on PATH" >&2
-  exit 2
-fi
+if [[ -z "$browser" ]]; then echo "Visual QA requires Chrome/Chromium on PATH" >&2; exit 2; fi
 
 mkdir -p "$out_dir"
 rm -f "$log_file"
-
 npm run pages:build
 npx vite preview --host 127.0.0.1 --port "$port" --strictPort >"$log_file" 2>&1 &
 preview_pid=$!
 user_data_dir="$(mktemp -d)"
-
-cleanup() {
-  kill "$preview_pid" >/dev/null 2>&1 || true
-  wait "$preview_pid" >/dev/null 2>&1 || true
-  rm -rf "$user_data_dir"
-}
+cleanup() { kill "$preview_pid" >/dev/null 2>&1 || true; wait "$preview_pid" >/dev/null 2>&1 || true; rm -rf "$user_data_dir"; }
 trap cleanup EXIT
-
 for _ in $(seq 1 50); do
   if curl --silent --show-error --fail --max-time 1 "$base_url" >/dev/null 2>&1; then break; fi
   if ! kill -0 "$preview_pid" 2>/dev/null; then cat "$log_file" >&2 || true; exit 1; fi
   sleep 0.2
 done
-
 curl --silent --show-error --fail "$base_url" >/dev/null
 
 chrome_flags=(
@@ -75,30 +60,17 @@ node tools/capture-bookmark-evidence.mjs "$browser" "$base_url" "$out_dir"
 node tools/capture-chronicle-lenses-evidence.mjs "$browser" "$base_url" "$out_dir"
 bash tools/run-world-stories-gate.sh "$browser" "$base_url" "$out_dir"
 node tools/capture-natural-fauna-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.6 capability 2: keep the natural Living Ecology grazer world, pause it,
-# explicitly spawn one Wolf through the authoritative hidden QA creature-spawn
-# path, then prove the two species are visually/inspectably distinct while the
-# paused read-only presentation path remains authority-neutral.
 node tools/capture-multi-species-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.6 capability 3: in a fresh Living Ecology world, explicitly create one
-# Wolf through that same hidden QA setup path, set the ordinary Time control to
-# one day, real-click Play, and require actual daily simulation to move the Wolf
-# and produce a causal Wolf→Grazer predation + death + feeding consequence.
 node tools/capture-wolf-predation-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.6 capability 4: reuse the shipped predation authority in a fresh world,
-# then require pure presentation/query surfaces to explain it: current behavior,
-# vegetation utilization, live Pulse, Recent Chronicle and Causal Event Card.
 node tools/capture-ecology-readability-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.6 canonical release gate: start paused on the supported Y40 Living Ecology
-# trough, advance to exact Y50 recovery through the real 1-year Time control,
-# click the one frozen QA Wolf setup tile, then use ordinary 1-day Play to prove
-# movement → predation → readable Pulse/Recent/Event Card/current Wolf. This is
-# orchestration/evidence only; it adds no ecology mechanic or balance behavior.
 node tools/capture-canonical-ecology-evidence.mjs "$browser" "$base_url" "$out_dir"
+
+# v0.7 capability 2: through the real existing Phaser pointer path, enter the
+# visible paused Scenario Setup workspace, place Human/Grazer/Wolf, prove a
+# rejected sea click is identity-neutral, rename, Clear via deterministic
+# rematerialization, rebuild the same exact start, then Run and prove ordinary
+# gameplay changes the world without rewriting the frozen recipe.
+node tools/capture-scenario-setup-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
@@ -145,7 +117,10 @@ canonical_ecology_trough=living-ecology-canonical-trough-y40-1440x900.png
 canonical_ecology_recovery=living-ecology-canonical-recovery-y50-1440x900.png
 canonical_ecology_predation=living-ecology-canonical-predation-1440x900.png
 canonical_ecology_authority=canonical-ecology-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus all v0.6 component gates and the canonical Living Ecology trough→recovery→predation story preserve declared authority boundaries
+scenario_setup=scenario-setup-three-actions-1440x900.png
+scenario_running_start=scenario-running-start-1440x900.png
+scenario_setup_authority=scenario-setup-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus v0.7 Scenario Setup compose→reject→rename→Clear→rebuild→Run boundary preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
