@@ -9,9 +9,11 @@ if (!browser || !baseUrl || !outDir) {
   process.exit(2);
 }
 
+// Fixed seed45 Sandbox coordinates. These are intentionally pre-registered and
+// far enough right to remain real-clickable with the compact Setup card open.
 const SETUP = Object.freeze([
-  Object.freeze({ placement: 'human', x: 4, y: 8, count: 1 }),
-  Object.freeze({ placement: 'grazer', x: 9, y: 12, count: 1 }),
+  Object.freeze({ placement: 'human', x: 12, y: 8, count: 1 }),
+  Object.freeze({ placement: 'grazer', x: 16, y: 12, count: 1 }),
   Object.freeze({ placement: 'wolf', x: 14, y: 7, count: 1 })
 ]);
 const IMPASSABLE = Object.freeze({ x: 18, y: 12 });
@@ -39,8 +41,7 @@ try {
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.scenarioSetup?.attached === true`, 4_000);
 
-  // Rebuild one exact ordinary Sandbox baseline while paused so Setup must
-  // reproduce the current product-ready world byte-for-byte.
+  // Establish one exact ordinary seed45 Sandbox ready world while paused.
   await clickPauseTo(cdp, true);
   await clickSelector(cdp, '#reset');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('evolving showcase') === true`, 3_000);
@@ -54,56 +55,54 @@ try {
   const baseFingerprint = await fingerprint(cdp);
   const baseIdentity = await authorityIdentity(cdp);
 
+  // Visible entry must rematerialize exactly the same ready base and lock the
+  // ordinary world controls while Setup owns the map.
   await clickSelector(cdp, '#scenario-setup-enter');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('Scenario Setup ready') === true`, 25_000);
   await waitForExpression(cdp, `document.documentElement.dataset.scenarioSetup === 'true'`, 2_000);
   const entered = await setupState(cdp);
   assertActiveSetup(entered, 0, 'enter');
-  if (entered.name !== 'Untitled scenario') throw new Error(`unexpected initial Scenario name: ${entered.name}`);
-  if ((await fingerprint(cdp)) !== baseFingerprint) throw new Error('entering Scenario Setup did not rebuild the exact ordinary Sandbox ready base');
   assertLocked(entered, true, 'enter');
+  if (entered.name !== 'Untitled scenario') throw new Error(`unexpected initial Scenario name: ${entered.name}`);
+  if ((await fingerprint(cdp)) !== baseFingerprint) throw new Error('entering Scenario Setup did not rebuild exact ordinary Sandbox ready authority');
 
   const firstBuild = await placeThreeActions(cdp, baseIdentity);
-  if (firstBuild.recipe.setup.length !== 3 || firstBuild.countText !== '3/32 actions') {
-    throw new Error(`three-action Setup did not settle at 3/32: ${JSON.stringify(firstBuild)}`);
-  }
   assertSetupRecipe(firstBuild.recipe);
   assertOrderedEvents(firstBuild.newEvents, baseIdentity.nextCommandId);
   assertPlacedAuthority(firstBuild, 'first build');
+  if (firstBuild.countText !== '3/32 actions') throw new Error(`three-action Setup count mismatch: ${firstBuild.countText}`);
   const threeActionFingerprint = await fingerprint(cdp);
-  const threeActionRecipeBeforeName = JSON.stringify(firstBuild.recipe);
+  const preRenameRecipe = JSON.stringify(firstBuild.recipe);
 
+  // Real sea click must be rejected without changing accepted recipe or any
+  // command/entity/event identity.
   const rejectedBefore = await authorityIdentity(cdp);
   const rejectedFingerprint = await fingerprint(cdp);
   const rejectedRecipe = await currentDraftString(cdp);
-  const rejectedPoint = await fixedTilePoint(cdp, IMPASSABLE.x, IMPASSABLE.y);
-  await clickPoint(cdp, rejectedPoint, 0);
+  await clickPoint(cdp, await fixedTilePoint(cdp, IMPASSABLE.x, IMPASSABLE.y), 0);
   await delay(160);
-  const rejectedAfter = await authorityIdentity(cdp);
   if (await currentDraftString(cdp) !== rejectedRecipe) throw new Error('impassable Setup click changed accepted recipe draft');
   if ((await fingerprint(cdp)) !== rejectedFingerprint) throw new Error('impassable Setup click changed authoritative world');
-  if (JSON.stringify(rejectedAfter) !== JSON.stringify(rejectedBefore)) {
-    throw new Error(`impassable Setup click allocated identity: ${JSON.stringify({ rejectedBefore, rejectedAfter })}`);
-  }
-  if ((await evaluate(cdp, `document.querySelector('#scenario-setup-count')?.textContent`)) !== '3/32 actions') {
-    throw new Error('impassable Setup click changed action count');
-  }
+  if (JSON.stringify(await authorityIdentity(cdp)) !== JSON.stringify(rejectedBefore)) throw new Error('impassable Setup click allocated identity');
+  if ((await evaluate(cdp, `document.querySelector('#scenario-setup-count')?.textContent`)) !== '3/32 actions') throw new Error('impassable Setup click changed action count');
 
+  // Rename through the real input. Blur fires the product change handler.
   await replaceInputText(cdp, '#scenario-name', SCENARIO_NAME);
   await clickSelector(cdp, '#scenario-setup-heading');
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.scenarioSetup?.draft?.name === ${JSON.stringify(SCENARIO_NAME)}`, 2_000);
   if ((await fingerprint(cdp)) !== threeActionFingerprint) throw new Error('renaming Scenario Setup mutated authoritative world');
   const renamedRecipe = await currentDraft(cdp);
   if (renamedRecipe.name !== SCENARIO_NAME || renamedRecipe.setup.length !== 3) throw new Error(`Scenario rename did not preserve setup: ${JSON.stringify(renamedRecipe)}`);
-  if (JSON.stringify(renamedRecipe) === threeActionRecipeBeforeName) throw new Error('Scenario rename did not change recipe identity');
+  if (JSON.stringify(renamedRecipe) === preRenameRecipe) throw new Error('Scenario rename did not change recipe identity');
 
   const visuals = await visualEvidence(cdp, firstBuild.ids);
   if (!visuals.humanPresent || visuals.grazerSpecies !== 'grazer' || visuals.wolfSpecies !== 'wolf') {
-    throw new Error(`placed Setup actors are not present on shared Phaser entity surface: ${JSON.stringify(visuals)}`);
+    throw new Error(`placed Setup actors are not present on the shared Phaser entity surface: ${JSON.stringify(visuals)}`);
   }
   await captureScreenshot(cdp, join(outDir, 'scenario-setup-three-actions-1440x900.png'));
   if ((await fingerprint(cdp)) !== threeActionFingerprint) throw new Error('Scenario Setup screenshot mutated authority');
 
+  // Clear is deterministic rebuild, never reverse/delete-in-place.
   await clickSelector(cdp, '#scenario-setup-clear');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('Scenario Setup ready') === true`, 25_000);
   await waitForExpression(cdp, `document.querySelector('#scenario-setup-count')?.textContent === '0/32 actions'`, 2_000);
@@ -111,34 +110,35 @@ try {
   assertActiveSetup(cleared, 0, 'clear');
   assertLocked(cleared, true, 'clear');
   if (cleared.name !== SCENARIO_NAME) throw new Error(`Clear did not preserve Scenario name: ${cleared.name}`);
-  if ((await fingerprint(cdp)) !== baseFingerprint) throw new Error('Clear Setup did not rematerialize the exact empty ready base');
+  if ((await fingerprint(cdp)) !== baseFingerprint) throw new Error('Clear Setup did not restore exact empty ready base');
   const clearIdentity = await authorityIdentity(cdp);
   if (JSON.stringify(clearIdentity) !== JSON.stringify(baseIdentity)) throw new Error('Clear Setup did not restore base authoritative identity counters');
 
+  // Same ordered real clicks after Clear must reproduce exactly the same start.
   const secondBuild = await placeThreeActions(cdp, baseIdentity);
   assertSetupRecipe(secondBuild.recipe);
   assertOrderedEvents(secondBuild.newEvents, baseIdentity.nextCommandId);
   assertPlacedAuthority(secondBuild, 'second build');
   if (secondBuild.recipe.name !== SCENARIO_NAME) throw new Error('rebuild after Clear lost Scenario name');
   const rebuiltFingerprint = await fingerprint(cdp);
-  if (rebuiltFingerprint !== threeActionFingerprint) {
-    throw new Error('same ordered three-action Setup did not reproduce exact starting world after Clear');
-  }
+  if (rebuiltFingerprint !== threeActionFingerprint) throw new Error('same ordered Setup did not reproduce exact start after Clear');
   const startRecipeString = await currentDraftString(cdp);
 
+  // Run freezes the recipe in presentation state and restores ordinary controls
+  // without touching the starting world.
   await clickSelector(cdp, '#scenario-setup-run');
   await waitForExpression(cdp, `document.documentElement.dataset.scenarioSetup === 'false'`, 2_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.scenarioSetup?.frozen?.setup?.length === 3`, 2_000);
   const running = await setupState(cdp);
-  if (running.active || running.panelVisible || !running.badge.includes('SCENARIO · 3')) {
-    throw new Error(`Run Scenario did not exit Setup cleanly: ${JSON.stringify(running)}`);
-  }
+  if (running.active || running.panelVisible || !running.badge.includes('SCENARIO · 3')) throw new Error(`Run Scenario did not exit Setup cleanly: ${JSON.stringify(running)}`);
   assertLocked(running, false, 'run');
-  if ((await fingerprint(cdp)) !== rebuiltFingerprint) throw new Error('Run Scenario changed the frozen starting authoritative world');
+  if ((await fingerprint(cdp)) !== rebuiltFingerprint) throw new Error('Run Scenario changed starting authoritative world');
   const frozenBeforePlay = await frozenRecipeString(cdp);
   if (frozenBeforePlay !== startRecipeString) throw new Error('Run Scenario frozen recipe differs from accepted Setup draft');
   await captureScreenshot(cdp, join(outDir, 'scenario-running-start-1440x900.png'));
 
+  // Ordinary product Time/Play changes authority but must never rewrite the
+  // frozen setup identity.
   await setSpeed(cdp, '1');
   const runStartDay = await evaluate(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day`);
   await clickPauseTo(cdp, false);
@@ -166,26 +166,13 @@ try {
       visuals
     },
     clear: { exactBaseRestored: true, namePreserved: true, identity: clearIdentity },
-    rebuild: {
-      exactThreeActionStartRestored: true,
-      recipe: secondBuild.recipe,
-      fingerprint: fnv1a(rebuiltFingerprint)
-    },
-    runBoundary: {
-      startFingerprintUnchanged: true,
-      frozenRecipe: JSON.parse(frozenBeforePlay),
-      ordinaryControlsRestored: true
-    },
-    ordinaryPlay: {
-      worldChanged: true,
-      frozenRecipeUnchanged: true,
-      finalDay: finalState.day,
-      finalFingerprint: fnv1a(afterPlayFingerprint)
-    }
+    rebuild: { exactThreeActionStartRestored: true, recipe: secondBuild.recipe, fingerprint: fnv1a(rebuiltFingerprint) },
+    runBoundary: { startFingerprintUnchanged: true, frozenRecipe: JSON.parse(frozenBeforePlay), ordinaryControlsRestored: true },
+    ordinaryPlay: { worldChanged: true, frozenRecipeUnchanged: true, finalDay: finalState.day, finalFingerprint: fnv1a(afterPlayFingerprint) }
   };
   writeFileSync(join(outDir, 'scenario-setup-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
   console.log(
-    `Scenario Setup evidence: exact seed45 Sandbox base → Human 4,8 → Grazer 9,12 → Wolf 14,7; `
+    `Scenario Setup evidence: exact seed45 Sandbox base → Human 12,8 → Grazer 16,12 → Wolf 14,7; `
     + `impassable 18,12 rejected without identity/world change; rename authority-neutral; Clear restored exact base; `
     + `same 3-action start rebuilt exactly; Run preserved start and ordinary Play changed world while frozen recipe stayed unchanged`
   );
@@ -201,13 +188,12 @@ async function placeThreeActions(cdpClient, baseIdentity) {
   for (let index = 0; index < SETUP.length; index += 1) {
     const action = SETUP[index];
     await clickSelector(cdpClient, `[data-scenario-setup-tool="${action.placement}"]`);
-    const point = await fixedTilePoint(cdpClient, action.x, action.y);
-    await clickPoint(cdpClient, point, 0);
+    await clickPoint(cdpClient, await fixedTilePoint(cdpClient, action.x, action.y), 0);
     await waitForExpression(cdpClient, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.scenarioSetup?.draft?.setup?.length === ${index + 1}`, 2_000);
     await waitForExpression(cdpClient, `document.querySelector('#scenario-setup-count')?.textContent === '${index + 1}/32 actions'`, 1_500);
   }
 
-  const state = await evaluate(cdpClient, `(() => {
+  return evaluate(cdpClient, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const world = scene?.world;
     const events = world?.history?.filter((event) => event.id >= ${baseIdentity.nextEventId}) ?? [];
@@ -215,7 +201,7 @@ async function placeThreeActions(cdpClient, baseIdentity) {
     const grazerEvent = events.find((event) => event.type === 'god.spawn_creature' && event.species === 'grazer');
     const wolfEvent = events.find((event) => event.type === 'god.spawn_creature' && event.species === 'wolf');
     return {
-      recipe: scene?.scenarioSetup?.draft ?? null,
+      recipe: structuredClone(scene?.scenarioSetup?.draft ?? null),
       countText: document.querySelector('#scenario-setup-count')?.textContent ?? '',
       newEvents: events.map((event) => ({
         id: event.id, type: event.type, species: event.species ?? null, x: event.x, y: event.y,
@@ -226,12 +212,11 @@ async function placeThreeActions(cdpClient, baseIdentity) {
         grazerId: grazerEvent?.creatureIds?.[0] ?? null,
         wolfId: wolfEvent?.creatureIds?.[0] ?? null
       },
-      humansAtFixed: world?.entities?.filter((entity) => entity.kind === 'human' && entity.alive && entity.x === 4 && entity.y === 8).map((entity) => entity.id) ?? [],
-      grazersAtFixed: world?.creatures?.filter((creature) => creature.alive && creature.species === 'grazer' && creature.x === 9 && creature.y === 12).map((creature) => creature.id) ?? [],
+      humansAtFixed: world?.entities?.filter((entity) => entity.kind === 'human' && entity.alive && entity.x === 12 && entity.y === 8).map((entity) => entity.id) ?? [],
+      grazersAtFixed: world?.creatures?.filter((creature) => creature.alive && creature.species === 'grazer' && creature.x === 16 && creature.y === 12).map((creature) => creature.id) ?? [],
       wolvesAtFixed: world?.creatures?.filter((creature) => creature.alive && creature.species === 'wolf' && creature.x === 14 && creature.y === 7).map((creature) => creature.id) ?? []
     };
   })()`);
-  return state;
 }
 
 function assertSetupRecipe(recipe) {
@@ -241,16 +226,14 @@ function assertSetupRecipe(recipe) {
   const expected = SETUP.map((action) => action.placement === 'human'
     ? { type: 'spawn_human', x: action.x, y: action.y, count: action.count }
     : { type: 'spawn_creature', species: action.placement, x: action.x, y: action.y, count: action.count });
-  if (JSON.stringify(recipe.setup) !== JSON.stringify(expected)) {
-    throw new Error(`Scenario Setup ordered recipe mismatch: ${JSON.stringify(recipe.setup)}`);
-  }
+  if (JSON.stringify(recipe.setup) !== JSON.stringify(expected)) throw new Error(`Scenario Setup ordered recipe mismatch: ${JSON.stringify(recipe.setup)}`);
 }
 
 function assertOrderedEvents(events, firstCommandId) {
   if (events.length !== 3) throw new Error(`Scenario Setup should add exactly three authoritative events: ${JSON.stringify(events)}`);
   const expected = [
-    { type: 'god.spawn_human', species: null, x: 4, y: 8, count: 1, commandId: firstCommandId },
-    { type: 'god.spawn_creature', species: 'grazer', x: 9, y: 12, count: 1, commandId: firstCommandId + 1 },
+    { type: 'god.spawn_human', species: null, x: 12, y: 8, count: 1, commandId: firstCommandId },
+    { type: 'god.spawn_creature', species: 'grazer', x: 16, y: 12, count: 1, commandId: firstCommandId + 1 },
     { type: 'god.spawn_creature', species: 'wolf', x: 14, y: 7, count: 1, commandId: firstCommandId + 2 }
   ];
   for (let index = 0; index < expected.length; index += 1) {
@@ -261,15 +244,9 @@ function assertOrderedEvents(events, firstCommandId) {
 }
 
 function assertPlacedAuthority(state, label) {
-  if (!Number.isInteger(state.ids.humanId) || !state.humansAtFixed.includes(state.ids.humanId)) {
-    throw new Error(`${label}: Human setup authority missing at 4,8: ${JSON.stringify(state)}`);
-  }
-  if (!Number.isInteger(state.ids.grazerId) || !state.grazersAtFixed.includes(state.ids.grazerId)) {
-    throw new Error(`${label}: Grazer setup authority missing at 9,12: ${JSON.stringify(state)}`);
-  }
-  if (!Number.isInteger(state.ids.wolfId) || !state.wolvesAtFixed.includes(state.ids.wolfId)) {
-    throw new Error(`${label}: Wolf setup authority missing at 14,7: ${JSON.stringify(state)}`);
-  }
+  if (!Number.isInteger(state.ids.humanId) || !state.humansAtFixed.includes(state.ids.humanId)) throw new Error(`${label}: Human setup authority missing at 12,8: ${JSON.stringify(state)}`);
+  if (!Number.isInteger(state.ids.grazerId) || !state.grazersAtFixed.includes(state.ids.grazerId)) throw new Error(`${label}: Grazer setup authority missing at 16,12: ${JSON.stringify(state)}`);
+  if (!Number.isInteger(state.ids.wolfId) || !state.wolvesAtFixed.includes(state.ids.wolfId)) throw new Error(`${label}: Wolf setup authority missing at 14,7: ${JSON.stringify(state)}`);
 }
 
 async function visualEvidence(cdpClient, ids) {
@@ -362,17 +339,19 @@ async function fixedTilePoint(cdpClient, x, y) {
     if (!world || !camera || !tile) return null;
     const worldX = (${x} + 0.5) * ${TILE_SIZE};
     const worldY = (${y} + 0.5) * ${TILE_SIZE};
-    const sx = camera.x + (worldX - camera.worldView.x) * camera.zoom;
-    const sy = camera.y + (worldY - camera.worldView.y) * camera.zoom;
-    return { x: sx, y: sy, tileX: ${x}, tileY: ${y}, passable: tile.passable };
+    return {
+      x: camera.x + (worldX - camera.worldView.x) * camera.zoom,
+      y: camera.y + (worldY - camera.worldView.y) * camera.zoom,
+      tileX: ${x}, tileY: ${y}, passable: tile.passable
+    };
   })()`);
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.x > 1440 || point.y < 0 || point.y > 900) {
     throw new Error(`fixed Scenario Setup tile ${x},${y} is not visible: ${JSON.stringify(point)}`);
   }
   const expectedPassable = !(x === IMPASSABLE.x && y === IMPASSABLE.y);
   if (point.passable !== expectedPassable) throw new Error(`fixed Scenario Setup tile passability drifted at ${x},${y}: ${JSON.stringify(point)}`);
-  const top = await evaluate(cdpClient, `document.elementFromPoint(${point.x}, ${point.y})?.closest?.('#scenario-setup-panel')?.id ?? ''`);
-  if (top) throw new Error(`fixed Scenario Setup tile ${x},${y} is obscured by Setup UI`);
+  const overlay = await evaluate(cdpClient, `document.elementFromPoint(${point.x}, ${point.y})?.closest?.('#scenario-setup-panel, #topbar, #inspector-panel')?.id ?? ''`);
+  if (overlay) throw new Error(`fixed Scenario Setup tile ${x},${y} is obscured by ${overlay}`);
   return point;
 }
 
