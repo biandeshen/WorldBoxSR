@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { applyCommand } from '../engine/core/commands.js';
-import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, snapshotWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createGrazer } from '../engine/model/grazer.js';
 import { createWolf } from '../engine/model/wolf.js';
 import { resolveHistoryReference } from '../engine/analysis/history_query.js';
@@ -19,21 +19,16 @@ function distinctPassableTiles(world, count = 3) {
   return result;
 }
 
-test('Wolf identity survives exact snapshot round-trip and remains inert before predation slice', () => {
+test('Wolf identity survives exact snapshot round-trip and creation is sequential-RNG neutral', () => {
   const world = emptyWorld();
   const control = emptyWorld();
   const [tile] = distinctPassableTiles(world, 1);
   const wolf = createWolf(world, { x: tile.x, y: tile.y, ageDays: 720, hunger: 0.35, health: 0.8 });
   const snapshot = snapshotWorld(world);
-  assert.deepEqual(snapshotWorld(worldFromSnapshot(snapshot)), snapshot);
 
-  const before = structuredClone(wolf);
-  assert.deepEqual(world.rng.snapshot(), control.rng.snapshot(), 'creating inert Wolf identity must not consume sequential RNG');
-  tickWorld(world, 30);
-  tickWorld(control, 30);
-  const current = world.creatures.find((creature) => creature.id === wolf.id);
-  assert.deepEqual(current, before, 'capability 2 must not run Wolf age/hunger/movement/health behavior');
-  assert.deepEqual(world.rng.snapshot(), control.rng.snapshot(), 'presence of an inert Wolf must not add sequential RNG consumption');
+  assert.equal(wolf.species, 'wolf');
+  assert.deepEqual(snapshotWorld(worldFromSnapshot(snapshot)), snapshot);
+  assert.deepEqual(world.rng.snapshot(), control.rng.snapshot(), 'creating Wolf identity must not consume sequential RNG');
 });
 
 test('spawn_creature accepts exactly Grazer/Wolf and rejected species allocate no identity', () => {
