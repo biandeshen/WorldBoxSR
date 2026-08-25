@@ -50,9 +50,13 @@ function moveTowardPrey(world, wolf, prey) {
   if (currentDistance <= 1) return false;
 
   const candidates = passableNeighbors8(world, wolf.x, wolf.y)
-    .map((tile) => ({ tile, distance: chebyshevDistance(tile, prey) }))
+    .map((tile) => ({
+      tile,
+      distance: chebyshevDistance(tile, prey),
+      manhattan: manhattanDistance(tile, prey)
+    }))
     .filter(({ distance }) => distance < currentDistance)
-    .sort((a, b) => a.distance - b.distance || a.tile.y - b.tile.y || a.tile.x - b.tile.x);
+    .sort((a, b) => a.distance - b.distance || a.manhattan - b.manhattan || a.tile.y - b.tile.y || a.tile.x - b.tile.x);
 
   const chosen = candidates[0]?.tile;
   if (!chosen) return false;
@@ -95,6 +99,10 @@ function updateWolfHealth(world, wolf) {
 
 function chebyshevDistance(a, b) {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+}
+
+function manhattanDistance(a, b) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
 function clamp01(value) {
