@@ -3,6 +3,7 @@ import {
   chronicleEntryForEvent,
   isCivilizationStoryEvent
 } from './civilization_story.js';
+import { ecologyStoryForEvent, isEcologyStoryEvent } from './ecology_story.js';
 
 export const CHRONICLE_LENS_LIMIT = 7;
 
@@ -43,22 +44,33 @@ export function chronicleRowsForLens(world, lensId, { limit = CHRONICLE_LENS_LIM
   positiveInteger(limit, 'Chronicle lens limit');
   chronicleLensDefinition(lensId);
 
+  // v0.5 Highlights remains exactly the existing representative policy. Ecology
+  // joins only the non-default Recent projection unless it is later selected by
+  // a separately approved Highlights policy change.
   if (lensId === 'highlights') return civilizationChronicle(world, { limit });
 
   const predicate = lensPredicate(lensId);
   const events = [];
   for (let index = world.history.length - 1; index >= 0 && events.length < limit; index -= 1) {
     const event = world.history[index];
-    if (!isCivilizationStoryEvent(event) || !predicate(event)) continue;
+    if (!isReadableStoryEvent(event) || !predicate(event)) continue;
     events.push(event);
   }
-  return events.map((event) => chronicleEntryForEvent(world, event));
+  return events.map((event) => readableEntryForEvent(world, event));
 }
 
 export function eventAllowedByChronicleLens(event, lensId) {
   chronicleLensDefinition(lensId);
   if (lensId === 'highlights') return isCivilizationStoryEvent(event);
-  return isCivilizationStoryEvent(event) && lensPredicate(lensId)(event);
+  return isReadableStoryEvent(event) && lensPredicate(lensId)(event);
+}
+
+function isReadableStoryEvent(event) {
+  return isCivilizationStoryEvent(event) || isEcologyStoryEvent(event);
+}
+
+function readableEntryForEvent(world, event) {
+  return ecologyStoryForEvent(world, event) ?? chronicleEntryForEvent(world, event);
 }
 
 function lensPredicate(lensId) {

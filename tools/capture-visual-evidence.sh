@@ -88,6 +88,11 @@ node tools/capture-multi-species-evidence.mjs "$browser" "$base_url" "$out_dir"
 # and produce a causal Wolf→Grazer predation + death + feeding consequence.
 node tools/capture-wolf-predation-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.6 capability 4: reuse the shipped predation authority in a fresh world,
+# then require pure presentation/query surfaces to explain it: current behavior,
+# vegetation utilization, live Pulse, Recent Chronicle and Causal Event Card.
+node tools/capture-ecology-readability-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -127,7 +132,9 @@ multi_species=living-ecology-grazer-wolf-1440x900.png
 multi_species_authority=multi-species-evidence.json
 wolf_predation=living-ecology-wolf-predation-1440x900.png
 wolf_predation_authority=wolf-predation-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus v0.6 natural-fauna, Grazer/Wolf identity and real Wolf predation gates preserve declared authority boundaries
+ecology_readability=living-ecology-readability-1440x900.png
+ecology_readability_authority=ecology-readability-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus v0.6 natural-fauna, Grazer/Wolf identity, real Wolf predation and ecology-readability gates preserve declared authority boundaries
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"

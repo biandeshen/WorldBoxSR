@@ -5,10 +5,11 @@ const RULER_TYPES = new Set(['polity.ruler_appointed', 'polity.ruler_succeeded',
 export function projectHistoryPulse(events, { daysPerYear = 360 } = {}) {
   if (!Array.isArray(events)) throw new TypeError('events must be an array');
   if (!Number.isFinite(daysPerYear) || daysPerYear <= 0) throw new RangeError('daysPerYear must be positive');
-  const rulers = []; const political = []; const settlements = []; const births = []; const deaths = [];
+  const predations = []; const rulers = []; const political = []; const settlements = []; const births = []; const deaths = [];
   for (const event of events) {
     if (!event || typeof event.type !== 'string') continue;
-    if (RULER_TYPES.has(event.type)) rulers.push(projectRulerEvent(event, daysPerYear));
+    if (event.type === 'creature.predated') predations.push(projectPredationEvent(event, daysPerYear));
+    else if (RULER_TYPES.has(event.type)) rulers.push(projectRulerEvent(event, daysPerYear));
     else if (POLITY_TYPES.has(event.type)) political.push(projectPolityEvent(event, daysPerYear));
     else if (SETTLEMENT_TYPES.has(event.type)) settlements.push(projectSettlementEvent(event, daysPerYear));
     else if (event.type === 'human.born') births.push(event);
@@ -17,12 +18,24 @@ export function projectHistoryPulse(events, { daysPerYear = 360 } = {}) {
   const summaries = [];
   if (births.length > 0) summaries.push(projectBirthSummary(births, daysPerYear));
   if (deaths.length > 0) summaries.push(projectDeathSummary(deaths, daysPerYear));
-  return [...rulers, ...political, ...settlements, ...summaries].filter(Boolean).sort((a, b) => b.priority - a.priority || a.eventId - b.eventId);
+  return [...predations, ...rulers, ...political, ...settlements, ...summaries].filter(Boolean).sort((a, b) => b.priority - a.priority || a.eventId - b.eventId);
 }
 
 export function historyCursor(history) {
   if (!Array.isArray(history) || history.length === 0) return 0;
   let max = 0; for (const event of history) if (Number.isInteger(event?.id) && event.id > max) max = event.id; return max;
+}
+
+function projectPredationEvent(event, daysPerYear) {
+  return {
+    kind: event.type,
+    eventId: event.id ?? 0,
+    priority: 6,
+    tone: 'loss',
+    icon: '🐺',
+    title: `Wolf #${event.predatorCreatureId ?? '?'} hunted Grazer #${event.preyCreatureId ?? '?'}`,
+    detail: `tile ${coordinate(event.x)},${coordinate(event.y)} · Year ${eventYear(event, daysPerYear)}`
+  };
 }
 
 function projectRulerEvent(event, daysPerYear) {
@@ -40,3 +53,4 @@ function latestEvent(events) { return events.reduce((latest, event) => !latest |
 function eventYear(event, daysPerYear) { return ((Number.isFinite(event?.day) ? event.day : 0) / daysPerYear).toFixed(1); }
 function readableReason(value) { const reason = String(value || 'succession').replaceAll('_', ' '); if (reason === 'death') return 'after ruler death'; if (reason === 'no longer member') return 'after political departure'; if (reason === 'vacancy filled') return 'vacancy filled'; return reason; }
 function readableCause(value) { const cause = String(value || 'unknown').replaceAll('_', ' '); if (cause === 'old age') return 'old age'; if (cause === 'starvation') return 'starvation'; if (cause === 'lightning') return 'lightning'; if (cause === 'erased') return 'divine erasure'; return cause; }
+function coordinate(value) { return Number.isInteger(value) ? value : '?'; }

@@ -1,11 +1,12 @@
 import { resolveEventReferences } from '../../engine/analysis/history_query.js';
 import { chronicleEntryForEvent } from './civilization_story.js';
+import { ecologyStoryForEvent } from './ecology_story.js';
 
 export function eventCardForEvent(world, event) {
   if (!world || !Array.isArray(world.history)) throw new TypeError('world.history is required');
   if (!event || !Number.isInteger(event.id)) throw new TypeError('retained event is required');
 
-  const entry = chronicleEntryForEvent(world, event);
+  const entry = displayEntryForEvent(world, event);
   const resolved = resolveEventReferences(world, event);
   return {
     eventId: event.id,
@@ -81,7 +82,7 @@ export function navigationForResolvedReference(world, reference, value) {
 function resolvedReferenceLabel(world, reference, value) {
   if (reference.kind === 'world') return 'World';
   if (reference.kind === 'event') {
-    const entry = chronicleEntryForEvent(world, value);
+    const entry = displayEntryForEvent(world, value);
     return `Event #${reference.id} · ${entry.headline}`;
   }
   if (reference.kind !== 'entity') return 'Recorded reference';
@@ -110,7 +111,7 @@ function resolvedReferenceLabel(world, reference, value) {
 
 function resolvedReferenceNote(world, reference, value) {
   if (reference.kind === 'event') {
-    const entry = chronicleEntryForEvent(world, value);
+    const entry = displayEntryForEvent(world, value);
     return Number.isFinite(entry.year) ? `Recorded year ${entry.year.toFixed(2)}` : 'Retained event';
   }
   if (reference.kind !== 'entity') return null;
@@ -125,6 +126,10 @@ function resolvedReferenceNote(world, reference, value) {
     return `${value?.active ? 'active' : 'inactive'} settlement`;
   }
   return null;
+}
+
+function displayEntryForEvent(world, event) {
+  return ecologyStoryForEvent(world, event) ?? chronicleEntryForEvent(world, event);
 }
 
 function unresolvedReferenceLabel(reference) {
