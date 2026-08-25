@@ -41,6 +41,15 @@ const PRIORITY = Object.freeze({
   'warband.disbanded': 24
 });
 
+const REPRESENTATIVE_GROUPS = Object.freeze([
+  'outcome',
+  'diplomacy',
+  'battle',
+  'polity',
+  'ruler',
+  'army'
+]);
+
 export function isCivilizationStoryEvent(event) {
   return Boolean(event && STORY_TYPES.has(event.type));
 }
@@ -82,7 +91,7 @@ export function storyForEvent(world, event, daysPerYear = world?.config?.daysPer
     }
     case 'polity.ruler_succeeded': {
       const name = event.name ?? polity(event.polityId);
-      return { ...common, icon: '♔', headline: `${name} has a new ruler`, detail: `${humanName(event.rulerId)} succeeds ${humanName(event.previousRulerId)} after ${event.reason ?? 'a succession'}.”`.replace('.”', '.') };
+      return { ...common, icon: '♔', headline: `${name} has a new ruler`, detail: `${humanName(event.rulerId)} succeeds ${humanName(event.previousRulerId)} after ${event.reason ?? 'a succession'}.` };
     }
     case 'polity.ruler_vacant': {
       const name = event.name ?? polity(event.polityId);
@@ -153,19 +162,32 @@ export function chronicleEntryForEvent(world, event, daysPerYear = world?.config
 export function civilizationChronicle(world, { limit = 7 } = {}) {
   if (!Number.isInteger(limit) || limit < 1) throw new RangeError('chronicle limit must be a positive integer');
   const history = [...(world?.history ?? [])];
+  const uniqueStoryEvents = uniqueStoryCandidates(history);
   const selected = [];
   const selectedIds = new Set();
 
-  for (let index = history.length - 1; index >= 0 && selected.length < limit; index -= 1) {
-    const event = history[index];
-    if (!isCivilizationStoryEvent(event)) continue;
+  for (const group of REPRESENTATIVE_GROUPS) {
+    if (selected.length >= limit) break;
+    const event = uniqueStoryEvents.find((candidate) => storyGroup(candidate.type) === group && !selectedIds.has(candidate.id));
+    if (!event) continue;
     selected.push(event);
     if (Number.isInteger(event.id)) selectedIds.add(event.id);
   }
+
+  const rankedRemainder = uniqueStoryEvents
+    .filter((event) => !selectedIds.has(event.id))
+    .sort((a, b) => (PRIORITY[b.type] ?? 0) - (PRIORITY[a.type] ?? 0) || (b.id ?? 0) - (a.id ?? 0));
+  for (const event of rankedRemainder) {
+    if (selected.length >= limit) break;
+    selected.push(event);
+    if (Number.isInteger(event.id)) selectedIds.add(event.id);
+  }
+
   for (let index = history.length - 1; index >= 0 && selected.length < limit; index -= 1) {
     const event = history[index];
     if (Number.isInteger(event?.id) && selectedIds.has(event.id)) continue;
     selected.push(event);
+    if (Number.isInteger(event?.id)) selectedIds.add(event.id);
   }
 
   return selected
@@ -191,6 +213,41 @@ export function formatChronicleDetail(entry) {
   if (!entry) return 'Event unavailable';
   const year = Number.isFinite(entry.year) ? entry.year.toFixed(2) : '?';
   return [`${entry.icon ?? '•'} ${entry.headline}`, entry.detail, `year ${year} · event #${entry.eventId ?? '?'}`].filter(Boolean).join('\n');
+}
+
+function uniqueStoryCandidates(history) {
+  const result = [];
+  const seen = new Set();
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const event = history[index];
+    if (!isCivilizationStoryEvent(event)) continue;
+    const key = storyDedupeKey(event);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(event);
+  }
+  return result;
+}
+
+function storyDedupeKey(event) {
+  const type = event.type;
+  if (type.startsWith('polity.ruler_')) return `ruler:${event.polityId ?? 'unknown'}`;
+  if (type === 'warband.engaged') return `battle:${event.relationKey ?? `${event.polityAId}:${event.polityBId}`}`;
+  if (type.startsWith('warband.')) return `${type}:${event.relationKey ?? 'unknown'}:${event.polityId ?? event.warbandAId ?? 'unknown'}`;
+  if (type === 'polity.war_started' || type === 'polity.peace_made') return `${type}:${event.relationKey ?? `${event.polityAId}:${event.polityBId}`}`;
+  if (type === 'settlement.conquered' || type === 'settlement.rebelled') return `${type}:${event.settlementId ?? 'unknown'}`;
+  if (type.startsWith('polity.')) return `${type}:${event.polityId ?? 'unknown'}`;
+  return `${type}:${event.id ?? 'unknown'}`;
+}
+
+function storyGroup(type) {
+  if (type === 'settlement.conquered' || type === 'settlement.rebelled') return 'outcome';
+  if (type === 'polity.war_started' || type === 'polity.peace_made') return 'diplomacy';
+  if (type === 'warband.engaged' || type === 'warband.destroyed') return 'battle';
+  if (type === 'polity.founded' || type === 'polity.dissolved') return 'polity';
+  if (type.startsWith('polity.ruler_')) return 'ruler';
+  if (type.startsWith('warband.')) return 'army';
+  return 'other';
 }
 
 function eventYear(event, daysPerYear) {
