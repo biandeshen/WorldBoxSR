@@ -1,7 +1,10 @@
 import { createGrazer } from '../model/grazer.js';
 import { createHuman } from '../model/human.js';
+import { killCreature } from '../model/creature_lifecycle.js';
 import { killHuman } from '../model/human_lifecycle.js';
 import { commandRef, eventRef, pushEvent, worldSubject } from '../model/events.js';
+
+export const METEOR_RADIUS = 2;
 
 export function applyCommand(world, command) {
   if (!command || typeof command.type !== 'string') throw new TypeError('command.type is required');
@@ -15,6 +18,8 @@ export function applyCommand(world, command) {
       return eraseHumans(world, command);
     case 'lightning':
       return strikeLightning(world, command);
+    case 'meteor':
+      return strikeMeteor(world, command);
     default:
       throw new Error(`Unknown command type: ${command.type}`);
   }
@@ -117,6 +122,79 @@ function strikeLightning(world, command) {
   return entityIds;
 }
 
+function strikeMeteor(world, command) {
+  const x = integerInRange(command.x, 0, world.width - 1, 'x');
+  const y = integerInRange(command.y, 0, world.height - 1, 'y');
+  const tiles = impactTiles(world, x, y, METEOR_RADIUS);
+  const impacted = new Set(tiles.map((tile) => tileKey(tile.x, tile.y)));
+  const humanTargets = world.entities
+    .filter((entity) => entity.kind === 'human' && entity.alive && impacted.has(tileKey(entity.x, entity.y)))
+    .sort((a, b) => a.id - b.id);
+  const creatureTargets = world.creatures
+    .filter((creature) => creature.alive && impacted.has(tileKey(creature.x, creature.y)))
+    .sort((a, b) => a.id - b.id);
+  const entityIds = humanTargets.map((human) => human.id);
+  const creatureIds = creatureTargets.map((creature) => creature.id);
+  const passableTiles = tiles.filter((tile) => tile.passable);
+  const vegetationRemoved = passableTiles.reduce((sum, tile) => sum + tile.vegetation, 0);
+  const noEffect = entityIds.length === 0 && creatureIds.length === 0 && vegetationRemoved <= 1e-12;
+
+  const commandId = world.nextCommandId++;
+  const meteorEvent = pushEvent(world, {
+    type: 'god.meteor',
+    subject: worldSubject(),
+    causes: [commandRef(commandId, command.type)],
+    x,
+    y,
+    radius: METEOR_RADIUS,
+    impactedTileCount: tiles.length,
+    passableTileCount: passableTiles.length,
+    vegetationRemoved,
+    humanCount: entityIds.length,
+    creatureCount: creatureIds.length,
+    entityIds,
+    creatureIds,
+    noEffect
+  });
+
+  for (const tile of passableTiles) tile.vegetation = 0;
+  killTargetHumans(world, humanTargets, 'meteor', meteorEvent.id);
+  for (const creature of creatureTargets) {
+    killCreature(world, creature, { cause: 'meteor', causes: [eventRef(meteorEvent.id)] });
+  }
+  world.creatures = world.creatures.filter((creature) => creature.alive);
+
+  return {
+    x,
+    y,
+    radius: METEOR_RADIUS,
+    impactedTileCount: tiles.length,
+    passableTileCount: passableTiles.length,
+    vegetationRemoved,
+    humanIds: entityIds,
+    creatureIds,
+    noEffect,
+    eventId: meteorEvent.id
+  };
+}
+
+export function impactTiles(world, x, y, radius = METEOR_RADIUS) {
+  integerInRange(x, 0, world.width - 1, 'x');
+  integerInRange(y, 0, world.height - 1, 'y');
+  if (!Number.isInteger(radius) || radius < 0) throw new RangeError('radius must be a non-negative integer');
+  const tiles = [];
+  const minY = Math.max(0, y - radius);
+  const maxY = Math.min(world.height - 1, y + radius);
+  const minX = Math.max(0, x - radius);
+  const maxX = Math.min(world.width - 1, x + radius);
+  for (let tileY = minY; tileY <= maxY; tileY += 1) {
+    for (let tileX = minX; tileX <= maxX; tileX += 1) {
+      tiles.push(world.tiles[tileY * world.width + tileX]);
+    }
+  }
+  return tiles;
+}
+
 function livingHumansAtTile(world, x, y) {
   return world.entities
     .filter((entity) => entity.kind === 'human' && entity.alive && entity.x === x && entity.y === y)
@@ -131,6 +209,10 @@ function killTargetHumans(world, targets, cause, causeEventId) {
     });
   }
   world.entities = world.entities.filter((entity) => entity.alive);
+}
+
+function tileKey(x, y) {
+  return `${x},${y}`;
 }
 
 function boundedCount(value) {
