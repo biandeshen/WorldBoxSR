@@ -78,7 +78,7 @@ test('Scenario transport rejects malformed, invalid UTF-8 and oversized payloads
   assert.throws(() => decodeScenarioRecipeToken('_w'), /valid UTF-8/);
   assert.throws(() => decodeScenarioRecipeToken('A'.repeat(MAX_SCENARIO_TOKEN_CHARS + 1)), /too large/);
   assert.throws(() => parseScenarioRecipeText('x'.repeat(MAX_SCENARIO_JSON_BYTES + 1)), /exceeds 8192 bytes/);
-  assert.throws(() => parseScenarioRecipeText('{"kind":"worldboxsr-scenario","version":2}'), /unsupported scenario version/);
+  assert.throws(() => parseScenarioRecipeText(JSON.stringify({ ...RECIPE, version: 2 })), /unsupported scenario version/);
 });
 
 test('missing scenario query remains ordinary startup rather than a guessed recipe', () => {
