@@ -79,6 +79,13 @@ node tools/capture-scenario-setup-evidence.mjs "$browser" "$base_url" "$out_dir"
 # atomically without changing world, recipe, URL or visible boot status.
 node tools/capture-scenario-portability-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.7 capability 4: start from a fresh shared Scenario, deliberately diverge it
+# through ordinary Time + Meteor, Replay the exact source Recipe start while
+# clearing stale story/selection presentation but preserving bookmark storage,
+# then Fork/Edit by adding one real Human placement. The source Recipe must stay
+# immutable and Replay of the frozen fork must return to the exact fork start.
+node tools/capture-scenario-replay-fork-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -132,7 +139,11 @@ scenario_portable_shared_start=scenario-portable-shared-start-1440x900.png
 scenario_portable_imported=scenario-portable-imported-1440x900.png
 scenario_portability_authority=scenario-portability-evidence.json
 scenario_portability_export=Portable-trio.worldboxsr-scenario.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus v0.7 Scenario Setup and Copy Link/Export/fresh-link/Import portability preserve declared authority ownership
+scenario_replay_restored=scenario-replay-restored-1440x900.png
+scenario_fork_editing=scenario-fork-editing-1440x900.png
+scenario_fork_replayed=scenario-fork-replayed-1440x900.png
+scenario_replay_fork_authority=scenario-replay-fork-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus v0.7 Scenario Setup, portability and Replay/Fork preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
