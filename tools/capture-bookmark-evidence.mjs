@@ -13,27 +13,16 @@ mkdirSync(outDir, { recursive: true });
 const userDataDir = mkdtempSync(join(tmpdir(), 'worldboxsr-watchlist-'));
 const logFd = openSync(join(outDir, 'watchlist-chrome-runtime.log'), 'w');
 const chrome = spawn(browser, [
-  '--headless=new',
-  '--no-sandbox',
-  '--disable-dev-shm-usage',
-  '--hide-scrollbars',
-  '--window-size=1440,900',
-  '--force-device-scale-factor=1',
-  '--run-all-compositor-stages-before-draw',
-  '--enable-webgl',
-  '--ignore-gpu-blocklist',
-  '--use-angle=swiftshader',
-  '--enable-unsafe-swiftshader',
-  '--remote-debugging-port=0',
-  '--remote-allow-origins=*',
-  '--enable-logging=stderr',
-  '--log-level=0',
-  `--user-data-dir=${userDataDir}`,
-  baseUrl
+  '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars',
+  '--window-size=1440,900', '--force-device-scale-factor=1', '--run-all-compositor-stages-before-draw',
+  '--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
+  '--remote-debugging-port=0', '--remote-allow-origins=*', '--enable-logging=stderr', '--log-level=0',
+  `--user-data-dir=${userDataDir}`, baseUrl
 ], { stdio: ['ignore', logFd, logFd] });
 
 let cdp = null;
 try {
+  console.log('[watchlist] waiting for Chrome/CDP');
   const port = await waitForDevToolsPort(userDataDir, chrome);
   const target = await waitForPageTarget(port, baseUrl, chrome);
   cdp = await createCdpClient(target.webSocketDebuggerUrl);
@@ -41,6 +30,7 @@ try {
   await cdp.send('Runtime.enable');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await freezeChronicle(cdp);
+  console.log('[watchlist] first world ready and paused');
 
   const setup = await evaluate(cdp, `(() => {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
@@ -55,53 +45,50 @@ try {
 
   const chosen = await chooseBookmarkableCard(cdp, setup.visibleEventIds);
   if (!chosen) throw new Error('no visible Event Card exposed a bookmarkable entity reference');
+  console.log(`[watchlist] chosen event #${chosen.eventId} + ${chosen.entityKind} #${chosen.entityId}`);
 
   await clickSelector(cdp, `#history-detail button[data-event-card-bookmark][data-ref-kind="event"][data-ref-id="${chosen.eventId}"]`);
   await waitForExpression(cdp, `document.querySelector('#story-watchlist')?.dataset?.watchlistCount === '1'`, 2_000);
   await clickSelector(cdp, `#history-detail button[data-event-card-bookmark][data-ref-kind="entity"][data-ref-entity-kind="${chosen.entityKind}"][data-ref-id="${chosen.entityId}"]`);
   await waitForExpression(cdp, `document.querySelector('#story-watchlist')?.dataset?.watchlistCount === '2'`, 2_000);
 
-  const pinned = await watchlistEvidence(cdp);
   const eventKey = `event:${chosen.eventId}`;
   const entityKey = `${chosen.entityKind}:${chosen.entityId}`;
+  const pinned = await watchlistEvidence(cdp);
   assertKeys(pinned.keys, [eventKey, entityKey], 'initial Watchlist');
   if (pinned.storageCount !== 2) throw new Error(`sessionStorage did not persist both pins: ${JSON.stringify(pinned)}`);
+  console.log('[watchlist] two refs pinned and stored');
 
   const alternateEventId = setup.visibleEventIds.find((id) => id !== chosen.eventId);
   if (!alternateEventId) throw new Error('Chronicle needs a second visible event to prove Watchlist survives browsing');
   await clickSelector(cdp, `#history-list button[data-event-id="${alternateEventId}"]`);
   await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${alternateEventId}'`, 3_000);
-  const afterBrowse = await watchlistEvidence(cdp);
-  assertKeys(afterBrowse.keys, [eventKey, entityKey], 'Watchlist after browsing another event');
+  assertKeys((await watchlistEvidence(cdp)).keys, [eventKey, entityKey], 'Watchlist after browsing another event');
 
   await clickSelector(cdp, `#story-watchlist [data-bookmark-key="${eventKey}"] button[data-watchlist-open-event]`);
   await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${chosen.eventId}'`, 3_000);
   await scrollIntoView(cdp, '#story-watchlist');
   await captureScreenshot(cdp, join(outDir, 'story-watchlist-pinned-1440x900.png'));
 
-  const beforeReload = await evaluate(cdp, `(() => ({
-    fingerprint: JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world),
-    paused: document.querySelector('#pause')?.dataset?.active === 'true',
-    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks')
-  }))()`);
+  const beforeReload = await stateEvidence(cdp);
   if (!beforeReload.paused) throw new Error('world resumed during Watchlist actions');
   if (beforeReload.fingerprint !== setup.fingerprint) throw new Error('Pin/browse/open Watchlist actions mutated authoritative world state');
+  console.log('[watchlist] pre-reload authority unchanged; issuing Page.reload');
 
-  await cdp.send('Page.reload', { ignoreCache: false });
-  await delay(250);
+  await cdp.send('Page.reload', { ignoreCache: false }, 8_000);
+  console.log('[watchlist] Page.reload acknowledged');
+  await delay(500);
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await freezeChronicle(cdp);
-  const reloadStart = await evaluate(cdp, `(() => ({
-    fingerprint: JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world),
-    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks')
-  }))()`);
-  await waitForExpression(cdp, `document.querySelector('#story-watchlist')?.dataset?.watchlistCount === '2' && document.querySelector('#story-watchlist')?.hidden === false`, 5_000);
+  console.log('[watchlist] reloaded world ready and paused');
 
+  const reloadStart = await stateEvidence(cdp);
+  await waitForExpression(cdp, `document.querySelector('#story-watchlist')?.dataset?.watchlistCount === '2' && document.querySelector('#story-watchlist')?.hidden === false`, 5_000);
   const rehydrated = await watchlistEvidence(cdp);
   assertKeys(rehydrated.keys, [eventKey, entityKey], 'Watchlist after same-tab reload');
   if (rehydrated.storageCount !== 2) throw new Error(`reload lost sessionStorage pins: ${JSON.stringify(rehydrated)}`);
-  const postRehydrateFingerprint = await worldFingerprint(cdp);
-  if (postRehydrateFingerprint !== reloadStart.fingerprint) throw new Error('Watchlist rehydration mutated authoritative world state');
+  if ((await worldFingerprint(cdp)) !== reloadStart.fingerprint) throw new Error('Watchlist rehydration mutated authoritative world state');
+  console.log('[watchlist] same-tab reload restored both refs');
 
   await clickSelector(cdp, `#story-watchlist [data-bookmark-key="${eventKey}"] button[data-watchlist-open-event]`);
   await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${chosen.eventId}'`, 3_000);
@@ -113,17 +100,15 @@ try {
   await clickSelector(cdp, '#story-watchlist button[data-watchlist-clear]');
   await waitForExpression(cdp, `document.querySelector('#story-watchlist')?.hidden === true`, 2_000);
 
-  const finalState = await evaluate(cdp, `(() => ({
-    fingerprint: JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world),
-    paused: document.querySelector('#pause')?.dataset?.active === 'true',
-    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks'),
-    watchlistHidden: document.querySelector('#story-watchlist')?.hidden === true,
-    watchlistCount: document.querySelector('#story-watchlist')?.dataset?.watchlistCount
+  const finalState = await stateEvidence(cdp);
+  const finalDom = await evaluate(cdp, `(() => ({
+    hidden: document.querySelector('#story-watchlist')?.hidden === true,
+    count: document.querySelector('#story-watchlist')?.dataset?.watchlistCount,
+    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks')
   }))()`);
   if (!finalState.paused) throw new Error('world resumed during post-reload Watchlist cleanup');
   if (finalState.fingerprint !== reloadStart.fingerprint) throw new Error('Unpin/Clear actions mutated authoritative world state');
-  if (!finalState.watchlistHidden || finalState.watchlistCount !== '0') throw new Error(`Clear all did not empty Watchlist: ${JSON.stringify(finalState)}`);
-  if (finalState.storage !== '[]') throw new Error(`Clear all did not persist empty session list: ${finalState.storage}`);
+  if (!finalDom.hidden || finalDom.count !== '0' || finalDom.storage !== '[]') throw new Error(`Clear all did not empty Watchlist: ${JSON.stringify(finalDom)}`);
 
   writeFileSync(join(outDir, 'watchlist-evidence.json'), `${JSON.stringify({
     sourceEventId: chosen.eventId,
@@ -136,12 +121,11 @@ try {
     authorityUnchangedBeforeReload: true,
     authorityUnchangedAfterReload: true
   }, null, 2)}\n`);
-
-  console.log(`Watchlist evidence: pinned ${eventKey} + ${entityKey}; browsed; reopened event; same-tab reload restored 2/2; Unpin/Clear left authority unchanged`);
+  console.log(`Watchlist evidence: pinned ${eventKey} + ${entityKey}; browsed; reopened; reload restored 2/2; Unpin/Clear authority unchanged`);
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
-  closeFd(logFd);
+  try { closeSync(logFd); } catch {}
   try {
     rmSync(userDataDir, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 });
   } catch (error) {
@@ -155,8 +139,7 @@ async function chooseBookmarkableCard(cdpClient, visibleEventIds) {
     await waitForExpression(cdpClient, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventId}'`, 3_000);
     const candidate = await evaluate(cdpClient, `(() => {
       const button = document.querySelector('#history-detail button[data-event-card-bookmark][data-ref-kind="entity"]');
-      if (!button) return null;
-      return { entityKind: button.dataset.refEntityKind, entityId: Number(button.dataset.refId) };
+      return button ? { entityKind: button.dataset.refEntityKind, entityId: Number(button.dataset.refId) } : null;
     })()`);
     if (candidate?.entityKind && Number.isInteger(candidate.entityId)) return { eventId, ...candidate };
   }
@@ -174,6 +157,14 @@ async function freezeChronicle(cdpClient) {
   })()`);
   if (!result?.paused || !result.open) throw new Error(`failed to freeze/open Chronicle: ${JSON.stringify(result)}`);
   await delay(100);
+}
+
+async function stateEvidence(cdpClient) {
+  return evaluate(cdpClient, `(() => ({
+    fingerprint: JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world),
+    paused: document.querySelector('#pause')?.dataset?.active === 'true',
+    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks')
+  }))()`);
 }
 
 async function watchlistEvidence(cdpClient) {
@@ -283,20 +274,34 @@ async function createCdpClient(url) {
     const waiter = pending.get(message.id);
     if (!waiter) return;
     pending.delete(message.id);
+    clearTimeout(waiter.timer);
     if (message.error) waiter.reject(new Error(`${message.error.message} (${message.error.code})`));
     else waiter.resolve(message.result ?? {});
   });
   socket.addEventListener('close', () => {
-    for (const waiter of pending.values()) waiter.reject(new Error('CDP websocket closed'));
+    for (const waiter of pending.values()) {
+      clearTimeout(waiter.timer);
+      waiter.reject(new Error('CDP websocket closed'));
+    }
     pending.clear();
   });
 
   return {
-    send(method, params = {}) {
+    send(method, params = {}, timeoutMs = 8_000) {
       const id = nextId++;
       return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        socket.send(JSON.stringify({ id, method, params }));
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`CDP command timed out: ${method}`));
+        }, timeoutMs);
+        pending.set(id, { resolve, reject, timer });
+        try {
+          socket.send(JSON.stringify({ id, method, params }));
+        } catch (error) {
+          clearTimeout(timer);
+          pending.delete(id);
+          reject(error);
+        }
       });
     },
     close() { socket.close(); }
@@ -305,11 +310,8 @@ async function createCdpClient(url) {
 
 async function evaluate(cdpClient, expression) {
   const result = await cdpClient.send('Runtime.evaluate', {
-    expression,
-    awaitPromise: true,
-    returnByValue: true,
-    userGesture: true
-  });
+    expression, awaitPromise: true, returnByValue: true, userGesture: true
+  }, 6_000);
   if (result.exceptionDetails) {
     const message = result.exceptionDetails.exception?.description ?? result.exceptionDetails.text ?? 'Runtime.evaluate failed';
     throw new Error(message);
@@ -319,17 +321,21 @@ async function evaluate(cdpClient, expression) {
 
 async function waitForExpression(cdpClient, expression, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
+  let lastError = null;
   while (Date.now() < deadline) {
     try {
       if (await evaluate(cdpClient, expression)) return;
-    } catch {}
+      lastError = null;
+    } catch (error) {
+      lastError = error;
+    }
     await delay(100);
   }
-  throw new Error(`Timed out waiting for expression: ${expression}`);
+  throw new Error(`Timed out waiting for expression: ${expression}${lastError ? `; last error: ${lastError.message}` : ''}`);
 }
 
 async function captureScreenshot(cdpClient, path) {
-  const result = await cdpClient.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false });
+  const result = await cdpClient.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false }, 8_000);
   if (!result.data) throw new Error(`No screenshot bytes returned for ${path}`);
   writeFileSync(path, Buffer.from(result.data, 'base64'));
 }
@@ -352,10 +358,6 @@ async function waitForExit(child, timeoutMs) {
 
 function ensureAlive(child) {
   if (child.exitCode !== null) throw new Error(`Chrome exited early with code ${child.exitCode}`);
-}
-
-function closeFd(fd) {
-  try { closeSync(fd); } catch {}
 }
 
 function delay(ms) {
