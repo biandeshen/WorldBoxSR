@@ -9,7 +9,7 @@ const audioPath = fileURLToPath(new URL('../client/presentation/audio_feedback.j
 const effectsPath = fileURLToPath(new URL('../client/presentation/effects_layer.js', import.meta.url));
 
 test('each core god power has a tiny generated sound recipe', () => {
-  for (const effect of ['spawn_human', 'spawn_grazer', 'erase', 'lightning']) {
+  for (const effect of ['spawn_human', 'spawn_grazer', 'erase', 'lightning', 'meteor']) {
     const recipe = soundRecipe(effect);
     assert.ok(recipe.length >= 1, `${effect} has no recipe`);
     for (const tone of recipe) {
@@ -18,6 +18,18 @@ test('each core god power has a tiny generated sound recipe', () => {
       assert.ok(tone.startHz > 0 && tone.endHz > 0);
     }
   }
+});
+
+test('Meteor feedback is materially stronger while remaining accessibility-profile driven', () => {
+  const meteor = soundRecipe('meteor');
+  const lightning = soundRecipe('lightning');
+  assert.ok(meteor.length > lightning.length);
+  assert.ok(Math.max(...meteor.map((tone) => tone.gain)) > Math.max(...lightning.map((tone) => tone.gain)));
+  const source = readFileSync(effectsPath, 'utf8');
+  assert.match(source, /effect === ['"]meteor['"]/);
+  assert.match(source, /function playMeteor/);
+  assert.match(source, /profile\.reducedMotion/);
+  assert.match(source, /if \(profile\.cameraShake\)/);
 });
 
 test('reduced-motion profile removes camera shake and sharply lowers flash intensity', () => {
