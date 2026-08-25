@@ -2,9 +2,9 @@
 
 A deterministic emergent-world god-game sandbox.
 
-**[▶ Play the public demo](https://biandeshen.github.io/WorldBoxSR/)** · [Open in GitHub Codespaces](https://codespaces.new/biandeshen/WorldBoxSR)
+**[▶ Play the public demo](https://biandeshen.github.io/WorldBoxSR/play/)** · [Open in GitHub Codespaces](https://codespaces.new/biandeshen/WorldBoxSR)
 
-[![GitHub Pages](https://img.shields.io/badge/Play-GitHub%20Pages-2ea44f?logo=github)](https://biandeshen.github.io/WorldBoxSR/) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/biandeshen/WorldBoxSR)
+[![GitHub Pages](https://img.shields.io/badge/Play-GitHub%20Pages-2ea44f?logo=github)](https://biandeshen.github.io/WorldBoxSR/play/) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/biandeshen/WorldBoxSR)
 
 The project goal is **not** to copy WorldBox code, assets, branding, or proprietary content. The goal is to independently build a small world where simple rules create histories that are both interesting underneath and compelling to watch on screen.
 
@@ -52,11 +52,13 @@ Deeper Living Ecology work remains intentionally later (currently v0.6). Non-cor
 
 ## Public playable demo
 
-**Play:** https://biandeshen.github.io/WorldBoxSR/
+**Play:** https://biandeshen.github.io/WorldBoxSR/play/
 
-The Pages build is validated in normal CI and by a real Chromium visual gate. It publishes the browser product rather than the full repository tree. CI also verifies that the generated `.pages/index.html` is the WorldBoxSR game page and that it references compiled assets under `/WorldBoxSR/assets/` before deployment is allowed.
+`/play/` is the stable user-facing entry point. The custom GitHub Actions deployment publishes the compiled Phaser game there. The repository also carries a browser-runnable `/play/` fallback so that a mistakenly enabled legacy branch/Jekyll Pages deployment cannot replace the demo with the rendered README again.
 
-Repository setting requirement: **Settings → Pages → Build and deployment → Source must be `GitHub Actions`**. If the Pages URL ever shows repository/docs content instead of the game, check this setting first; the authoritative deploy workflow is `.github/workflows/pages.yml`.
+The Pages build is validated in normal CI and by a real Chromium visual gate. CI verifies both the generated compiled `/play/` alias and the legacy fallback, then the deployment workflow re-checks the final public `/play/` URL after the deployment-race window.
+
+Repository setting should still be **Settings → Pages → Build and deployment → Source → GitHub Actions**. That removes the redundant legacy Jekyll deployment entirely; the repository fallback exists as defense in depth, not as the preferred publishing mode.
 
 ## Browser-only development with Codespaces
 
