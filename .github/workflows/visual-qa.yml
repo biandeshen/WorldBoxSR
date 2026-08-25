@@ -12,6 +12,7 @@ on:
       - 'vite.config.js'
       - 'tools/capture-visual-evidence.sh'
       - 'tools/capture-meteor-evidence.mjs'
+      - 'tools/capture-story-evidence.mjs'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -45,10 +46,9 @@ jobs:
             echo '## Visual QA'
             echo ''
             echo '- Production Vite build served through the real project-site base path.'
-            echo '- Headless Chromium must confirm a fully warmed Phaser showcase.'
-            echo '- `Renderer failed` must be absent from the rendered DOM.'
-            echo '- Interactive God Power gate pauses seed45, uses real browser pointer events to preview/click Meteor, then previews/clicks Rain on the same footprint.'
-            echo '- Gate requires authoritative `god.meteor` then `god.rain`, truthful direct-action toasts, exact Rain before/after resource deltas, and every passable Rain tile restored to existing capacities.'
-            echo '- Final World Chronicle must retain Rain followed by Meteor as player-readable intervention history; direct actions do not masquerade as autonomous pulses.'
-            echo '- Artifact `visual-evidence` preserves DOM/logs, fixed Phaser + legacy screenshots, Meteor target/impact, Rain target/recovery, final Chronicle screenshot, and authoritative JSON evidence.'
+            echo '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.'
+            echo '- v0.4 regression: paused seed45 real-pointer Meteor damage followed by same-footprint Rain capacity restoration remains required.'
+            echo '- v0.5 World Stories: on a fresh seed45 world, real Lightning pointer input kills a ruler who has a deterministic successor; normal simulation then records the resulting succession with the ruler-death event as an explicit cause.'
+            echo '- Chromium must open that visible succession Event Card, follow the retained death-event cause, navigate a current polity/successor reference to camera + inspector, and preserve the serialized authoritative world fingerprint during story navigation.'
+            echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, God Power evidence, causal Event Card screenshots and authoritative JSON evidence.'
           } >> "$GITHUB_STEP_SUMMARY"

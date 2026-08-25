@@ -89,13 +89,17 @@ fi
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 
-# v0.4 evidence must exercise the real god-hand loop rather than merely prove
-# buttons render. The helper uses Chrome DevTools Protocol directly (no browser
-# dependency and no QA backdoor in product code): pause the canonical world,
-# target/click Meteor with real browser pointer events, then target/click Rain
-# on the same authoritative footprint. It verifies recorded events, exact
-# resource deltas/capacity restoration, truthful feedback and Chronicle order.
+# v0.4 regression: exercise the real god-hand loop rather than merely prove
+# buttons render. The helper uses real browser pointer events on one paused
+# authoritative world: Meteor damage followed by same-footprint Rain recovery.
 node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"
+
+# v0.5 World Stories gate: on a fresh paused seed45 world, click a real visible
+# Chronicle event whose recorded causes include a retained event and a current
+# map-capable entity. Require the richer Event Card, follow the retained event,
+# jump to the related world object, and prove navigation leaves world state
+# byte-identical under JSON serialization.
+node tools/capture-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
@@ -113,7 +117,11 @@ rain_recovery=rain-recovery-1440x900.png
 god_power_aftermath=god-power-aftermath-chronicle-1440x900.png
 god_power_authority=god-power-evidence.json
 god_power_dom=god-power-dom.html
-runtime_probe=${ready_marker}; Renderer failed marker absent; paused real-pointer Meteor damage followed by same-footprint Rain capacity restoration and World Chronicle evidence
+story_event_card=story-causal-event-card-1440x900.png
+story_event_cause=story-event-cause-opened-1440x900.png
+story_map_navigation=story-map-reference-navigation-1440x900.png
+story_authority=story-evidence.json
+runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 real-pointer damage/recovery plus v0.5 causal Event Card/event-ref/map-ref navigation with authoritative world fingerprint unchanged
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"

@@ -142,13 +142,22 @@ test('entity reference resolution distinguishes current entities from stable his
   const world = createWorld({ seed: 89, width: 8, height: 8, population: 0 });
   world.settlements.push({ id: 2, kind: 'settlement', name: 'Teststead', active: false });
   world.entities.push({ id: 5, kind: 'human', alive: true });
+  world.polities.push({ id: 7, kind: 'polity', name: 'Test Realm', active: false, capitalSettlementId: 2 });
+  world.warbands.push({ id: 9, kind: 'warband', active: false, x: 3, y: 4, strength: 0, polityId: 7 });
 
   assert.equal(resolveHistoryReference(world, entityRef('settlement', 2)).status, 'resolved');
   assert.equal(resolveHistoryReference(world, entityRef('human', 5)).status, 'resolved');
+  assert.equal(resolveHistoryReference(world, entityRef('polity', 7)).value.name, 'Test Realm');
+  assert.equal(resolveHistoryReference(world, entityRef('warband', 9)).value.x, 3);
+
   world.entities = [];
+  world.warbands = [];
   const dead = resolveHistoryReference(world, entityRef('human', 5));
   assert.equal(dead.status, 'unresolved');
   assert.equal(dead.reason, 'entity_not_currently_present');
+  const missingWarband = resolveHistoryReference(world, entityRef('warband', 9));
+  assert.equal(missingWarband.status, 'unresolved');
+  assert.equal(missingWarband.reason, 'entity_not_currently_present');
 });
 
 test('history queries and reference resolution are exact snapshot and RNG neutral', () => {

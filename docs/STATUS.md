@@ -4,44 +4,46 @@ Last updated: 2026-08-25
 
 ## Management state
 
-**v0.4.0 — God Power Sandbox is at the release checkpoint.** The gameplay implementation backlog is frozen; this release branch contains only version/release documentation and the package version that triggers the release workflow when merged.
+**v0.4.0 — God Power Sandbox is shipped and closed.** Tag/Release `v0.4.0`, final CI, interactive Chromium, Pages build/deploy, and the public `/play/` verification all passed. Release gate #200 is closed.
 
-The next product-development stage is **v0.5.0 — World Stories**. No v0.5 gameplay/story feature code belongs in the v0.4 release PR.
+The active product stage is **v0.5.0 — World Stories**. Release gate: #208. Finite backlog: `docs/backlog/v0.5.md`.
+
+The first implementation slice **Causal Event Card — #209 / #211** is complete pending merge. The only next implementation slice after merged-main verification is **Focused story trail**.
 
 ## Current authoritative capability
 
 The deterministic engine remains the only world truth: seeded/serializable RNG, fixed ticks, terrain/resources, human lifecycle/ancestry, settlements, polities, rulers, relations, visible warbands/combat, conquest/rebellion, territory/history, typed grazers, save/load, CLI/Simulation Lab and causal events.
 
-God powers act only through authoritative commands. Presentation owns target previews, generated FX/SFX, accepted/no-effect wording and Chronicle projection; it does not maintain a second world model.
+World Stories remains a query/presentation layer over bounded `world.history`. Existing event `subject` / `causes` / stable IDs are authoritative; unresolved refs are normal under bounded history and remain visible rather than guessed.
 
-v0.4 intentionally stops at six powers: Human, Grazer, Erase, Lightning, Meteor and Rain.
+## v0.5 Causal Event Card evidence
 
-## v0.4 release evidence
-
-- Meteor #202 and Rain #204 merged after normal CI + real Chromium interaction review;
-- final implementation gate #206 merged after full CI + interactive Chromium and froze gameplay scope;
-- merged final implementation `main` passes CI and interactive Chromium before release handoff;
-- canonical browser gate pauses seed45 year 40, uses real pointer input for Meteor then Rain on tile 15,13 and verifies truthful authoritative deltas;
-- evidence records vegetation `189.077 → 0 → 189.077/189.077` and food `163.212 → 165.464/165.464` across all 25 passable footprint tiles;
-- World Chronicle keeps `Rain renews 15,13` followed by `Meteor devastates 15,13`;
-- headless product gate uses real engine commands and requires deterministic damage→recovery, non-resurrection, stable terrain/capacities/RNG and causal event order;
-- release notes and canonical browser QA live in `docs/releases/v0.4.0.md` and `docs/demos/v0.4.0.md`.
+- retained-reference resolution now covers current polity and warband refs already emitted by authoritative history;
+- one selected retained event projects into a readable card with headline/detail/provenance plus ordered Subject and Causes;
+- retained event refs can open another Event Card;
+- current human/creature/settlement/warband refs can navigate to their current map tile; polity refs use the current capital when available;
+- command refs and expired entity/event refs remain explicitly unavailable with truthful reasons;
+- navigation is presentation-only; deterministic tests require exact snapshot/RNG neutrality;
+- real Chromium on seed45 uses real Lightning pointer input to kill a ruler with a deterministic successor, lets normal simulation record succession with the ruler-death event as an explicit cause, then opens the visible succession Event Card;
+- Chromium follows the retained death-event cause and a current map-capable reference with real mouse input and verifies the serialized authoritative world fingerprint is unchanged by story navigation;
+- manual screenshot review confirms the succession card, unavailable dead-ruler subject, retained death/Lightning causal chain and map-reference navigation are player-readable;
+- the first slice no longer changes Chronicle representative-event selection policy; broader Chronicle strategy remains deferred to its own later slice.
 
 ## Binding product decisions
 
 - Visible truthful player results outrank hidden system breadth.
 - Runtime/engine state is the only world truth; Phaser/UI/AI are projections.
-- Natural coherent collapse/extinction remains allowed; no hidden survival controller.
 - Civilization depth remains paused after v0.3.
+- God-power breadth remains frozen after v0.4.
 - Ecology research remains deferred until v0.6.
-- v0.4 stops at six visible powers; do not add a seventh during release handoff.
-- No generic power/disaster framework unless a later shipped capability proves it necessary.
-- v0.5 should strengthen game-facing causal memory rather than reopen power, ecology or civilization breadth.
+- No graph database, generalized knowledge system or full replay engine in v0.5.
+- No AI-authored canonical facts, hidden motives or inferred causal links.
+- Bookmarks/focus/navigation state stay presentation-only and outside world snapshots.
 
 ## Current decision gate
 
-1. require final merged-implementation `main` CI, Pages and Chromium success;
-2. merge the **release-only** v0.4 PR: package 0.4.0, release notes, canonical demo/QA and README/ROADMAP/STATUS handoff;
-3. verify tag/release `v0.4.0` plus final CI, Chromium and public Pages `/play/` deployment;
-4. close release gate #200;
-5. only then open a finite v0.5 World Stories release gate/backlog and start the smallest causal-story slice.
+1. require the documentation-synchronized #211 head to remain CI + Chromium green;
+2. squash merge #211 and close #209;
+3. verify merged `main` CI, Pages and Chromium;
+4. open a finite **Focused story trail** issue/branch and implement only explicit-reference story focus;
+5. do not start bookmarks, AI summary, replay or broader Chronicle redesign before the focused-trail slice closes.

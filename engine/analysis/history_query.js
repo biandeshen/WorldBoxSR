@@ -175,6 +175,10 @@ function findCurrentEntity(world, entityKind, id) {
       return world.creatures?.find((entity) => entity.kind === 'creature' && entity.id === id) ?? null;
     case 'settlement':
       return world.settlements?.find((entity) => entity.id === id) ?? null;
+    case 'polity':
+      return world.polities?.find((entity) => entity.id === id) ?? null;
+    case 'warband':
+      return world.warbands?.find((entity) => entity.id === id) ?? null;
     case 'lineage':
       return world.lineages?.find((entity) => entity.id === id) ?? null;
     case 'parental_union':
