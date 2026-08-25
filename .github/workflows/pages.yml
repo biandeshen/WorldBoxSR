@@ -47,3 +47,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify live Pages URL serves the game
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=""
+          for attempt in {1..20}; do
+            body="$(curl --fail --silent --show-error --location --max-time 15 "$PAGE_URL" || true)"
+            if grep -Fq '<title>WorldBoxSR — Playable World</title>' <<<"$body" \
+              && grep -Fq 'id="phaser-root"' <<<"$body" \
+              && grep -Fq 'id="power-dock"' <<<"$body"; then
+              echo "Live Pages demo verified at $PAGE_URL"
+              exit 0
+            fi
+            echo "Attempt $attempt: live Pages content has not converged to the game artifact yet."
+            sleep 6
+          done
+          echo "::error::Live Pages URL does not serve the WorldBoxSR game after deployment: $PAGE_URL"
+          printf '%s\n' "$body" | sed -n '1,80p'
+          exit 1
