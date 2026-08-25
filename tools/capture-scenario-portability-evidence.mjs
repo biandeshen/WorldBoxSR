@@ -297,11 +297,17 @@ async function replaceTextAndCommit(cdp, selector, value) {
 }
 
 async function replaceText(cdp, selector, value) {
-  const point = await elementCenter(cdp, selector);
-  await clickPoint(cdp, point);
-  await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 2 });
-  await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 2 });
+  const prepared = await evaluate(cdp, `(() => {
+    const input = document.querySelector(${JSON.stringify(selector)});
+    if (!(input instanceof HTMLInputElement) && !(input instanceof HTMLTextAreaElement)) return false;
+    input.focus();
+    input.select();
+    return document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length;
+  })()`);
+  if (!prepared) throw new Error(`Scenario portability input could not be focused/selected: ${selector}`);
   await cdp.send('Input.insertText', { text: value });
+  const actual = await evaluate(cdp, `document.querySelector(${JSON.stringify(selector)})?.value ?? ''`);
+  if (actual !== value) throw new Error(`Scenario portability input did not contain expected text: ${value}`);
   await delay(80);
 }
 
