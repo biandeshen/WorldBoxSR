@@ -4,159 +4,110 @@ Last updated: 2026-08-26
 
 ## Management state
 
-**v0.6.0 — Living Ecology is shipped and closed.** Immutable release identity:
+**v0.6.0 — Living Ecology is shipped and closed.** Immutable release identity remains unchanged:
 - implementation freeze `ac94bd0bfa59790f959c02c261c3506c378fb26d`;
 - release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
-- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb`, targeting exactly the release commit;
-- GitHub Release published from checked-in release notes;
-- release workflow #10, release-commit CI #748, Pages #50/public `/play/`, full visual-qa #247 green;
-- post-release closeout #239 merged as `bd746e08ae7d2d26e4063c6b53f8a509e999f1da`; closeout CI #750, Pages #51/public `/play/`, visual-qa #248 green;
-- release gate #223 and handoff #237 are closed.
+- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb`;
+- release workflow #10, release-commit CI #748, Pages #50/public `/play/`, visual-qa #247 green;
+- post-release closeout #239 / `bd746e08ae7d2d26e4063c6b53f8a509e999f1da`; gates #223/#237 closed.
 
-**v0.7.0 — Scenario Builder & Sharing is the active implementation stage.** Release gate: #240. Finite backlog: `docs/backlog/v0.7.md`.
+**v0.7.0 — Scenario Builder & Sharing is at its final implementation gate.** Release gate: #240. Finite backlog: `docs/backlog/v0.7.md`.
 
-Planning #241 merged as `303e31d5b71285797cc4611e41b5c663683941b4`.
+Delivered implementation slices:
+- Capability 1 — Recipe v1 core — #242/#243 → `910a98445428cd361025b028387be065d70034f1`; merged-main CI #756, Pages #53/public `/play/`, visual #253 green.
+- Capability 2 — Scenario Setup workspace — #244/#245 → `8efcb523148a4728d422de7abaeff8527caea5df`; merged-main CI #773, Pages #54/public `/play/`, visual #270 green.
+- Capability 3 — Portable Recipe — #246/#247 → `27f8c1f8715d9908acb7bb95e264bfb5b3ad2233`; merged-main CI #794, Pages #55/public `/play/`, visual #291 green.
+- Capability 4 — Replay + Fork — #248/#249 → `9b44c03df6898096a422822e4af024cf744b9faa`; merged-main CI #804, Pages #56/public `/play/`, visual #301 green.
 
-Delivered slices:
-- Capability 1 — **Scenario Recipe v1 core** — #242/#243 merged as `910a98445428cd361025b028387be065d70034f1`; merged-main CI #756, Pages #53/public `/play/`, visual-qa #253 green.
-- Capability 2 — **Scenario Setup workspace** — #244/#245 merged as `8efcb523148a4728d422de7abaeff8527caea5df`; merged-main CI #773, Pages #54/public `/play/`, visual-qa #270 green.
-- Capability 3 — **Portable recipe: Copy Link + canonical JSON Export/Import** — #246/#247 merged as `27f8c1f8715d9908acb7bb95e264bfb5b3ad2233`; merged-main CI #794, Pages #55/public `/play/`, visual-qa #291 green.
-
-Capability 4 — **Replay + Fork** — #248/#249 has completed deterministic, full Chromium and manual branch gates on implementation head `bb5925b33f45e5b702cea9715dbc0b279a7ac316`. After this documentation-synchronized final head passes its own CI + full visual-qa, merge #249 and verify merged-main delivery. Only then may capability 5 — **Canonical Scenario Builder gate** — start.
+Capability 5 — **Canonical Scenario Builder release gate** — #250/#251 is machine + manual implementation-gate complete on head `8aca62fcb4ae31b4ab3ab8bab9aa003cc750846d`: CI #808 + full visual-qa #303 green, artifact `9580488110`, four canonical 1440×900 screenshots manually reviewed. The current task is only documentation-synchronized final-head verification → squash merge → merged-main delivery. After that, **v0.7 implementation behavior freezes** and only release packaging/docs/tagging may proceed.
 
 ## v0.7 player promise
 
-A player can assemble a small world setup, serialize it as a compact deterministic **Scenario Recipe**, share/import it, reopen the same authoritative starting world, then Run, Replay or Fork a different history.
+A player can compose a bounded deterministic Scenario Recipe, share/import it into the exact same authoritative start, Run a different history, Replay the exact Recipe start, or Fork/Edit it into a deterministic new Scenario without raw engine tooling.
 
-v0.7 is not a full terrain editor. It productizes deterministic setup/share/replay first.
+v0.7 deliberately does **not** become a terrain editor, live savegame system or rules platform.
 
-## Capability 1 — Scenario Recipe v1 core — delivered
+## Frozen Scenario contract
 
-`client/presentation/scenario_recipe.js` is the single framework-independent recipe contract for Setup/share/Replay/Fork surfaces.
+- Recipe kind/version: `worldboxsr-scenario` / v1.
+- Base: current 24×24, 40-year showcase-ready `sandbox | living_ecology` startup.
+- Setup actions: ordered Human / Grazer / Wolf placement only.
+- Bounds: <=32 actions, <=10 entities/action, name <=64 code units, canonical JSON <=8192 UTF-8 bytes.
+- Portable transport: unpadded base64url under exactly `scenario=`.
+- Recipe is startup input only; engine world remains sole authority.
+- No Recipe present remains compatible with ordinary startup.
 
-- exact `worldboxsr-scenario` version 1 schema;
-- trimmed non-empty name, max 64 code units;
-- base = production-normalized seed + exactly `sandbox | living_ecology`;
-- fixed current 24×24 / 40-year showcase-ready semantics;
-- ordered setup capped at 32 actions, exactly Human/Grazer/Wolf placement, max 10 entities/action;
-- canonical stable JSON independent of input key order while preserving setup order;
-- whole-recipe passability preflight before the first setup command;
-- materialization reuses existing `createShowcaseWorld` → `evolveShowcaseWorld` → authoritative `applyCommand`;
-- empty Sandbox/Living Ecology recipes byte-equal existing direct ready worlds;
-- duplicate complete materializations are byte-identical;
-- recipe name/codec is world/RNG neutral and has no DOM/storage/URL/Phaser dependency.
+## Canonical v0.7 evidence
 
-## Capability 2 — Scenario Setup workspace — delivered
+Canonical source `Portable trio`:
+- seed45 Sandbox;
+- Human `(12,8)`;
+- Grazer `(16,12)`;
+- Wolf `(14,7)`;
+- paused day `14400`;
+- source fingerprint `7f07ed67`.
 
-- visible compact `＋ Scenario` entry and paused Setup workspace in Phaser only;
-- existing Phaser `pointerup → pointerTile → scene.useTool` remains the only map-input path;
-- successful Human/Grazer/Wolf placement uses existing authoritative commands, then appends immutable Recipe draft only after success;
-- failed impassable placement is world/identity/Recipe neutral;
-- Clear rematerializes, Run freezes, later gameplay cannot rewrite Recipe identity;
-- canonical seed45 three-action start fingerprint `7f07ed67`; merged-main delivery green.
+Canonical end-to-end Chromium journey on #251:
+1. ordinary world enters visible Scenario Setup and creates the canonical three-action source via real map clicks;
+2. Copy Link emits an unpadded `scenario=` token that independently decodes to the exact canonical Recipe without changing authority;
+3. a genuinely fresh Chrome profile opens the copied URL at exact paused source `7f07ed67`;
+4. ordinary Time/Play + real Meteor diverges source to `dfbad7ff` while source Recipe remains unchanged;
+5. Replay rematerializes exact source `7f07ed67` and clears stale Event Card / Focused Story / Inspector state;
+6. Fork/Edit starts from exact source authority + an independent copied three-action Recipe;
+7. one fixed fourth Human at `(12,8)` creates deterministic four-action fork `67543ff4`, while original source canonical remains byte-identical;
+8. ordinary fork gameplay diverges to `e0b5b305`;
+9. Replay returns exact fork `67543ff4`, paused as `SCENARIO · 4`, while original source identity remains unchanged.
 
-## Capability 3 — Portable Scenario Recipe — delivered
+`canonical-scenario-builder-evidence.json` records `canonicalJourneyComplete: true`. CI #808 + full visual-qa #303 passed on implementation gate head `8aca62fcb4ae31b4ab3ab8bab9aa003cc750846d`; artifact `9580488110` contains the complete regression set plus canonical evidence. Manual review confirms authored share, replayed source, Fork editing and replayed fork are all readable and the map remains primary.
 
-### Transport/product contract
-- canonical identity is existing `serializeScenarioRecipe` output only;
-- max 8192 canonical UTF-8 bytes → unpadded base64url under exactly `scenario=`;
-- Copy Link, exact JSON export and visible JSON import use Recipe v1, never snapshots/live world state;
-- fresh shared URL materializes through the existing Recipe materializer and starts paused;
-- Import installs only after full validation/materialization succeeds; invalid import keeps current world/Recipe/URL/pause/boot state;
-- Legacy rejects Scenario links truthfully rather than becoming a second Scenario runtime;
-- no storage/cloud/RNG/direct entity-history mutation ownership.
+## Capability evidence summary
 
-### Canonical evidence
-`Portable trio` = seed45 Sandbox + Human `(12,8)` + Grazer `(16,12)` + Wolf `(14,7)`.
-- authored start day `14400`, fingerprint `7f07ed67`;
-- Copy Link independently decodes to exact canonical Recipe;
-- downloaded JSON is byte-exact canonical Recipe;
-- fresh shared profile and separate visible Import both reproduce day `14400` + fingerprint `7f07ed67` + exact normalized Recipe;
-- impassable Wolf import `(18,12)` rejects atomically.
+### Recipe core
+- one strict normalized schema and stable canonical serialization;
+- whole-recipe preflight before any setup command;
+- one materializer reusing production world creation + authoritative commands;
+- duplicate materializations byte-identical; metadata/codec RNG-neutral.
 
-Implementation head `5d7b2402602532382456c68be2224e685114cba2` passed CI #791 + visual-qa #288 and manual review. Final docs head passed CI #793 + visual-qa #290. #247 merged as `27f8c1f8715d9908acb7bb95e264bfb5b3ad2233`; merged-main CI #794, Pages #55/public `/play/`, visual-qa #291 green.
+### Scenario Setup
+- visible paused editor using the existing Phaser pointer path;
+- successful placement records only after authoritative command success;
+- failed placement is Recipe/world/identity neutral;
+- Clear rematerializes; Run freezes without changing the start.
 
-## Capability 4 — Replay + Fork branch evidence
+### Portable Recipe
+- Copy Link / JSON Export / visible Import use canonical Recipe only, never snapshots/live world state;
+- fresh shared URL starts paused through the same materializer;
+- invalid Import is atomic;
+- Legacy rejects Scenario links truthfully.
 
-### Product semantics
-- **Replay Scenario** is deterministic `materializeScenarioRecipe(frozenRecipe)` + existing ready-world install; it is not snapshot restore, event replay or timeline rewind;
-- Replay keeps the frozen Recipe identity and returns paused at exact Recipe start;
-- world replacement clears stale Event Card, Focused Story, Inspector and selection presentation; Watchlist stable refs/session storage are not deleted and can re-resolve against the rebuilt world;
-- **Fork / Edit** normalizes an independent Recipe copy, separately retains immutable `forkSource`, rematerializes the exact source start and enters the existing Scenario Setup workspace;
-- Fork uses the same Human/Grazer/Wolf actions and existing map pointer path; no second editor/input loop;
-- fork UI is visibly `FORK · EDITING · PAUSED`; Run freezes the edited fork while retaining original source identity for comparison;
-- ordinary World reset clears frozen/fork presentation identity;
-- Replay/Fork adds no URL/transport protocol, snapshot savegame, storage/cloud or simulation mechanics.
+### Replay + Fork
+- Replay = Recipe rematerialization, never timeline rewind/snapshot restore;
+- transient stale world references are cleared after replacement while stable Watchlist refs can re-resolve;
+- Fork/Edit uses an independent normalized copy and separately retains immutable source identity;
+- fixed fork difference is deterministic and replayable.
 
-### Deterministic evidence
-Headless tests prove:
-- source Recipe can diverge through later simulation + Meteor while source canonical stays unchanged;
-- rematerializing source returns exact original snapshot, repeatedly;
-- fork copy is structurally equal but independently referenced/not frozen;
-- adding one fixed Human action creates exactly one additional entity + history event at the same day;
-- duplicate fork materializations are byte-identical;
-- rematerializing source after fork still returns exact source snapshot/canonical identity.
+## Regression hardening retained
 
-### Real Chromium evidence
-Fresh shared `Portable trio` source:
-- exact source fingerprint `7f07ed67`, paused day `14400`, bookmarked event #163;
-- ordinary Time + real Meteor diverges authority to `0d1d99b2` while source Recipe stays unchanged;
-- Replay returns exact `7f07ed67` source start and clears stale Event Card/Focused Story/Inspector while preserving bookmark storage;
-- opening the same retained event after Replay re-renders the preserved Watchlist ref against the rebuilt source world;
-- Fork/Edit starts at exact source fingerprint with copied 3-action Recipe and immutable source canonical string;
-- one real Human placement at `(12,8)` creates a 4-action fork with fingerprint `67543ff4`, distinct from source, while source Recipe remains byte-identical;
-- Run freezes the fork; ordinary fork gameplay diverges it; Replay returns exact `67543ff4` fork start while original source canonical remains unchanged.
+Full Chromium validation still requires all v0.4/v0.5/v0.6 gates plus all v0.7 slice gates. Watchlist exact-Y40 and Living Ecology exact-Y50/HUD-convergence hardening remain part of the full gate; no regression requirement was removed to make v0.7 pass.
 
-Implementation head `bb5925b33f45e5b702cea9715dbc0b279a7ac316` passed CI #801 + full visual-qa #298. Artifact `9579531599` contains the 69-file regression set, `scenario-replay-fork-evidence.json` and fixed Replay/Fork screenshots. Manual 1440×900 review passed: Replay status/Recipe identity are clear, Fork workspace is explicitly labeled and compact, fork replay shows `SCENARIO · 4`, and the map remains the primary visual surface.
+## Ordered v0.7 state
 
-## Regression-gate hardening retained from capability 2
-
-No product authority changed, but full validation fixed old timing assumptions:
-- Watchlist evidence freezes both the first and same-tab-reloaded worlds at exact seed45 Y40 before choosing/reopening the bookmarked event;
-- canonical Living Ecology uses ordinary `Time=1 year` + product Pause to land on exact Y50 and waits until HUD `Year 50.0` converges before asserting the frozen authority/HUD state.
-
-## Ordered v0.7 slices
-
-1. Versioned Scenario Recipe contract + deterministic materializer — #242/#243 — **DONE + merged-main delivered**.
-2. Scenario Setup workspace — #244/#245 — **DONE + merged-main delivered**.
-3. Portable recipe — Copy Link + canonical JSON Export/Import — #246/#247 — **DONE + merged-main delivered**.
-4. Replay + Fork — #248/#249 — **implementation/browser/manual branch gate complete; documentation-synchronized merge gate active**.
-5. Canonical Scenario Builder gate — **NEXT only after #249 merged-main delivery verification**.
-6. Release-only `v0.7.0` handoff.
-
-## v0.7 architecture/truth boundaries
-
-- Engine remains the only world truth.
-- Recipe is startup input to existing world creation/commands, never a second simulation or save-state mirror.
-- Recipe transport/metadata never enters `snapshotWorld`, world history or RNG.
-- Setup/share/Replay/Fork UI must not push entities/events or edit world arrays directly.
-- Successful setup placement is appended to recipe only after authoritative command success.
-- Import replaces authority only after complete Recipe validation/materialization succeeds.
-- Setup stops at explicit Run; later gameplay/God Powers are not silently recorded into recipe.
-- Replay means rebuild the Recipe start, not timeline rewind.
-- Fork creates a new editable Recipe without mutating the imported/shared normalized source.
-- Existing no-recipe v0.6 Sandbox/Living Ecology startup is a byte-compatibility regression contract.
-- Phaser is the v0.7 product surface; Legacy remains comparison compatibility only.
-
-## Explicit v0.7 non-goals
-
-- no terrain/elevation/moisture/biome/water painter;
-- no arbitrary tile/resource editor;
-- no full player-facing live snapshot save-game UI;
-- no config/rules DSL or scripting/mod execution;
-- no objectives, victory/defeat or challenge scoring;
-- no cloud/accounts/workshop/discovery backend;
-- no AI-generated canonical scenario facts;
-- no custom map-size contract;
-- no new ecology/civilization mechanics;
-- no generic conversion of every God Power into recipe setup actions;
-- no compression protocol or short-link backend;
-- no timeline rewind/event-replay engine or setup undo/remove stack.
+1. Recipe v1 core — **DONE + merged-main delivered**.
+2. Scenario Setup workspace — **DONE + merged-main delivered**.
+3. Portable Recipe — **DONE + merged-main delivered**.
+4. Replay + Fork — **DONE + merged-main delivered**.
+5. Canonical Scenario Builder gate — **machine + manual gate complete; final docs-head CI/Chromium then merge/delivery**.
+6. Release-only `v0.7.0` handoff — **NEXT only after capability 5 merged-main CI + Pages/public `/play/` + full Chromium are green**.
 
 ## Current decision gate
 
-1. require documentation-synchronized #249 final head normal CI + full visual-qa green;
-2. update #249 final evidence, mark ready and squash merge;
+1. require documentation-synchronized #251 final head normal CI + full visual-qa green;
+2. update #251 with final evidence, mark ready and squash merge;
 3. verify merged-main CI, Pages/public `/play/` and full visual-qa;
-4. only then open exactly one capability-5 issue/branch for the **Canonical Scenario Builder gate**;
-5. do not begin release packaging, terrain editing or other builder breadth in parallel.
+4. freeze all v0.7 product/gate behavior;
+5. open exactly one release-only `v0.7.0` handoff; package/docs/release metadata only;
+6. do not begin v0.8 or any terrain/builder breadth before v0.7 immutable release closure.
+
+## Explicit v0.7 non-goals
+
+No terrain/elevation/moisture/biome/water/resource painter, live snapshot savegame UI, rules DSL/mod scripts, objectives/scoring, cloud/accounts/workshop backend, AI-generated canonical authority, custom map sizes, new simulation mechanics, generic God-Power-to-Recipe conversion, short-link backend, timeline rewind/event-replay engine or Setup undo/remove stack.

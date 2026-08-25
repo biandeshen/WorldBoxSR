@@ -86,6 +86,12 @@ node tools/capture-scenario-portability-evidence.mjs "$browser" "$base_url" "$ou
 # immutable and Replay of the frozen fork must return to the exact fork start.
 node tools/capture-scenario-replay-fork-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.7 capability 5: one coherent release path starts from an ordinary world,
+# authors Portable trio through visible Setup, Copy Links it into a fresh Chrome
+# profile, then runs/diverges, Replays the exact source, Forks one fixed Human,
+# runs/diverges again and Replays the exact fork. No new product semantics.
+node tools/capture-canonical-scenario-builder-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -143,7 +149,12 @@ scenario_replay_restored=scenario-replay-restored-1440x900.png
 scenario_fork_editing=scenario-fork-editing-1440x900.png
 scenario_fork_replayed=scenario-fork-replayed-1440x900.png
 scenario_replay_fork_authority=scenario-replay-fork-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus v0.7 Scenario Setup, portability and Replay/Fork preserve declared authority ownership
+scenario_canonical_authored_share=scenario-canonical-authored-share-1440x900.png
+scenario_canonical_source_replayed=scenario-canonical-source-replayed-1440x900.png
+scenario_canonical_fork_editing=scenario-canonical-fork-editing-1440x900.png
+scenario_canonical_fork_replayed=scenario-canonical-fork-replayed-1440x900.png
+scenario_canonical_authority=canonical-scenario-builder-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus all v0.7 slice gates and the canonical Scenario Builder journey preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
