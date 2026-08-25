@@ -27,10 +27,9 @@ export function updatePoliticalOutcomes(world) {
 }
 
 function normalizeWorldSettlements(world) {
-  for (let index = 0; index < world.settlements.length; index += 1) {
-    const settlement = world.settlements[index];
+  for (const settlement of world.settlements) {
     if (settlement.conquestCount !== undefined && settlement.rebellionCount !== undefined) continue;
-    world.settlements[index] = normalizeSettlementPoliticalFields(settlement);
+    Object.assign(settlement, normalizeSettlementPoliticalFields(settlement));
   }
 }
 
