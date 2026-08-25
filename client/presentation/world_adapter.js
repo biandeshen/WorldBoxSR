@@ -1,6 +1,7 @@
 import { applyCommand } from '../../engine/core/commands.js';
 import { summarizeWorld } from '../../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../../engine/core/world.js';
+import { acceptedGodAction } from './god_action_outcome.js';
 
 export const SHOWCASE = Object.freeze({ width: 24, height: 24, population: 30, warmupYears: 40, warmupChunkYears: 2, defaultSeed: 45, grazerCount: 8 });
 
@@ -40,19 +41,13 @@ export function seedShowcaseGrazers(world) {
 export function advanceWorld(world, days) { tickWorld(world, days); }
 
 export function applyGodTool(world, tool, x, y, count = 1) {
-  if (tool === 'meteor') {
-    const outcome = applyCommand(world, { type: 'meteor', x, y });
-    return { accepted: true, effect: 'meteor', ...outcome };
-  }
-  if (tool === 'rain') {
-    const outcome = applyCommand(world, { type: 'rain', x, y });
-    return { accepted: true, effect: 'rain', ...outcome };
-  }
-  if (tool === 'erase') { applyCommand(world, { type: 'erase', x, y }); return { accepted: true, effect: 'erase' }; }
-  if (tool === 'lightning') { applyCommand(world, { type: 'lightning', x, y }); return { accepted: true, effect: 'lightning' }; }
-  if (tool === 'spawn_grazer') { applyCommand(world, { type: 'spawn_creature', species: 'grazer', x, y, count }); return { accepted: true, effect: 'spawn_grazer' }; }
+  if (tool === 'meteor') return acceptedGodAction('meteor', applyCommand(world, { type: 'meteor', x, y }));
+  if (tool === 'rain') return acceptedGodAction('rain', applyCommand(world, { type: 'rain', x, y }));
+  if (tool === 'erase') { applyCommand(world, { type: 'erase', x, y }); return acceptedGodAction('erase'); }
+  if (tool === 'lightning') { applyCommand(world, { type: 'lightning', x, y }); return acceptedGodAction('lightning'); }
+  if (tool === 'spawn_grazer') { applyCommand(world, { type: 'spawn_creature', species: 'grazer', x, y, count }); return acceptedGodAction('spawn_grazer'); }
   applyCommand(world, { type: 'spawn_human', x, y, count });
-  return { accepted: true, effect: 'spawn_human' };
+  return acceptedGodAction('spawn_human');
 }
 
 export function worldView(world) {
