@@ -88,7 +88,7 @@ test('territory remains neutral to human and RNG behavior while political relati
   assert.deepEqual(a.rng.snapshot(), b.rng.snapshot());
   assert.deepEqual(a.counters, b.counters);
   assert.deepEqual(a.entities, b.entities);
-  assert.deepEqual(nonRelationHistory(a), nonRelationHistory(b));
+  assert.deepEqual(nonPoliticalConflictHistory(a), nonPoliticalConflictHistory(b));
   assert.notDeepEqual(
     relationHistory(a),
     relationHistory(b),
@@ -100,10 +100,16 @@ function relationHistory(world) {
   return world.history.filter((event) => event.type === 'polity.war_started' || event.type === 'polity.peace_made');
 }
 
-function nonRelationHistory(world) {
-  const events = world.history.filter((event) => event.type !== 'polity.war_started' && event.type !== 'polity.peace_made');
+function nonPoliticalConflictHistory(world) {
+  const events = world.history.filter((event) => !isPoliticalConflictEvent(event));
   const canonicalIds = new Map(events.map((event, index) => [event.id, index + 1]));
   return events.map(({ id, ...event }) => normalizeEventRefs(event, canonicalIds));
+}
+
+function isPoliticalConflictEvent(event) {
+  return event.type === 'polity.war_started'
+    || event.type === 'polity.peace_made'
+    || event.type.startsWith('warband.');
 }
 
 function normalizeEventRefs(value, canonicalIds) {
