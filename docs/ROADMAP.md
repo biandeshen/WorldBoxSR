@@ -122,27 +122,37 @@ v0.5 does not add AI-authored canonical facts, a required AI summary, replay/rew
 ---
 
 ## v0.6.0 — Living Ecology
-**Status: current target; planning gate next. Primary fantasy: “the environment and animal life form a visible system around civilizations.”**
+**Status: active target; finite release gate #223 defined. Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”**
 
-v0.5 delivery is complete, so the next bounded product stage may now begin. It must start with a finite backlog and supported showcase/preset rather than open-ended ecology research.
+### Promise
+Turn the already-authoritative grazer/resource mechanics into a visible supported ecology experience, then add exactly one new predator relationship so ecology becomes a player-readable world system rather than hidden creature math.
 
-### Candidate problem space
-- supported natural-fauna initialization that remains deterministic;
-- multiple distinct species beyond the current single grazer abstraction;
-- biome affinity / migration that is visible on the map;
-- predation / food-web foundations that create understandable world consequences;
-- ecology observability suitable for player-facing inspection and deterministic regression gates.
+### Supported scope
+- canonical release scope is **24×24** through an explicit Living Ecology preset;
+- existing/default sandbox behavior remains compatibility-safe rather than silently enabling unvalidated universal fauna;
+- natural grazers use the exact Sprint021 validated initializer: 10 founders from the vegetation-rich top32 passable cells, deterministic placement and keyed `[0,6y]` founder ages;
+- validated grazer reproduction/old-age settings are enabled only where the preset requires them;
+- one additional named predator species: **Wolf**;
+- extinction/collapse is allowed; no equilibrium or eternal-coexistence guarantee.
 
-### Required planning constraints
-- define one visible player promise before implementation;
-- select supported seed/preset/scenario scope rather than promising universal equilibrium;
-- coherent extinction/collapse remains acceptable when causally truthful;
-- no hidden survival controller merely to force species persistence;
-- preserve deterministic initialization/save-load/world authority;
-- no economy/religion/technology or renewed civilization-depth expansion inside ecology scope;
-- no v0.5 World Stories reopening unless a concrete regression blocks the ecology product gate.
+Detailed finite backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md).
 
-The first v0.6 task is therefore **scope + finite backlog + canonical ecology gate design**, not feature coding by accumulation.
+### Ordered scope
+1. **Supported natural-fauna preset** — productize the proven 24×24 grazer initializer/settings with deterministic tests and real browser visibility;
+2. **Multi-species creature surface** — make Grazer + Wolf visually distinct/selectable/inspectable through the smallest necessary shared creature presentation path;
+3. **Wolf predation loop** — authoritative deterministic prey seeking/hunting through shared creature lifecycle/history, with no renderer-owned combat or hidden rescue spawning;
+4. **Ecology readability** — compact species/condition/resource-pressure and predation feedback without turning the game into an analytics dashboard;
+5. **Canonical Living Ecology gate** — one supported deterministic world proves natural grazer birth, vegetation pressure/recovery, at least one authoritative Wolf→Grazer predation consequence, exact repeatability and save/load continuation;
+6. release-only `v0.6.0` package/docs/tag/Pages handoff after merged-main verification.
+
+### Evidence boundary
+The release deliberately reuses accepted research instead of reopening compact-map tuning. Sprint021 passed 30/30 24×24 worlds for 120 years with multi-generation grazers and repeated vegetation cycles. By contrast, scalar founder counts, terminal-population classifiers, a 40-year population-low recovery envelope and encounter-safe placement are not promoted; encounter-safe placement specifically failed fresh validation with 4 rescues vs 6 harms.
+
+### Exit gate
+In the supported 24×24 preset, a player can identify both species, observe naturally reproduced grazers consuming vegetation, see an authoritative wolf predation event and its visible population/resource consequence, and inspect what happened without raw engine JSON. Duplicate headless runs are byte-identical and save/load continuation matches uninterrupted authority. The gate does not require either species to survive forever.
+
+### Deliberate stop
+No universal 16×16–48×48 initializer, equilibrium controller, hidden reseeding, disease, seasons/climate, genetics/evolution, plant-species model, generalized N-species food-web framework, new god powers or renewed civilization/economy/religion/technology breadth. At most three consecutive rejected ecology hypotheses may block the visible gate before scope must narrow.
 
 ---
 
@@ -166,4 +176,4 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.5.0 World Stories is closed and shipped. v0.6 Living Ecology is now the current target, but implementation must not begin until its finite product backlog and canonical visible-player gate are defined.** Preserve v0.5 release identity and avoid reopening closed story breadth without a concrete regression reason.
+**v0.5.0 World Stories is closed and immutable. v0.6 Living Ecology is the only active product target.** Merge the planning gate first, then implement the supported natural-fauna preset as the single next slice. Do not begin Wolf/predation or additional ecology research in parallel, and do not promise universal fauna beyond the declared 24×24 release scope.
