@@ -40,6 +40,10 @@ export function seedShowcaseGrazers(world) {
 export function advanceWorld(world, days) { tickWorld(world, days); }
 
 export function applyGodTool(world, tool, x, y, count = 1) {
+  if (tool === 'meteor') {
+    const outcome = applyCommand(world, { type: 'meteor', x, y });
+    return { accepted: true, effect: 'meteor', ...outcome };
+  }
   if (tool === 'erase') { applyCommand(world, { type: 'erase', x, y }); return { accepted: true, effect: 'erase' }; }
   if (tool === 'lightning') { applyCommand(world, { type: 'lightning', x, y }); return { accepted: true, effect: 'lightning' }; }
   if (tool === 'spawn_grazer') { applyCommand(world, { type: 'spawn_creature', species: 'grazer', x, y, count }); return { accepted: true, effect: 'spawn_grazer' }; }
