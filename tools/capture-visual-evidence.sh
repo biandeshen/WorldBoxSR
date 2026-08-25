@@ -106,6 +106,12 @@ node tools/capture-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 # fingerprint to remain unchanged throughout the read-only navigation.
 node tools/capture-focused-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.5 Watchlist: in one real Chrome tab/session, Pin a retained event plus an
+# explicit entity, browse elsewhere, return through Watchlist, reload the same
+# tab so sessionStorage must rehydrate both refs, then Unpin/Clear. Bookmark UI
+# actions must leave authority unchanged on both sides of the reload boundary.
+node tools/capture-bookmark-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -129,7 +135,10 @@ story_authority=story-evidence.json
 focused_story_trail=story-focused-trail-1440x900.png
 focused_story_event=story-focused-trail-event-opened-1440x900.png
 focused_story_authority=focused-story-evidence.json
-runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 Event Card cause/map navigation + natural explicit Follow Story trail all preserve authoritative world state
+watchlist_pinned=story-watchlist-pinned-1440x900.png
+watchlist_reloaded=story-watchlist-reloaded-1440x900.png
+watchlist_authority=watchlist-evidence.json
+runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 Event Card cause/map + Focused Story + same-session Watchlist reload persistence all preserve authoritative world state
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
