@@ -4,20 +4,21 @@ Last updated: 2026-08-25
 
 ## Management state
 
-**v0.4.0 — God Power Sandbox is shipped and closed.** Tag/Release `v0.4.0`, final CI, interactive Chromium, Pages build/deploy, and the public `/play/` verification all passed. Release gate #200 is closed.
+**v0.5.0 — World Stories is shipped.** Release gate: #208. Release handoff: #220. Package/tag/Release, merged-main CI, full Chromium Visual QA, Pages build/deploy and the final public `/play/` verification all passed.
 
-The active release candidate is **v0.5.0 — World Stories**. Release gate: #208. Release-only handoff: #220. Finite backlog: `docs/backlog/v0.5.md`.
+Release identity is fixed:
+- release commit: `104dc7520b2e5ad39ec1d3c98c1cea94a11922b4`;
+- annotated tag: `v0.5.0`;
+- tag object: `4b741403979aee61ae51c49d02306d1acf6f74e1`, pointing exactly at the release commit;
+- GitHub Release: `WorldBoxSR v0.5.0`, published from `docs/releases/v0.5.0.md`;
+- release workflow: #9 — green;
+- release-commit CI: #677 — green;
+- release-commit full Chromium visual-qa: #187 — green;
+- Pages: #40 — build, deploy and final public `/play/` verification green.
 
-All five World Stories implementation/product gates are complete and merged to `main`:
-- Causal Event Card — #209 / #211;
-- Focused Story Trail — #212 / #213;
-- Bookmarks / Watchlist — #214 / #215;
-- Chronicle navigation/readability — #216 / #217;
-- Canonical World Stories gate — #218 / #219.
+The preceding implementation checkpoint also passed after #219 merged: CI #675, visual-qa #185 and Pages #39 were all green before packaging began. Release PR #221 itself changed only seven release/status files and passed CI #676 + visual-qa #186 before merge.
 
-PR #219 merged at `b79d4de283bfcf968cd524c68bb08926dda2d463`. The post-implementation `main` verification is complete: CI #675 passed, full Chromium visual-qa #185 passed, and Pages #39 passed build, deploy and the final public `/play/` URL check.
-
-**v0.5 feature implementation is frozen.** Branch `release/v0.5.0` / issue #220 may change only release packaging and release/status documentation. It must not add product, simulation, renderer or interaction behavior. Tag/Release `v0.5.0` is **not yet claimed shipped** until the release PR merges and release automation + final public delivery are verified.
+**v0.5 feature work is closed.** Do not move/amend tag `v0.5.0` for later documentation changes. v0.6 Living Ecology is the next product stage, but it must begin with its own finite backlog and explicit product gate rather than leaking new work into the closed v0.5 scope.
 
 ## Current authoritative capability
 
@@ -25,74 +26,72 @@ The deterministic engine remains the only world truth: seeded/serializable RNG, 
 
 World Stories is a query/presentation layer over bounded `world.history`. Existing event `subject` / `causes` / explicit stable domain IDs are authoritative; unresolved refs are normal under bounded history and remain visible rather than guessed. Focus, Watchlist and Chronicle-lens selection stay outside world/snapshot authority.
 
-## v0.5 Causal Event Card evidence
+## v0.5 shipped capability
 
-- selected retained events project into readable cards with headline/detail/provenance plus ordered Subject and Causes;
+### Causal Event Card
+- retained events project into readable cards with headline/detail/provenance plus explicit Subject and ordered recorded Causes;
 - retained event refs can open another Event Card;
-- current human/creature/settlement/warband refs can navigate to their current map tile; polity refs use the current capital when available;
-- command refs and expired entity/event refs remain explicitly unavailable with truthful reasons;
-- real Chromium uses real Lightning pointer input to produce ruler death → normal causal succession, then follows the retained death-event cause and a current map-capable reference while authoritative world fingerprint remains unchanged;
-- the slice did not change Chronicle representative-event selection policy.
+- current map-capable refs reuse the existing world map/inspector path;
+- command/expired entity/event refs remain explicitly unavailable rather than inferred;
+- deterministic tests + real Chromium prove Event Card navigation remains snapshot/RNG neutral.
 
-## v0.5 Focused Story Trail evidence
+### Focused Story Trail
+- exact retained-history predicates support explicit human, creature, settlement, polity, warband and one-hop event focus;
+- trails are chronological oldest→newest, capped at 8 and never infer current-state membership merely to fill a story;
+- trail rows reopen the existing Event Card while focus remains active;
+- focus is presentation-only and does not mutate world authority.
 
-- exact retained-history predicates support explicit polity, warband and one-hop event focus alongside existing human/creature/settlement focus;
-- `historyForReference` dispatches only supported stable refs and never infers current-state membership;
-- event focus is deliberately one hop: selected event + direct retained children only;
-- `story_trail` is pure presentation projection, chronological oldest→newest, fixed limit 8, and preserves unavailable stable focus identity;
-- Event Card exposes `Follow this event` and supported `Follow story` actions; trail rows reopen Event Cards; Clear/reset remove only presentation focus;
-- natural seed45 Chromium obtains an explicit 8-event polity trail, opens a trail event, clears focus and verifies authoritative world fingerprint is unchanged.
+### Watchlist
+- explicit Pin/Unpin stores at most 6 stable retained-event/entity refs;
+- persistence is same-tab/session-only through `sessionStorage`;
+- every render re-resolves current authoritative truth; removed/evicted refs remain pinned but visibly unavailable;
+- malformed/duplicate/unsupported persisted entries are sanitized;
+- Watchlist is player memory, not canonical world importance.
 
-## v0.5 Watchlist evidence
+### Chronicle lenses
+- exactly four compact lenses: `Highlights · Recent · Conflict · Rule`;
+- Highlights preserves the existing representative-history behavior;
+- Recent is newest-first readable retained World Story history;
+- Conflict and Rule use fixed explicit event-type membership;
+- every lens is capped at 7; lens state is presentation-only and unpersisted;
+- Event Card, Focused Story and Watchlist remain usable while lenses switch.
 
-- Watchlist stores only stable retained-event or supported entity refs; it never writes world/history/snapshots or consumes RNG;
-- list is capped at 6, Pin↔Unpin is exact/idempotent, and malformed/duplicate/unsupported persisted entries are sanitized;
-- persistence is same-tab session-only through `sessionStorage`; there is no cloud/cross-device canonical memory;
-- each render re-resolves stable refs through current authoritative history/entity lookup; removed entities and evicted events remain pinned but visibly unavailable;
-- a first real reload test caught a genuine warmup race; runtime now waits for `scene.booting === false` before Watchlist re-resolution;
-- final Chromium pins `event:163` + Eldergate Realm (`polity:1`), browses elsewhere, reopens the pinned event, same-tab reload restores both `2/6` refs, then Unpin/Clear stores `[]`;
-- authoritative world fingerprint remains unchanged on both sides of reload.
+## Canonical World Stories release evidence
 
-## v0.5 Chronicle navigation/readability evidence
+The final real-browser gate proves the four surfaces work together in one coherent deterministic seed45 session rather than only as isolated tests:
 
-- Chronicle exposes exactly four compact player lenses: `Highlights · Recent · Conflict · Rule`;
-- `Highlights` delegates exactly to the existing representative `civilizationChronicle(..., { limit: 7 })` behavior;
-- `Recent` is newest-first readable retained World Story history; `Conflict` and `Rule` use explicit fixed event-type memberships only;
-- every lens is capped at 7 and truthful empty states never backfill unrelated history;
-- rows preserve `data-event-id` and the existing Event Card navigation path; lens state is presentation-only and is not persisted;
-- pure/runtime tests prove exact memberships/default equivalence and snapshot/RNG neutrality;
-- merged-main Chromium traverses all lenses, opens a non-default Event Card, restores exact Highlights, preserves Focused Story + Watchlist, and keeps authoritative world state unchanged.
+1. ordinary shipped Lightning strikes Lindenvale Dominion ruler Human #23;
+2. authority records `god.lightning` #172 + `human.died` #173;
+3. normal deterministic succession records `polity.ruler_succeeded` #178 for Human #29 with retained death Event #173 as an explicit Cause;
+4. the paused post-succession serialized world becomes the read-only authority baseline;
+5. Event #178 visibly explains `Human #29 succeeds Human #23 after death` with Lindenvale Dominion as Subject;
+6. browser follows retained Cause Event #173;
+7. Show on map resolves polity #3 to current capital Lindenvale, inspector focus `15,12`;
+8. Watchlist Pins exactly `event:178` + `polity:3`;
+9. Follow polity #3 recovers chronological trail `[122,123,124,125,127,128,130,131]` and opens Event #123;
+10. same session round-trips Recent `[178,163,162,159,158,157,156]`, Conflict `[134,120,119,117,115,114,111]`, Rule `[178,163,162,159,158,157,156]`, then restores exact Highlights `[178,135,134,120,119,117,115]`;
+11. open Event Card, Focused Story and Watchlist survive the lens round-trip;
+12. no raw engine JSON appears;
+13. every read-only story/navigation action after the post-succession baseline preserves the exact authoritative world fingerprint + paused state.
 
-## v0.5 Canonical World Stories gate evidence
+Manual review of the fixed 1440×900 canonical evidence confirms the Event Card, Focused Story, Watchlist and lens tabs remain readable while the world map stays the primary surface.
 
-- the first gate draft intentionally asked static natural seed45 history for one Event Card with retained event cause + current map ref + >=2-event entity trail; Chromium proved that stronger-than-release conjunction does not exist naturally, so the gate was corrected rather than inventing causality;
-- final gate uses ordinary shipped gameplay: real Lightning strikes Lindenvale Dominion ruler #23; authority records `god.lightning` #172 + `human.died` #173 and normal succession Event #178 for Human #29;
-- paused post-succession world is the read-only baseline; all subsequent story/navigation operations preserve its serialized fingerprint;
-- Event #178 visibly states `Human #29 succeeds Human #23 after death`, with Lindenvale Dominion Subject and Event #173 / Human #29 Causes;
-- browser follows Event #173, maps polity #3 to capital Lindenvale, Pins `event:178` + `polity:3`, then follows polity #3 through `[122,123,124,125,127,128,130,131]` and opens Event #123;
-- same session round-trips Recent / Conflict / Rule and restores exact Highlights `[178,135,134,120,119,117,115]` while preserving the open Event Card, focus and Watchlist;
-- no raw engine JSON is exposed; post-causality authoritative fingerprint + paused state remain unchanged throughout;
-- canonical helper is hard-bounded at 75 seconds so a CDP/browser stall produces a finite failed gate with partial-stage diagnostics;
-- manual review of the fixed 1440×900 canonical screenshots confirms the Event Card, Focused Story, Watchlist and lens tabs are readable while the map remains the primary surface.
-
-## Binding product decisions
+## Binding product decisions carried forward
 
 - Visible truthful player results outrank hidden system breadth.
 - Runtime/engine state is the only world truth; Phaser/UI/AI are projections.
 - Civilization depth remains paused after v0.3.
 - God-power breadth remains frozen after v0.4.
-- No graph database, generalized knowledge system or full replay engine in v0.5.
+- World Stories breadth is frozen after v0.5.
+- No graph database, generalized knowledge system or full replay engine is implied by v0.5.
 - No AI-authored canonical facts, hidden motives or inferred causal links.
 - Focus/bookmark/navigation state stays presentation-only and outside world snapshots.
 - Watchlist is explicit player memory, not canonical world importance.
-- Living Ecology is v0.6 work and cannot start inside the v0.5 release handoff.
 
 ## Current decision gate
 
-1. keep `release/v0.5.0` release-only: package `0.5.0`, release/demo docs, README/ROADMAP/STATUS/backlog only;
-2. require release PR normal CI + full Chromium success on its final head;
-3. merge the release PR to `main` without feature code;
-4. verify release-merge `main` CI, full Chromium, Pages build/deploy/final public `/play/` check;
-5. verify release workflow creates tag `v0.5.0` and GitHub Release from `docs/releases/v0.5.0.md` at the intended release commit;
-6. only after those checks, close #208 and #220 and mark v0.5.0 shipped in final status closure;
-7. do not start v0.6 Living Ecology until v0.5.0 is verifiably shipped.
+1. merge this post-tag status closure without changing release artifacts or tag `v0.5.0`;
+2. close #208 and #220 once the closure commit lands on `main`;
+3. treat **v0.6 Living Ecology** as the next product stage;
+4. before implementation, create a finite v0.6 backlog with a concrete visible-player promise, supported scenario/preset scope, explicit deterministic + browser gate and clear non-goals;
+5. do not reopen v0.5 story breadth merely because the next stage has begun.
