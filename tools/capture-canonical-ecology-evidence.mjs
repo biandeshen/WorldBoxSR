@@ -206,7 +206,7 @@ try {
 }
 
 async function checkpoint(cdpClient, expectedYear) {
-  await waitForHudConvergence(cdpClient, 2_000);
+  await waitForHudConvergence(cdpClient, expectedYear, 2_000);
   return evaluate(cdpClient, `(() => {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     if (!world) return null;
@@ -344,15 +344,17 @@ async function waitForProductPauseAtDay(cdpClient, targetDay, timeoutMs) {
   throw new Error(`timed out waiting for product Pause at canonical day ${targetDay}`);
 }
 
-async function waitForHudConvergence(cdpClient, timeoutMs) {
+async function waitForHudConvergence(cdpClient, expectedYear, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   let previous = null;
+  const expectedPrefix = `Year ${Number(expectedYear).toFixed(1)}`;
   while (Date.now() < deadline) {
     const current = await evaluate(cdpClient, `document.querySelector('#stats')?.textContent ?? ''`);
-    if (current && current === previous && current.includes('🌿')) return;
+    if (current && current === previous && current.includes(expectedPrefix) && current.includes('🌿')) return;
     previous = current;
     await delay(80);
   }
+  throw new Error(`HUD did not converge to ${expectedPrefix}: ${previous ?? ''}`);
 }
 
 async function clickPauseTo(cdpClient, paused) {
