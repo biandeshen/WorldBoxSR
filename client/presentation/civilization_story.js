@@ -189,13 +189,17 @@ export function chronicleEntryForEvent(world, event, daysPerYear = world?.config
 export function civilizationChronicle(world, { limit = 7 } = {}) {
   if (!Number.isInteger(limit) || limit < 1) throw new RangeError('chronicle limit must be a positive integer');
   const history = [...(world?.history ?? [])];
-  const uniqueStoryEvents = uniqueStoryCandidates(history);
+  const retainedEventIds = new Set(history.filter((event) => Number.isInteger(event?.id)).map((event) => event.id));
+  const uniqueStoryEvents = uniqueStoryCandidates(history, retainedEventIds);
   const selected = [];
   const selectedIds = new Set();
 
   for (const group of REPRESENTATIVE_GROUPS) {
     if (selected.length >= limit) break;
-    const event = uniqueStoryEvents.find((candidate) => storyGroup(candidate.type) === group && !selectedIds.has(candidate.id));
+    const groupCandidates = uniqueStoryEvents.filter((candidate) => storyGroup(candidate.type) === group && !selectedIds.has(candidate.id));
+    const event = group === 'ruler'
+      ? (groupCandidates.find((candidate) => hasRetainedEventCause(candidate, retainedEventIds)) ?? groupCandidates[0])
+      : groupCandidates[0];
     if (!event) continue;
     selected.push(event);
     if (Number.isInteger(event.id)) selectedIds.add(event.id);
@@ -242,18 +246,41 @@ export function formatChronicleDetail(entry) {
   return [`${entry.icon ?? '•'} ${entry.headline}`, entry.detail, `year ${year} · event #${entry.eventId ?? '?'}`].filter(Boolean).join('\n');
 }
 
-function uniqueStoryCandidates(history) {
+function uniqueStoryCandidates(history, retainedEventIds) {
   const result = [];
   const seen = new Set();
+  const preferredRulerIds = preferredRulerEventIds(history, retainedEventIds);
   for (let index = history.length - 1; index >= 0; index -= 1) {
     const event = history[index];
     if (!isCivilizationStoryEvent(event)) continue;
     const key = storyDedupeKey(event);
+    if (event.type.startsWith('polity.ruler_') && preferredRulerIds.get(key) !== event.id) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(event);
   }
   return result;
+}
+
+function preferredRulerEventIds(history, retainedEventIds) {
+  const latest = new Map();
+  const causal = new Map();
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const event = history[index];
+    if (!event?.type?.startsWith?.('polity.ruler_')) continue;
+    const key = storyDedupeKey(event);
+    if (!latest.has(key)) latest.set(key, event.id);
+    if (!causal.has(key) && hasRetainedEventCause(event, retainedEventIds)) causal.set(key, event.id);
+  }
+  const preferred = new Map();
+  for (const [key, eventId] of latest) preferred.set(key, causal.get(key) ?? eventId);
+  return preferred;
+}
+
+function hasRetainedEventCause(event, retainedEventIds) {
+  return Array.isArray(event?.causes) && event.causes.some((cause) =>
+    cause?.kind === 'event' && Number.isInteger(cause.id) && retainedEventIds.has(cause.id)
+  );
 }
 
 function storyDedupeKey(event) {
