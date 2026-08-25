@@ -25,11 +25,9 @@ export function updateWarbands(world) {
 
   for (const relation of activeWars) {
     const bands = activeBandsForRelation(world, relation);
-    if (bands.length !== 2) continue;
-    const [a, b] = bands;
-    if (areSpatiallyEngaged(a, b)) continue;
-    maybeMoveWarband(world, a);
-    maybeMoveWarband(world, b);
+    if (bands.length === 0) continue;
+    if (bands.length === 2 && areSpatiallyEngaged(bands[0], bands[1])) continue;
+    for (const warband of bands) maybeMoveWarband(world, warband);
   }
 
   resolveAllEngagements(world, activeWars);
@@ -89,6 +87,9 @@ function ensureWarband(world, relation, polityId, opponentPolityId) {
     lastMovedDay: world.day,
     lastEngagedDay: null,
     engagements: 0,
+    captures: 0,
+    lastCapturedSettlementId: null,
+    lastCaptureDay: null,
     active: true,
     endedDay: null,
     endReason: null
@@ -223,10 +224,24 @@ function reconstructFirstStep(previous, startKey, targetKey) {
 function resolveEngagement(world, relation, a, b) {
   const strengthA = a.strength;
   const strengthB = b.strength;
-  const lossA = boundedLoss(strengthA, strengthB);
-  const lossB = boundedLoss(strengthB, strengthA);
-  a.strength = Math.max(0, strengthA - lossA);
-  b.strength = Math.max(0, strengthB - lossB);
+  let lossA = boundedLoss(strengthA, strengthB);
+  let lossB = boundedLoss(strengthB, strengthA);
+  let nextStrengthA = Math.max(0, strengthA - lossA);
+  let nextStrengthB = Math.max(0, strengthB - lossB);
+
+  if (nextStrengthA === 0 && nextStrengthB === 0) {
+    const winner = deterministicDrawWinner(a, b, strengthA, strengthB);
+    if (winner === a) {
+      nextStrengthA = 1;
+      lossA = Math.max(0, strengthA - 1);
+    } else {
+      nextStrengthB = 1;
+      lossB = Math.max(0, strengthB - 1);
+    }
+  }
+
+  a.strength = nextStrengthA;
+  b.strength = nextStrengthB;
   a.lastEngagedDay = world.day;
   b.lastEngagedDay = world.day;
   a.engagements += 1;
@@ -251,6 +266,12 @@ function resolveEngagement(world, relation, a, b) {
 
   if (a.strength <= 0) destroyWarband(world, a, b.id);
   if (b.strength <= 0) destroyWarband(world, b, a.id);
+}
+
+function deterministicDrawWinner(a, b, strengthA, strengthB) {
+  if (strengthA !== strengthB) return strengthA > strengthB ? a : b;
+  if (a.initialStrength !== b.initialStrength) return a.initialStrength > b.initialStrength ? a : b;
+  return a.id < b.id ? a : b;
 }
 
 function boundedLoss(ownStrength, enemyStrength) {
