@@ -15,9 +15,13 @@ Last updated: 2026-08-26
 
 **v0.7.0 — Scenario Builder & Sharing is the active implementation stage.** Release gate: #240. Finite backlog: `docs/backlog/v0.7.md`.
 
-Planning #241 merged as `303e31d5b71285797cc4611e41b5c663683941b4`. Capability 1 — **Scenario Recipe v1 core** — merged as #243 / `910a98445428cd361025b028387be065d70034f1`; merged-main CI #756, Pages #53/public `/play/` and full visual-qa #253 passed.
+Planning #241 merged as `303e31d5b71285797cc4611e41b5c663683941b4`.
 
-Capability 2 — **Scenario Setup workspace** — #244/#245 is branch-level complete after deterministic tests, real Chromium and manual 1440×900 review. Once its documentation-synchronized final head passes CI + full visual-qa, merge it and verify merged-main delivery. Only then may capability 3 — **Portable recipe: Copy Link + canonical JSON Export/Import** — begin.
+Delivered slices:
+- Capability 1 — **Scenario Recipe v1 core** — #242/#243 merged as `910a98445428cd361025b028387be065d70034f1`; merged-main CI #756, Pages #53/public `/play/`, visual-qa #253 green.
+- Capability 2 — **Scenario Setup workspace** — #244/#245 merged as `8efcb523148a4728d422de7abaeff8527caea5df`; merged-main CI #773, Pages #54/public `/play/`, visual-qa #270 green.
+
+Capability 3 — **Portable recipe: Copy Link + canonical JSON Export/Import** — #246/#247 has completed deterministic, full Chromium and manual branch gates on implementation head `5d7b2402602532382456c68be2224e685114cba2`. After this documentation-synchronized final head passes its own CI + full visual-qa, merge #247 and verify merged-main delivery. Only then may capability 4 — **Replay + Fork** — start.
 
 ## v0.7 player promise
 
@@ -27,7 +31,7 @@ v0.7 is not a full terrain editor. It productizes deterministic setup/share/repl
 
 ## Capability 1 — Scenario Recipe v1 core — delivered
 
-`client/presentation/scenario_recipe.js` is the single framework-independent recipe contract for later Setup/share/Replay/Fork surfaces.
+`client/presentation/scenario_recipe.js` is the single framework-independent recipe contract for Setup/share/Replay/Fork surfaces.
 
 - exact `worldboxsr-scenario` version 1 schema;
 - trimmed non-empty name, max 64 code units;
@@ -41,7 +45,7 @@ v0.7 is not a full terrain editor. It productizes deterministic setup/share/repl
 - duplicate complete materializations are byte-identical;
 - recipe name/codec is world/RNG neutral and has no DOM/storage/URL/Phaser dependency.
 
-## Capability 2 — Scenario Setup workspace evidence
+## Capability 2 — Scenario Setup workspace — delivered
 
 ### Product surface
 - visible compact `＋ Scenario` topbar entry in Phaser only;
@@ -52,8 +56,8 @@ v0.7 is not a full terrain editor. It productizes deterministic setup/share/repl
 - Legacy hides Scenario Setup and remains comparison-only.
 
 ### Authority boundaries
-- existing Phaser `pointerup → pointerTile → scene.useTool` remains the only map-input path; Setup wraps that seam instead of creating a second pointer loop;
-- successful setup click applies one existing authoritative command, then appends the immutable normalized recipe draft only after success;
+- existing Phaser `pointerup → pointerTile → scene.useTool` remains the only map-input path;
+- successful setup click applies one existing authoritative command, then appends the normalized recipe draft only after success;
 - failed impassable click changes neither recipe, world fingerprint nor command/event/entity identity;
 - rename changes recipe metadata only;
 - Clear rematerializes base + zero actions rather than reverse/deleting world arrays;
@@ -61,35 +65,69 @@ v0.7 is not a full terrain editor. It productizes deterministic setup/share/repl
 - Run deep-freezes the normalized recipe, exits Setup and restores ordinary controls without changing current start authority;
 - later ordinary gameplay changes world authority normally but cannot rewrite the frozen recipe.
 
-### Canonical browser evidence
-Full real Chromium on seed45 Sandbox uses fixed visible placements:
+### Browser evidence
+Seed45 Sandbox fixed setup:
 - Human `(12,8)`;
 - Grazer `(16,12)`;
 - Wolf `(14,7)`;
 - rejected impassable tile `(18,12)`.
 
 Evidence fingerprints:
-- ordinary paused Y40 base: `938b50ec`;
-- first three-action setup: `7f07ed67`;
-- Clear restores exact base `938b50ec` and exact identity counters;
-- rebuilding the same three actions returns exactly `7f07ed67`;
-- Run leaves `7f07ed67` unchanged and freezes `Seed 45 trio` Recipe v1;
-- one ordinary product day after Run changes world to `bcc9eaf2` / day 14401 while frozen recipe remains byte-unchanged.
+- ordinary paused Y40 base `938b50ec`;
+- three-action setup `7f07ed67`;
+- Clear restores `938b50ec` + identity counters;
+- exact rebuild returns `7f07ed67`;
+- Run leaves `7f07ed67` unchanged and freezes Recipe v1;
+- one ordinary product day changes authority to `bcc9eaf2` while the frozen recipe remains byte-unchanged.
 
-Normal CI #767 and full visual-qa #264 passed on implementation head `61ee06e1c2e1af6f1b38f36b26b07337bbf59e12`. Manual review confirms the editor remains compact and subordinate to the map; failed-land feedback is truthful; Run clearly removes the Setup card and restores the God Power dock while retaining a small `SCENARIO · 3` identity badge.
+## Capability 3 — Portable Scenario Recipe evidence
 
-## Regression-gate hardening discovered during capability 2
+### Transport contract
+- canonical identity is the existing `serializeScenarioRecipe` output only;
+- canonical Recipe UTF-8 is capped at 8192 bytes and encoded as unpadded base64url under exactly `scenario=`;
+- malformed base64url, invalid UTF-8, invalid JSON, unknown Recipe fields/version/preset/action and oversize payloads fail explicitly;
+- `scenario=` stays independent from `renderer=` and unrelated query state;
+- canonical player Copy Link targets Phaser; Legacy reports that Scenario links require Phaser rather than pretending to load them;
+- transport owns no snapshot/history/RNG/storage state.
 
-No product authority was changed, but full validation exposed and fixed two old QA timing assumptions:
-- Watchlist browser evidence now pauses both the first and same-tab-reloaded worlds during warmup and requires exact seed45 Y40 (`day=14400`) before choosing/reopening the bookmarked event. Full #264 restored/reopened `event:163 + polity:1` on both sides of reload.
-- canonical Living Ecology browser evidence still uses the ordinary `Time=1 year` control, but a page-side rAF observer clicks the existing product Pause control on the exact Y50 frame. The strict frozen checkpoint remains `68 grazers / 37.44% vegetation / 160 births`; no direct world/tick shortcut or relaxed threshold was introduced.
+### Product surface
+- compact `Recipe` panel exposes Copy Link, Export JSON, a Recipe JSON field and explicit Import JSON;
+- clipboard failure leaves the same generated share URL visible for manual copy;
+- Export downloads the exact canonical Recipe JSON and shows it in the panel;
+- fresh shared URL bypasses ordinary startup and materializes the Recipe through the existing Recipe materializer;
+- shared/imported starts are paused with visible `SCENARIO · N` identity;
+- visible Import validates/materializes before authority replacement; failure keeps current world/Recipe/URL/pause/boot state intact.
+
+### Canonical branch evidence
+One authored `Portable trio` Recipe:
+- seed45 Sandbox;
+- Human `(12,8)`;
+- Grazer `(16,12)`;
+- Wolf `(14,7)`;
+- exact canonical start fingerprint `7f07ed67` at day `14400`.
+
+Real Chromium proves:
+- Copy Link uses an unpadded base64url `scenario=` token that independently decodes to the exact canonical Recipe string;
+- downloaded `Portable-trio.worldboxsr-scenario.json` is byte-exact canonical Recipe JSON;
+- a fresh browser/profile launched from the shared URL reaches paused day 14400, exact normalized Recipe and fingerprint `7f07ed67`;
+- a separate fresh ordinary browser using visible Import JSON reaches the same paused day 14400, exact normalized Recipe and fingerprint `7f07ed67` without changing its URL;
+- a Wolf import targeting impassable `(18,12)` is rejected atomically with truthful `impassable tile 18,12` feedback and leaves the existing imported Scenario unchanged;
+- authored / fresh URL / visible Import starts are byte-identical.
+
+Implementation head `5d7b2402602532382456c68be2224e685114cba2` passed CI #791 + full visual-qa #288. Artifact `9578343072` contains the full 56-file regression set, `scenario-portability-evidence.json`, the canonical downloaded Recipe and fixed share/shared/import screenshots. Manual 1440×900 review confirms the Recipe card remains compact, the shared start is visibly paused with `SCENARIO · 3`, invalid import feedback is readable, and the world map remains the primary visual surface.
+
+## Regression-gate hardening retained from capability 2
+
+No product authority changed, but full validation fixed old timing assumptions:
+- Watchlist evidence freezes both the first and same-tab-reloaded worlds at exact seed45 Y40 before choosing/reopening the bookmarked event;
+- canonical Living Ecology uses ordinary `Time=1 year` + product Pause to land on exact Y50 and waits until HUD `Year 50.0` converges before asserting the frozen authority/HUD state.
 
 ## Ordered v0.7 slices
 
 1. Versioned Scenario Recipe contract + deterministic materializer — #242/#243 — **DONE + merged-main delivered**.
-2. Scenario Setup workspace — #244/#245 — **implementation/browser/manual gate complete; documentation-synchronized merge gate active**.
-3. Portable recipe — Copy Link + canonical JSON Export/Import — **NEXT only after #245 merged-main delivery verification**.
-4. Replay + Fork.
+2. Scenario Setup workspace — #244/#245 — **DONE + merged-main delivered**.
+3. Portable recipe — Copy Link + canonical JSON Export/Import — #246/#247 — **implementation/browser/manual branch gate complete; documentation-synchronized merge gate active**.
+4. Replay + Fork — **NEXT only after #247 merged-main delivery verification**.
 5. Canonical Scenario Builder gate.
 6. Release-only `v0.7.0` handoff.
 
@@ -97,8 +135,10 @@ No product authority was changed, but full validation exposed and fixed two old 
 
 - Engine remains the only world truth.
 - Recipe is startup input to existing world creation/commands, never a second simulation or save-state mirror.
-- Setup UI must not push entities/events or edit world arrays directly.
+- Recipe transport/metadata never enters `snapshotWorld`, world history or RNG.
+- Setup/share UI must not push entities/events or edit world arrays directly.
 - Successful setup placement is appended to recipe only after authoritative command success.
+- Import replaces authority only after complete Recipe validation/materialization succeeds.
 - Setup stops at explicit Run; later gameplay/God Powers are not silently recorded into recipe.
 - Replay means rebuild the recipe start, not timeline rewind.
 - Fork creates a new editable recipe without mutating the imported/shared normalized source.
@@ -116,12 +156,13 @@ No product authority was changed, but full validation exposed and fixed two old 
 - no AI-generated canonical scenario facts;
 - no custom map-size contract;
 - no new ecology/civilization mechanics;
-- no generic conversion of every God Power into recipe setup actions.
+- no generic conversion of every God Power into recipe setup actions;
+- no compression protocol or short-link backend.
 
 ## Current decision gate
 
-1. require documentation-synchronized #245 final head normal CI + full visual-qa green;
-2. update #245 final evidence, mark ready and squash merge;
+1. require documentation-synchronized #247 final head normal CI + full visual-qa green;
+2. update #247 final evidence, mark ready and squash merge;
 3. verify merged-main CI, Pages/public `/play/` and full visual-qa;
-4. only then open exactly one capability-3 issue/branch for **Portable recipe — Copy Link + canonical JSON Export/Import**;
-5. do not begin Replay/Fork, terrain editing or other builder breadth in parallel.
+4. only then open exactly one capability-4 issue/branch for **Replay + Fork**;
+5. do not begin terrain editing, canonical release gate work or other builder breadth in parallel.
