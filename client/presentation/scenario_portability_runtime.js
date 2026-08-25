@@ -32,10 +32,14 @@ function attachWhenReady() {
   }
   if (scene.scenarioPortability?.attached) return;
 
+  const lifecycle = ensureLifecycleActions();
+  if (!lifecycle) return;
   const state = {
     attached: true,
     busy: false,
-    scene
+    scene,
+    replayButton: lifecycle.replay,
+    forkButton: lifecycle.fork
   };
   scene.scenarioPortability = state;
 
@@ -47,6 +51,8 @@ function attachWhenReady() {
   copyButton.addEventListener('click', () => { void copyScenarioLink(state); });
   exportButton.addEventListener('click', () => exportScenarioJson(state));
   importButton.addEventListener('click', () => { void importScenarioJson(state); });
+  lifecycle.replay.addEventListener('click', () => { void replayScenario(state); });
+  lifecycle.fork.addEventListener('click', () => { void forkScenario(state); });
   document.querySelector('#scenario-name')?.addEventListener('change', () => refresh(state));
 
   const observer = new MutationObserver(() => refresh(state));
@@ -66,11 +72,15 @@ function currentRecipe(state) {
 
 function refresh(state) {
   if (!summary || !copyButton || !exportButton || !importButton || !status) return;
+  const setup = state.scene.scenarioSetup;
   const recipe = currentRecipe(state);
+  const frozen = !setup?.active && setup?.frozen ? setup.frozen : null;
   summary.textContent = recipe ? `${recipe.name} · ${recipe.setup.length}/32 actions` : 'No Scenario selected';
   copyButton.disabled = state.busy || !recipe;
   exportButton.disabled = state.busy || !recipe;
   importButton.disabled = state.busy;
+  state.replayButton.disabled = state.busy || !frozen;
+  state.forkButton.disabled = state.busy || !frozen;
   toggle?.setAttribute('aria-pressed', panel?.hidden === false ? 'true' : 'false');
   if (!recipe && !state.busy && !status.dataset.message) {
     status.textContent = 'Create or import a Scenario to share it.';
@@ -135,6 +145,72 @@ async function importScenarioJson(state) {
     state.busy = false;
     refresh(state);
   }
+}
+
+async function replayScenario(state) {
+  if (state.busy) return;
+  const frozen = state.scene.scenarioSetup?.frozen;
+  if (!frozen) return setStatus('Replay requires a frozen Scenario.', 'error');
+  state.busy = true;
+  setStatus(`Replaying ${frozen.name} from its Recipe start…`, 'busy');
+  refresh(state);
+  try {
+    const replayed = await state.scene.scenarioSetup.replayScenario();
+    text.value = serializeScenarioRecipe(replayed);
+    setStatus(`Replayed ${replayed.name} · exact paused Recipe start.`, 'ok');
+  } catch (error) {
+    setStatus(`Replay failed: ${error?.message || error}`, 'error');
+  } finally {
+    state.busy = false;
+    refresh(state);
+  }
+}
+
+async function forkScenario(state) {
+  if (state.busy) return;
+  const frozen = state.scene.scenarioSetup?.frozen;
+  if (!frozen) return setStatus('Fork requires a frozen Scenario.', 'error');
+  const sourceCanonical = serializeScenarioRecipe(frozen);
+  state.busy = true;
+  setStatus(`Forking ${frozen.name} into editable Setup…`, 'busy');
+  refresh(state);
+  try {
+    const draft = await state.scene.scenarioSetup.forkScenario();
+    const source = state.scene.scenarioSetup.forkSourceRecipe?.();
+    if (!source || serializeScenarioRecipe(source) !== sourceCanonical) throw new Error('Fork source Recipe identity changed');
+    text.value = sourceCanonical;
+    setStatus(`Fork ready · ${draft.setup.length}/32 copied actions · edit then Run.`, 'ok');
+    panel.hidden = true;
+  } catch (error) {
+    setStatus(`Fork failed: ${error?.message || error}`, 'error');
+  } finally {
+    state.busy = false;
+    refresh(state);
+  }
+}
+
+function ensureLifecycleActions() {
+  const actions = panel?.querySelector('.scenario-portability-actions');
+  if (!actions) return null;
+  let replay = document.querySelector('#scenario-replay');
+  let fork = document.querySelector('#scenario-fork');
+  if (!replay) {
+    replay = document.createElement('button');
+    replay.id = 'scenario-replay';
+    replay.type = 'button';
+    replay.textContent = 'Replay Scenario';
+    replay.title = 'Rebuild the exact frozen Scenario Recipe start';
+    actions.append(replay);
+  }
+  if (!fork) {
+    fork = document.createElement('button');
+    fork.id = 'scenario-fork';
+    fork.type = 'button';
+    fork.textContent = 'Fork / Edit';
+    fork.title = 'Copy the frozen Recipe into editable Scenario Setup';
+    actions.append(fork);
+  }
+  return { replay, fork };
 }
 
 function showStartupError() {
