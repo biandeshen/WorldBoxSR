@@ -1,9 +1,9 @@
 import { isTilePassable } from '../world/biomes.js';
 
 /**
- * Capability 2 Wolf identity only. Wolves deliberately have no autonomous
- * system behavior until the dedicated predation slice owns movement, hunger,
- * hunting, feeding, mortality and any reproduction decisions.
+ * Authoritative Wolf creature identity. Behavior is owned by the narrow
+ * `systems/wolves.js` predation pass; this model intentionally contains no
+ * hunting rules, reproduction policy, pack state or scheduled lifespan.
  */
 export function createWolf(world, {
   x,
