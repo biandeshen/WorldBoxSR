@@ -14,7 +14,7 @@
     "dev": "vite",
     "dev:legacy": "node tools/serve.js",
     "build": "vite build",
-    "pages:build": "vite build",
+    "pages:build": "vite build && node tools/build-pages.js",
     "pages:check": "node tools/check-pages-build.js",
     "bench": "node tools/benchmark.js"
   },
