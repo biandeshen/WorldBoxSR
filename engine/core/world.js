@@ -11,9 +11,10 @@ import { initialVegetationForTile, vegetationCapacityForTile } from '../world/ve
 import { updateSettlements } from '../systems/settlements.js';
 import { updatePolities } from '../systems/polities.js';
 import { updateRulers } from '../systems/rulers.js';
+import { updatePolityRelations } from '../systems/polity_relations.js';
 
-export const SNAPSHOT_VERSION = 12;
-const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11]);
+export const SNAPSHOT_VERSION = 13;
+const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11, 12]);
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -39,6 +40,7 @@ export function createWorld({ seed = 1, width = 32, height = 32, population = 20
     creatures: [],
     settlements: [],
     polities: [],
+    relations: [],
     lineages: [],
     unions: [],
     history: [],
@@ -98,6 +100,7 @@ export function tickWorld(world, ticks = 1) {
     updateSettlements(world);
     updatePolities(world);
     updateRulers(world);
+    updatePolityRelations(world);
   }
   return world;
 }
@@ -145,6 +148,7 @@ export function snapshotWorld(world) {
     creatures: world.creatures.map((creature) => ({ ...creature })),
     settlements: world.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds] })),
     polities: world.polities.map((polity) => ({ ...polity, settlementIds: [...polity.settlementIds] })),
+    relations: world.relations.map((relation) => ({ ...relation })),
     lineages: world.lineages.map((lineage) => ({ ...lineage, memberIds: [...lineage.memberIds], founderIds: [...lineage.founderIds] })),
     unions: world.unions.map((union) => ({ ...union, partnerIds: [...union.partnerIds], childIds: [...union.childIds] })),
     history: world.history.map((event) => ({ ...event })),
@@ -157,6 +161,7 @@ export function worldFromSnapshot(snapshot) {
   if (version !== SNAPSHOT_VERSION && !LEGACY_SNAPSHOT_VERSIONS.has(version)) throw new Error(`Unsupported snapshot version: ${version}`);
   const migratingPreV11 = version === 10;
   const migratingPreV12 = version === 10 || version === 11;
+  const migratingPreV13 = version === 10 || version === 11 || version === 12;
   return {
     snapshotVersion: SNAPSHOT_VERSION,
     seed: snapshot.seed,
@@ -185,6 +190,7 @@ export function worldFromSnapshot(snapshot) {
       rulerSequence: polity.rulerSequence ?? 0,
       lastRulerId: polity.lastRulerId ?? null
     })),
+    relations: migratingPreV13 ? [] : (snapshot.relations ?? []).map((relation) => ({ ...relation })),
     lineages: snapshot.lineages.map((lineage) => ({ ...lineage, memberIds: [...lineage.memberIds], founderIds: [...lineage.founderIds] })),
     unions: snapshot.unions.map((union) => ({ ...union, partnerIds: [...union.partnerIds], childIds: [...union.childIds] })),
     history: snapshot.history.map((event) => ({ ...event })),
