@@ -43,38 +43,54 @@ Established the deterministic simulation foundation: terrain/resources, human li
 ## v0.2.0 — Playable World
 **Status: shipped.** Tag `v0.2.0` is the player-visible Phaser/Vite checkpoint.
 
-Shipped coherent terrain/units/settlements, direct god powers with SFX/targeting, responsive camera, authoritative territory, persistent inspection, event pulse, deterministic 30-second showcase gate, Pages and real Chromium Visual QA. The legacy Canvas path remains only as a v0.2 comparison escape hatch and should retire by default during v0.3.
+Shipped coherent terrain/units/settlements, direct god powers with SFX/targeting, responsive camera, authoritative territory, persistent inspection, event pulse, deterministic 30-second showcase gate, Pages and real Chromium Visual QA. The legacy Canvas path remains only as a v0.2 comparison escape hatch and should retire when no concrete regression workflow still requires it.
 
 ---
 
 ## v0.3.0 — Civilizations Rise
-**Current target. Primary fantasy: “I can watch small settlements become rival powers.”**
+**Status: shipped checkpoint on release merge. Primary fantasy: “I can watch small settlements become rival powers.”**
 
 ### Promise
 Turn existing settlement/territory/history foundations into visibly distinct political actors whose expansion and conflict can be watched from the map.
 
-### Ordered scope
+### Shipped scope
 1. authoritative polity/kingdom identity from settlements;
 2. ruler selection and succession;
 3. readable relations plus war/peace;
 4. intentionally simple visible army/combat abstraction;
-5. conquest/settlement transfer or destruction plus bounded rebellion;
+5. conquest/settlement transfer, polity dissolution and bounded rebellion;
 6. civilization event/history integration and a canonical “two powers rise and collide” scenario.
 
-Detailed finite backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release gate: #181.
+Detailed finite backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release QA: [`docs/demos/v0.3.0.md`](demos/v0.3.0.md).
 
 ### Exit gate
-From a fresh showcase scenario, a viewer can follow two distinct powers from settlement identity through expansion and at least one political/conflict transition without opening debug metrics.
+The default seed45 showcase and executable collision gate demonstrate distinct powers, real rulers, war, engagements and political-map change while Chronicle exposes the resulting story without debug metrics.
 
-### Non-goals
-Deep economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay, and broad art rewrites.
+### Deliberate stop
+v0.3 does not deepen into economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay or broad art rewrites. Civilization depth now pauses.
 
 ---
 
 ## v0.4.0 — God Power Sandbox
-**Primary fantasy: “intervening is fun even before I care about the simulation.”**
+**Current target. Primary fantasy: “intervening is fun even before I care about the simulation.”**
 
-Polished power categories/tooltips; creation and terrain candidates; fire/meteor/plague/tornado-style destruction candidates; social manipulation candidates; stronger particles/decals/audio/camera feedback; all authoritative consequences recorded into causal history.
+### Promise
+Make the god-hand loop strong enough that creating, destroying and manipulating the world is satisfying immediately, while every meaningful consequence remains authoritative and historically traceable.
+
+### Capability pool
+- clearer power categories/tooltips and faster selection;
+- creation powers beyond the current Human/Grazer baseline where they create visible world consequences;
+- terrain/environment creation candidates such as rain/fertility or biome/terrain shaping;
+- destructive candidates such as fire, meteor, plague or tornado, chosen by visible product value rather than feature count;
+- social intervention candidates only when they reuse authoritative civilization state cleanly;
+- stronger particles/decals/audio/camera feedback and truthful rejected/no-effect states;
+- causal history records accepted intervention consequences and lets secondary effects remain observable.
+
+### Guardrails
+- no v0.3 civilization-depth continuation disguised as “social powers”;
+- no ecology research blocker;
+- no inventory/cooldown/progression system unless play evidence requires one—the sandbox should stay immediate;
+- every selected power needs a visible authoritative consequence or an explicitly truthful no-effect/rejection path.
 
 ---
 
@@ -112,4 +128,4 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.2 is closed. v0.3 Civilizations Rise is the only current product-development stage.** Start with the smallest authoritative polity identity slice, then make ruler/relations/conflict visible. Do not reopen ecology or invisible analysis work as a near-term blocker.
+**v0.3 Civilizations Rise is closed on the v0.3.0 release checkpoint. v0.4 God Power Sandbox is the only next product-development stage.** Start by strengthening the existing god-hand loop with the smallest set of powers/effects that creates visible, truthful and memorable intervention consequences. Do not reopen civilization depth, ecology or invisible analysis work as near-term blockers.

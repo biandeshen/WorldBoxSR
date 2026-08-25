@@ -20,35 +20,35 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Current release: v0.2.0 — Playable World
+## Current release: v0.3.0 — Civilizations Rise
 
-v0.2 turns the deterministic v0.1 world into a browser-playable god-game vertical slice:
+v0.3 turns settlements into visible political actors whose stories can be followed on the map while keeping the god sandbox—not grand strategy—as the product center:
 
-- Phaser 4.2.1 presentation over the authoritative simulation engine;
-- Vite 8.1.0 browser/Pages build;
-- readable terrain, coastlines, vegetation and water depth;
-- interpolated humans and grazers with persistent inspection selection;
-- visible settlement structures, names, flags and authoritative territory;
-- responsive pan/zoom/world framing;
-- a direct Human / Grazer / Erase / Lightning power dock with target preview, effects and minimal SFX;
-- reduced-motion/reduced-flash treatment for strong effects;
-- autonomous world-event pulse backed by causal history;
-- deterministic seed45 showcase with an executable 5-second readability target and 30-second autonomous-event gate;
-- production Chromium Visual QA over the same `/WorldBoxSR/play/` entry used by Pages.
+- deterministic named polities with capitals, flags/colors and polity-aware territory;
+- real human rulers with deterministic succession and truthful vacancy;
+- authoritative inter-polity relations with readable war/peace transitions;
+- intentionally simple visible warbands and deterministic spatial combat;
+- settlement conquest, polity dissolution and one bounded rebellion seed mechanic;
+- snapshot schema v15 with legacy migration for political-outcome state;
+- player-readable Chronicle projection for founding, rulers, war/peace, battles, conquest, rebellion and collapse;
+- high-value political event pulses that do not replay warmup history as fresh events;
+- canonical deterministic “two powers rise and collide” product gate;
+- default seed45 independently demonstrates war, engagements, conquest and rebellion by year 40;
+- CI, Pages and real Chromium Visual QA remain release gates over the public browser product.
 
-The old Canvas renderer remains available in v0.2 only as `?renderer=legacy` A/B/regression evidence. The default product is Phaser.
+Civilization depth intentionally stops here for now. v0.3 does **not** expand into deep economy/trade/religion/technology, sophisticated tactics or naval warfare.
 
+- [v0.3 canonical browser demo / QA](docs/demos/v0.3.0.md)
+- [v0.3.0 release notes](docs/releases/v0.3.0.md)
+- [v0.3 finite backlog](docs/backlog/v0.3.md)
 - [v0.2 canonical browser demo / QA](docs/demos/v0.2.0.md)
 - [v0.2.0 release notes](docs/releases/v0.2.0.md)
-- [v0.2 evidence backlog](docs/backlog/v0.2.md)
-- [v0.1 reproducible demo](docs/demos/v0.1.0.md)
-- [v0.1.0 release notes](docs/releases/v0.1.0.md)
 
-## Next product stage: v0.3 — Civilizations Rise
+## Next product stage: v0.4 — God Power Sandbox
 
-The next stage is player-visible civilization dynamics: polity/kingdom identity, rulers and succession, diplomacy, war/peace, conquest/rebellion, and territory/history that visibly tells those stories.
+The next stage returns focus to the second core product pillar: **a satisfying god hand**. Work should improve creation/destruction/social powers, targeting, feedback and their visible causal consequences without reopening civilization depth or ecology research as near-term blockers.
 
-Deeper Living Ecology work remains intentionally later (currently v0.6). Non-correctness ecology research stays frozen while the player-facing civilization, god-hand and world-story loops are being built.
+Deeper Living Ecology work remains intentionally later (currently v0.6). World Stories/Chronicle depth remains a separate v0.5 stage rather than expanding v0.3 indefinitely.
 
 ## Public playable demo
 
