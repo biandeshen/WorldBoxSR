@@ -135,24 +135,23 @@ try {
       && event.polityId === ${successionTarget.polityId}
       && event.causes?.some((cause) => cause.kind === 'event' && cause.id === ${deathEventId})) ?? null;
     if (!succession) return null;
-    const button = [...document.querySelectorAll('#history-list button[data-event-id]')]
-      .find((candidate) => Number(candidate.dataset.eventId) === succession.id) ?? null;
-    const rect = button?.getBoundingClientRect?.();
     return {
       succession,
-      button: rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null,
       visibleChronicle: [...document.querySelectorAll('#history-list button[data-event-id]')].map((candidate) => ({ id: Number(candidate.dataset.eventId), text: candidate.textContent ?? '' })),
       worldFingerprint: JSON.stringify(world),
       paused: pause?.dataset.active === 'true'
     };
   })()`);
   if (!storySetup?.succession) throw new Error('succession event disappeared after detection');
-  if (!storySetup.button) throw new Error(`fresh causal succession was not visible in Chronicle: ${JSON.stringify(storySetup.visibleChronicle)}`);
+  if (!storySetup.visibleChronicle.some((entry) => entry.id === storySetup.succession.id)) {
+    throw new Error(`fresh causal succession was not visible in Chronicle: ${JSON.stringify(storySetup.visibleChronicle)}`);
+  }
   if (!storySetup.paused) throw new Error('world was not paused before story navigation');
   await delay(120);
 
-  await clickPoint(cdp, storySetup.button);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${storySetup.succession.id}'`, 3_000);
+  const successionPoint = await chronicleEventCenter(cdp, storySetup.succession.id);
+  await clickPoint(cdp, successionPoint);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${storySetup.succession.id}'`, 5_000);
   const successionCard = await cardEvidence(cdp);
   if (successionCard.eventButtons < 1) throw new Error('succession Event Card did not expose retained death-event cause');
   if (successionCard.mapButtons < 1) throw new Error('succession Event Card did not expose current polity/successor map navigation');
@@ -161,17 +160,19 @@ try {
 
   const eventCausePoint = await elementCenter(cdp, `#history-detail button[data-event-card-nav="event"][data-event-id="${deathEventId}"]`);
   await clickPoint(cdp, eventCausePoint);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${deathEventId}'`, 3_000);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${deathEventId}'`, 5_000);
   const causeCard = await cardEvidence(cdp);
   if (causeCard.eventId !== deathEventId) throw new Error('event-cause navigation opened the wrong retained death event');
   if (causeCard.unavailableRows < 1) throw new Error('death Event Card did not truthfully expose the removed ruler as unavailable');
   await captureScreenshot(cdp, join(outDir, 'story-event-cause-opened-1440x900.png'));
 
-  await clickPoint(cdp, storySetup.button);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${storySetup.succession.id}'`, 3_000);
+  const returnPoint = await chronicleEventCenter(cdp, storySetup.succession.id);
+  await clickPoint(cdp, returnPoint);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${storySetup.succession.id}'`, 5_000);
   const mapTarget = await evaluate(cdp, `(() => {
     const button = document.querySelector('#history-detail button[data-event-card-nav="map"]');
     if (!button) return null;
+    button.scrollIntoView({ block: 'center', inline: 'nearest' });
     const rect = button.getBoundingClientRect();
     return {
       x: rect.left + rect.width / 2,
@@ -179,12 +180,14 @@ try {
       entityKind: button.dataset.entityKind,
       entityId: Number(button.dataset.entityId),
       tileX: Number(button.dataset.x),
-      tileY: Number(button.dataset.y)
+      tileY: Number(button.dataset.y),
+      rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
     };
   })()`);
   if (!mapTarget) throw new Error('map navigation target disappeared from succession Event Card');
+  assertPointInViewport(mapTarget, 'map reference');
   await clickPoint(cdp, mapTarget);
-  await delay(160);
+  await delay(180);
 
   const mapEvidence = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
@@ -249,6 +252,10 @@ async function selectTool(cdpClient, toolName) {
   if (selected?.value !== toolName || !selected?.active) throw new Error(`${toolName} did not become active: ${JSON.stringify(selected)}`);
 }
 
+async function chronicleEventCenter(cdpClient, eventId) {
+  return elementCenter(cdpClient, `#history-list button[data-event-id="${eventId}"]`);
+}
+
 async function cardEvidence(cdpClient) {
   return evaluate(cdpClient, `(() => {
     const detail = document.querySelector('#history-detail');
@@ -266,14 +273,30 @@ async function elementCenter(cdpClient, selector) {
   const point = await evaluate(cdpClient, `(() => {
     const element = document.querySelector(${JSON.stringify(selector)});
     if (!element) return null;
+    element.scrollIntoView({ block: 'center', inline: 'nearest' });
     const rect = element.getBoundingClientRect();
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
+      text: element.textContent ?? ''
+    };
   })()`);
   if (!point) throw new Error(`element not found: ${selector}`);
+  assertPointInViewport(point, selector);
+  await delay(80);
   return point;
 }
 
+function assertPointInViewport(point, label) {
+  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) throw new Error(`${label} has invalid click coordinates: ${JSON.stringify(point)}`);
+  if (point.x < 0 || point.x > 1440 || point.y < 0 || point.y > 900) {
+    throw new Error(`${label} remained outside viewport after scrollIntoView: ${JSON.stringify(point)}`);
+  }
+}
+
 async function clickPoint(cdpClient, point) {
+  assertPointInViewport(point, 'pointer target');
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1 });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1 });
