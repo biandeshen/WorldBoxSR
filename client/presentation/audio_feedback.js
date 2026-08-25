@@ -8,6 +8,12 @@ export function soundRecipe(effect) {
       { type: 'square', startHz: 640, endHz: 95, duration: 0.08, gain: 0.014 }
     ];
   }
+  if (effect === 'rain') {
+    return [
+      { type: 'sine', startHz: 360, endHz: 540, duration: 0.18, gain: 0.014 },
+      { type: 'triangle', startHz: 610, endHz: 820, duration: 0.14, gain: 0.011 }
+    ];
+  }
   if (effect === 'lightning') {
     return [
       { type: 'sawtooth', startHz: 150, endHz: 48, duration: 0.16, gain: 0.035 },
