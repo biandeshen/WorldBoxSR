@@ -74,13 +74,14 @@ test('world invariants survive a multi-decade run', () => {
     assert.ok(!polityIds.has(polity.id), `duplicate polity id ${polity.id}`);
     polityIds.add(polity.id);
     assert.equal(new Set(polity.settlementIds).size, polity.settlementIds.length);
-    assert.ok(polity.settlementIds.includes(polity.capitalSettlementId));
+    assert.ok(settlementById.has(polity.capitalSettlementId), `polity ${polity.id} references missing historical capital ${polity.capitalSettlementId}`);
     for (const settlementId of polity.settlementIds) {
       const settlement = settlementById.get(settlementId);
       assert.ok(settlement, `polity ${polity.id} references missing settlement ${settlementId}`);
       assert.equal(settlement.polityId, polity.id);
     }
     if (polity.active) {
+      assert.ok(polity.settlementIds.includes(polity.capitalSettlementId), `active polity ${polity.id} capital is not a current member`);
       assert.ok(polity.settlementIds.some((id) => settlementById.get(id)?.active), `active polity ${polity.id} has no active settlement`);
     }
   }

@@ -72,7 +72,7 @@ test('territory survives deterministic save/load continuation exactly', () => {
   assert.deepEqual(snapshotWorld(restored), snapshotWorld(world));
 });
 
-test('territory remains neutral to human and RNG behavior while political relation history may respond to borders', () => {
+test('territory remains neutral to human and RNG behavior while political history may respond to borders', () => {
   const make = (radius) => createWorld({
     seed: 42,
     width: 24,
@@ -88,11 +88,11 @@ test('territory remains neutral to human and RNG behavior while political relati
   assert.deepEqual(a.rng.snapshot(), b.rng.snapshot());
   assert.deepEqual(a.counters, b.counters);
   assert.deepEqual(a.entities, b.entities);
-  assert.deepEqual(nonPoliticalConflictHistory(a), nonPoliticalConflictHistory(b));
+  assert.deepEqual(nonPoliticalHistory(a), nonPoliticalHistory(b));
   assert.notDeepEqual(
     relationHistory(a),
     relationHistory(b),
-    'territory borders are now an intentional input to authoritative polity relations'
+    'territory borders are an intentional input to authoritative polity relations and their political consequences'
   );
 });
 
@@ -100,16 +100,17 @@ function relationHistory(world) {
   return world.history.filter((event) => event.type === 'polity.war_started' || event.type === 'polity.peace_made');
 }
 
-function nonPoliticalConflictHistory(world) {
-  const events = world.history.filter((event) => !isPoliticalConflictEvent(event));
+function nonPoliticalHistory(world) {
+  const events = world.history.filter((event) => !isPoliticalEvent(event));
   const canonicalIds = new Map(events.map((event, index) => [event.id, index + 1]));
   return events.map(({ id, ...event }) => normalizeEventRefs(event, canonicalIds));
 }
 
-function isPoliticalConflictEvent(event) {
-  return event.type === 'polity.war_started'
-    || event.type === 'polity.peace_made'
-    || event.type.startsWith('warband.');
+function isPoliticalEvent(event) {
+  return event.type.startsWith('polity.')
+    || event.type.startsWith('warband.')
+    || event.type === 'settlement.conquered'
+    || event.type === 'settlement.rebelled';
 }
 
 function normalizeEventRefs(value, canonicalIds) {

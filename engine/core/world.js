@@ -9,13 +9,14 @@ import { generateWorldFields } from '../world/fields.js';
 import { classifyTileBiome, isTilePassable } from '../world/biomes.js';
 import { initialVegetationForTile, vegetationCapacityForTile } from '../world/vegetation.js';
 import { updateSettlements } from '../systems/settlements.js';
+import { updatePoliticalOutcomes, normalizeSettlementPoliticalFields } from '../systems/political_outcomes.js';
 import { updatePolities } from '../systems/polities.js';
 import { updateRulers } from '../systems/rulers.js';
 import { updatePolityRelations } from '../systems/polity_relations.js';
 import { updateWarbands } from '../systems/warbands.js';
 
-export const SNAPSHOT_VERSION = 14;
-const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11, 12, 13]);
+export const SNAPSHOT_VERSION = 15;
+const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11, 12, 13, 14]);
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -101,6 +102,7 @@ export function tickWorld(world, ticks = 1) {
     updateGrazerOldAgeMortality(world);
     updateGrazerReproduction(world);
     updateSettlements(world);
+    updatePoliticalOutcomes(world);
     updatePolities(world);
     updateRulers(world);
     updatePolityRelations(world);
@@ -189,7 +191,11 @@ export function worldFromSnapshot(snapshot) {
     tiles: snapshot.tiles.map((tile) => ({ ...tile })),
     entities: snapshot.entities.map((entity) => ({ ...entity, parentIds: [...entity.parentIds], childIds: [...entity.childIds], unionIds: [...entity.unionIds] })),
     creatures: snapshot.creatures.map((creature) => ({ ...creature, lastBirthDay: migratingPreV11 ? null : (creature.lastBirthDay ?? null) })),
-    settlements: snapshot.settlements.map((settlement) => ({ ...settlement, memberIds: [...settlement.memberIds], polityId: migratingPreV12 ? null : (settlement.polityId ?? null) })),
+    settlements: snapshot.settlements.map((settlement) => normalizeSettlementPoliticalFields({
+      ...settlement,
+      memberIds: [...settlement.memberIds],
+      polityId: migratingPreV12 ? null : (settlement.polityId ?? null)
+    })),
     polities: migratingPreV12 ? [] : (snapshot.polities ?? []).map((polity) => ({
       ...polity,
       settlementIds: [...polity.settlementIds],
