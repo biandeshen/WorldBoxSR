@@ -40,20 +40,20 @@ try {
   await clickSelector(cdp, '#reset');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('evolving showcase') === true`, 3_000);
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
-  await pauseWorld(cdp);
+  await clickPauseTo(cdp, true);
 
   await waitForExpression(cdp, `document.querySelector('#stats [data-ecology-vegetation]')?.textContent?.startsWith('🌿 ') === true`, 2_000);
-  const initialVegetation = await assertVegetationHudMatchesAuthority(cdp);
+  const initialVegetation = await vegetationEvidence(cdp);
 
   const spawnPoint = await wolfSpawnPoint(cdp);
   if (!spawnPoint) throw new Error('no visible clear Wolf spawn tile 2..searchRadius cells from living Grazer');
-  const toolResult = await evaluate(cdp, `(() => {
-    const tool = document.querySelector('#tool');
-    if (!tool) return null;
-    tool.value = 'spawn_wolf';
-    return tool.value;
+  const tool = await evaluate(cdp, `(() => {
+    const select = document.querySelector('#tool');
+    if (!select) return null;
+    select.value = 'spawn_wolf';
+    return select.value;
   })()`);
-  if (toolResult !== 'spawn_wolf') throw new Error('hidden Wolf QA tool option unavailable');
+  if (tool !== 'spawn_wolf') throw new Error('hidden Wolf QA tool option unavailable');
   await clickPoint(cdp, spawnPoint, 0);
   await waitForExpression(cdp, `(() => {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
@@ -61,25 +61,22 @@ try {
   })()`, 2_000);
 
   const spawned = await evaluate(cdp, `(() => {
-    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world;
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     const wolf = world?.creatures?.find((creature) => creature.alive && creature.species === 'wolf' && creature.x === ${spawnPoint.tileX} && creature.y === ${spawnPoint.tileY});
     const event = world?.history?.findLast((entry) => entry.type === 'god.spawn_creature' && entry.species === 'wolf');
     return wolf && event ? {
       wolfId: wolf.id,
       spawnEventId: event.id,
-      x: wolf.x, y: wolf.y,
-      hunger: wolf.hunger,
-      health: wolf.health,
-      ageDays: wolf.ageDays,
+      x: wolf.x,
+      y: wolf.y,
       godCreatureSpawns: world.history.filter((entry) => entry.type === 'god.spawn_creature').length
     } : null;
   })()`);
   if (!spawned) throw new Error('explicit Wolf authority unavailable after setup');
 
-  const wolfBeforePoint = await creatureScreenPoint(cdp, spawned.wolfId);
-  if (!wolfBeforePoint) throw new Error('spawned Wolf is not visible for resting inspector gate');
-  await altClickPoint(cdp, wolfBeforePoint);
+  const wolfPoint = await creatureScreenPoint(cdp, spawned.wolfId);
+  if (!wolfPoint) throw new Error('spawned Wolf is not visible for resting inspector gate');
+  await altClickPoint(cdp, wolfPoint);
   await waitForExpression(cdp, `document.querySelector('#inspector')?.textContent?.includes('behavior resting') === true`, 2_000);
   const restingInspector = await evaluate(cdp, `document.querySelector('#inspector')?.textContent ?? ''`);
   if (!restingInspector.startsWith(`Wolf #${spawned.wolfId}`)) throw new Error(`wrong resting inspector: ${restingInspector}`);
@@ -92,35 +89,13 @@ try {
     return select.value;
   })()`);
   if (speed !== '1') throw new Error('failed to set ordinary Time control to one day');
-  if (!(await clickPauseTo(cdp, false))) throw new Error('failed to unpause readability world');
+  await clickPauseTo(cdp, false);
 
-  let predation = null;
-  const deadline = Date.now() + 22_000;
-  while (Date.now() < deadline) {
-    predation = await evaluate(cdp, `(() => {
-      const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
-      const event = world?.history?.findLast((entry) => entry.type === 'creature.predated' && entry.predatorCreatureId === ${spawned.wolfId});
-      const death = event ? world?.history?.find((entry) => entry.id > event.id && entry.type === 'creature.died' && entry.creatureId === event.preyCreatureId && entry.cause === 'predation') : null;
-      const wolf = world?.creatures?.find((creature) => creature.alive && creature.id === ${spawned.wolfId});
-      return event && death && wolf ? {
-        eventId: event.id,
-        deathEventId: death.id,
-        predatorCreatureId: event.predatorCreatureId,
-        preyCreatureId: event.preyCreatureId,
-        hungerBefore: event.predatorHungerBefore,
-        hungerAfter: event.predatorHungerAfter,
-        x: event.x, y: event.y,
-        wolf: { id: wolf.id, x: wolf.x, y: wolf.y, hunger: wolf.hunger, health: wolf.health, ageDays: wolf.ageDays },
-        godCreatureSpawns: world.history.filter((entry) => entry.type === 'god.spawn_creature').length
-      } : null;
-    })()`);
-    if (predation) break;
-    await delay(55);
-  }
+  const predation = await waitForPredation(cdp, spawned.wolfId, 22_000);
   if (!predation) throw new Error(`Wolf #${spawned.wolfId} produced no bounded predation for readability gate`);
   if (predation.godCreatureSpawns !== spawned.godCreatureSpawns) throw new Error('hidden creature spawn occurred after explicit Wolf setup');
+  await clickPauseTo(cdp, true);
 
-  if (!(await clickPauseTo(cdp, true))) throw new Error('failed to pause after readability predation');
   await waitForExpression(cdp, `(() => [...document.querySelectorAll('#world-event-pulse .world-event-card strong')].some((node) => node.textContent === 'Wolf #${spawned.wolfId} hunted Grazer #${predation.preyCreatureId}'))()`, 2_500);
   const pulse = await evaluate(cdp, `(() => {
     const card = [...document.querySelectorAll('#world-event-pulse .world-event-card')].find((node) => node.querySelector('strong')?.textContent === 'Wolf #${spawned.wolfId} hunted Grazer #${predation.preyCreatureId}');
@@ -128,72 +103,56 @@ try {
   })()`);
   if (!pulse) throw new Error('predation Pulse was not visible after authoritative hunt');
 
-  const postVegetation = await assertVegetationHudMatchesAuthority(cdp);
+  const postVegetation = await vegetationEvidence(cdp);
   const frozenFingerprint = await fingerprint(cdp);
 
-  // Chronicle is intentionally collapsed by default. Exercise the same visible
-  // interaction a player needs before using its lens tabs rather than clicking
-  // a hidden control through CDP coordinates.
-  const timelineOpen = await evaluate(cdp, `document.querySelector('#timeline')?.open === true`);
-  if (!timelineOpen) {
+  if (!(await evaluate(cdp, `document.querySelector('#timeline')?.open === true`))) {
     await clickSelector(cdp, '#timeline > summary');
     await waitForExpression(cdp, `document.querySelector('#timeline')?.open === true`, 1_500);
   }
-
   await clickSelector(cdp, '[data-chronicle-lens="recent"]');
   await waitForExpression(cdp, `document.querySelector('[data-chronicle-lens="recent"]')?.dataset?.active === 'true'`, 1_500);
-  try {
-    await waitForExpression(cdp, `document.querySelector('#history-list button[data-event-id="${predation.eventId}"]') !== null`, 2_000);
-  } catch (error) {
-    const diagnostics = await evaluate(cdp, `(() => ({
-      timelineOpen: document.querySelector('#timeline')?.open === true,
-      activeLens: document.querySelector('[data-chronicle-lens][data-active="true"]')?.dataset?.chronicleLens ?? null,
-      rows: [...document.querySelectorAll('#history-list button[data-event-id]')].map((node) => ({ id: node.dataset.eventId, text: node.textContent }))
-    }))()`);
-    throw new Error(`Recent did not expose predation Event #${predation.eventId}: ${JSON.stringify(diagnostics)}`, { cause: error });
-  }
+  await waitForExpression(cdp, `document.querySelector('#history-list button[data-event-id="${predation.eventId}"]') !== null`, 2_000);
   const recentRow = await evaluate(cdp, `document.querySelector('#history-list button[data-event-id="${predation.eventId}"]')?.textContent ?? ''`);
-  if (!recentRow.includes(`Wolf #${spawned.wolfId} hunted Grazer #${predation.preyCreatureId}`)) {
-    throw new Error(`Recent predation row is not readable: ${recentRow}`);
-  }
-  if ((await fingerprint(cdp)) !== frozenFingerprint) throw new Error('Recent lens mutated paused world authority');
+  const expectedHeadline = `Wolf #${spawned.wolfId} hunted Grazer #${predation.preyCreatureId}`;
+  if (!recentRow.includes(expectedHeadline)) throw new Error(`Recent predation row is not readable: ${recentRow}`);
+  assertFingerprint(await fingerprint(cdp), frozenFingerprint, 'Recent lens');
 
   await clickSelector(cdp, `#history-list button[data-event-id="${predation.eventId}"]`);
-  await waitForExpression(cdp, `document.querySelector('#history-detail .event-card')?.textContent?.includes('Wolf #${spawned.wolfId} hunted Grazer #${predation.preyCreatureId}') === true`, 2_000);
-
+  await waitForExpression(cdp, `document.querySelector('#history-detail .event-card')?.textContent?.includes(${JSON.stringify(expectedHeadline)}) === true`, 2_000);
   const eventCard = await evaluate(cdp, `(() => {
     const card = document.querySelector('#history-detail .event-card');
     if (!card) return null;
-    const unresolved = [...card.querySelectorAll('[data-reference-status="unresolved"]')].map((node) => node.textContent.trim());
-    const resolved = [...card.querySelectorAll('[data-reference-status="resolved"]')].map((node) => node.textContent.trim());
-    const wolfMap = card.querySelector('[data-reference-action="map"][data-reference-entity-kind="creature"][data-reference-id="${spawned.wolfId}"]');
+    const unresolved = [...card.querySelectorAll('[data-status="unresolved"]')].map((node) => node.textContent.trim());
+    const resolved = [...card.querySelectorAll('[data-status="resolved"]')].map((node) => node.textContent.trim());
+    const wolfMapSelector = '[data-event-card-nav="map"][data-entity-kind="creature"][data-entity-id="${spawned.wolfId}"]';
     return {
       text: card.textContent.trim(),
       unresolved,
       resolved,
-      wolfMapAvailable: Boolean(wolfMap)
+      wolfMapAvailable: Boolean(card.querySelector(wolfMapSelector))
     };
   })()`);
   if (!eventCard) throw new Error('predation Event Card did not open');
-  if (!eventCard.text.includes(`Predation at ${predation.x},${predation.y} · hunger ${Math.round(predation.hungerBefore * 100)}% → ${Math.round(predation.hungerAfter * 100)}%`)) {
-    throw new Error(`predation Event Card detail is not authoritative/readable: ${eventCard.text}`);
-  }
+  const detail = `Predation at ${predation.x},${predation.y} · hunger ${Math.round(predation.hungerBefore * 100)}% → ${Math.round(predation.hungerAfter * 100)}%`;
+  if (!eventCard.text.includes(detail)) throw new Error(`predation Event Card detail is not authoritative/readable: ${eventCard.text}`);
   if (!eventCard.unresolved.some((text) => text.includes(`Creature #${predation.preyCreatureId}`) && text.includes('not currently present'))) {
     throw new Error(`dead prey Subject did not remain truthfully unavailable: ${JSON.stringify(eventCard.unresolved)}`);
   }
   if (!eventCard.resolved.some((text) => text.includes(`Wolf #${spawned.wolfId}`)) || !eventCard.wolfMapAvailable) {
     throw new Error(`living Wolf Cause did not remain resolved/map-navigable: ${JSON.stringify(eventCard)}`);
   }
-  if ((await fingerprint(cdp)) !== frozenFingerprint) throw new Error('predation Event Card mutated paused world authority');
+  assertFingerprint(await fingerprint(cdp), frozenFingerprint, 'predation Event Card');
 
   await captureScreenshot(cdp, join(outDir, 'living-ecology-readability-1440x900.png'));
-  if ((await fingerprint(cdp)) !== frozenFingerprint) throw new Error('readability screenshot mutated paused world authority');
+  assertFingerprint(await fingerprint(cdp), frozenFingerprint, 'readability screenshot');
 
-  await clickSelector(cdp, `[data-reference-action="map"][data-reference-entity-kind="creature"][data-reference-id="${spawned.wolfId}"]`);
+  const wolfMapSelector = `[data-event-card-nav="map"][data-entity-kind="creature"][data-entity-id="${spawned.wolfId}"]`;
+  await clickSelector(cdp, wolfMapSelector);
   await waitForExpression(cdp, `document.querySelector('#inspector')?.textContent?.startsWith('Wolf #${spawned.wolfId}') === true`, 2_000);
   await waitForExpression(cdp, `document.querySelector('#inspector')?.textContent?.includes('behavior resting') === true`, 2_000);
   const postMapInspector = await evaluate(cdp, `document.querySelector('#inspector')?.textContent ?? ''`);
-  if ((await fingerprint(cdp)) !== frozenFingerprint) throw new Error('Wolf Cause map navigation mutated paused world authority');
+  assertFingerprint(await fingerprint(cdp), frozenFingerprint, 'Wolf Cause map navigation');
 
   const evidence = {
     initialVegetation,
@@ -231,12 +190,43 @@ try {
   catch (error) { console.warn(`Could not fully remove temporary Chrome profile ${userDataDir}: ${error?.message || error}`); }
 }
 
-async function assertVegetationHudMatchesAuthority(cdpClient) {
+async function waitForPredation(cdpClient, wolfId, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const value = await evaluate(cdpClient, `(() => {
+      const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+      const event = world?.history?.findLast((entry) => entry.type === 'creature.predated' && entry.predatorCreatureId === ${wolfId});
+      const death = event ? world?.history?.find((entry) => entry.id > event.id && entry.type === 'creature.died' && entry.creatureId === event.preyCreatureId && entry.cause === 'predation') : null;
+      const wolf = world?.creatures?.find((creature) => creature.alive && creature.id === ${wolfId});
+      return event && death && wolf ? {
+        eventId: event.id,
+        deathEventId: death.id,
+        predatorCreatureId: event.predatorCreatureId,
+        preyCreatureId: event.preyCreatureId,
+        hungerBefore: event.predatorHungerBefore,
+        hungerAfter: event.predatorHungerAfter,
+        x: event.x,
+        y: event.y,
+        wolf: { id: wolf.id, x: wolf.x, y: wolf.y, hunger: wolf.hunger, health: wolf.health, ageDays: wolf.ageDays },
+        godCreatureSpawns: world.history.filter((entry) => entry.type === 'god.spawn_creature').length
+      } : null;
+    })()`);
+    if (value) return value;
+    await delay(55);
+  }
+  return null;
+}
+
+async function vegetationEvidence(cdpClient) {
   const state = await evaluate(cdpClient, `(() => {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     if (!world) return null;
-    let vegetation = 0; let capacity = 0;
-    for (const tile of world.tiles) { vegetation += tile.vegetation; capacity += tile.vegetationCapacity; }
+    let vegetation = 0;
+    let capacity = 0;
+    for (const tile of world.tiles) {
+      vegetation += tile.vegetation;
+      capacity += tile.vegetationCapacity;
+    }
     const percent = capacity > 0 ? Math.round((vegetation / capacity) * 100) : 0;
     return { percent, hud: document.querySelector('#stats [data-ecology-vegetation]')?.textContent ?? '' };
   })()`);
@@ -247,60 +237,63 @@ async function assertVegetationHudMatchesAuthority(cdpClient) {
 async function wolfSpawnPoint(cdpClient) {
   return evaluate(cdpClient, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world; const camera = scene?.cameras?.main;
+    const world = scene?.world;
+    const camera = scene?.cameras?.main;
     if (!world || !camera) return null;
     const tileSize = 28;
+    const radius = world.config.wolfPreySearchRadius;
     const grazers = world.creatures.filter((creature) => creature.alive && creature.species === 'grazer');
     const occupied = new Set([
       ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive).map((entity) => entity.x + ',' + entity.y),
       ...world.creatures.filter((creature) => creature.alive).map((creature) => creature.x + ',' + creature.y),
       ...(world.warbands ?? []).filter((band) => band.active).map((band) => band.x + ',' + band.y)
     ]);
-    const screen = (tile) => {
-      const worldX = (tile.x + 0.5) * tileSize; const worldY = (tile.y + 0.5) * tileSize;
-      return { x: camera.x + (worldX - camera.worldView.x) * camera.zoom, y: camera.y + (worldY - camera.worldView.y) * camera.zoom };
-    };
-    const candidates = world.tiles
-      .filter((tile) => tile.passable && !occupied.has(tile.x + ',' + tile.y))
-      .map((tile) => ({ tile, nearestGrazerDistance: grazers.reduce((min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))), Infinity) }))
-      .filter(({ nearestGrazerDistance }) => nearestGrazerDistance >= 2 && nearestGrazerDistance <= world.config.wolfPreySearchRadius)
-      .map(({ tile, nearestGrazerDistance }) => ({ tile, nearestGrazerDistance, point: screen(tile) }))
-      .filter(({ point }) => point.x >= 30 && point.x <= 1120 && point.y >= 75 && point.y <= 790)
-      .sort((a, b) => b.nearestGrazerDistance - a.nearestGrazerDistance || a.tile.y - b.tile.y || a.tile.x - b.tile.x);
-    const chosen = candidates[0];
-    return chosen ? { x: chosen.point.x, y: chosen.point.y, tileX: chosen.tile.x, tileY: chosen.tile.y, nearestGrazerDistance: chosen.nearestGrazerDistance } : null;
+    const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+    for (const tile of world.tiles.filter((value) => value.passable).sort((a, b) => a.y - b.y || a.x - b.x)) {
+      if (occupied.has(tile.x + ',' + tile.y)) continue;
+      const nearest = grazers.reduce((best, grazer) => Math.min(best, cheb(tile, grazer)), Infinity);
+      if (nearest < 2 || nearest > radius) continue;
+      const worldX = (tile.x + 0.5) * tileSize;
+      const worldY = (tile.y + 0.5) * tileSize;
+      const x = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+      const y = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+      if (x < 30 || x > 1120 || y < 75 || y > 790) continue;
+      return { x, y, tileX: tile.x, tileY: tile.y, nearestGrazerDistance: nearest };
+    }
+    return null;
   })()`);
 }
 
 async function creatureScreenPoint(cdpClient, creatureId) {
   return evaluate(cdpClient, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world; const camera = scene?.cameras?.main;
-    const creature = world?.creatures?.find((candidate) => candidate.alive && candidate.id === ${creatureId});
+    const world = scene?.world;
+    const camera = scene?.cameras?.main;
+    const creature = world?.creatures?.find((value) => value.alive && value.id === ${creatureId});
     if (!world || !camera || !creature) return null;
-    const tileSize = 28; const worldX = (creature.x + 0.5) * tileSize; const worldY = (creature.y + 0.5) * tileSize;
-    const x = camera.x + (worldX - camera.worldView.x) * camera.zoom; const y = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+    const tileSize = 28;
+    const worldX = (creature.x + 0.5) * tileSize;
+    const worldY = (creature.y + 0.5) * tileSize;
+    const x = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+    const y = camera.y + (worldY - camera.worldView.y) * camera.zoom;
     if (x < 30 || x > 1120 || y < 75 || y > 790) return null;
-    const humanOverlap = world.entities.some((entity) => entity.kind === 'human' && entity.alive && entity.x === creature.x && entity.y === creature.y);
-    if (humanOverlap) return null;
-    return { x, y, tileX: creature.x, tileY: creature.y };
+    return { x, y, tileX: creature.x, tileY: creature.y, id: creature.id };
   })()`);
-}
-
-async function pauseWorld(cdpClient) {
-  if (!(await clickPauseTo(cdpClient, true))) throw new Error('failed to pause readability world');
 }
 
 async function clickPauseTo(cdpClient, paused) {
   const current = await evaluate(cdpClient, `document.querySelector('#pause')?.dataset?.active === 'true'`);
-  if (Boolean(current) !== paused) await clickSelector(cdpClient, '#pause');
-  await waitForExpression(cdpClient, `document.querySelector('#pause')?.dataset?.active === ${paused ? "'true'" : "'false'"}`, 2_000);
-  await delay(80);
-  return (await evaluate(cdpClient, `document.querySelector('#pause')?.dataset?.active === 'true'`)) === paused;
+  if (current !== paused) await clickSelector(cdpClient, '#pause');
+  await waitForExpression(cdpClient, `document.querySelector('#pause')?.dataset?.active === '${paused ? 'true' : 'false'}'`, 1_500);
+  return true;
 }
 
 async function fingerprint(cdpClient) {
   return evaluate(cdpClient, `JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world)`);
+}
+
+function assertFingerprint(actual, expected, label) {
+  if (actual !== expected) throw new Error(`${label} mutated paused authoritative world state`);
 }
 
 async function clickSelector(cdpClient, selector) {
@@ -445,9 +438,9 @@ function fnv1a(value) {
   let hash = 0x811c9dc5;
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
+    hash = Math.imul(hash, 0x01000193);
   }
-  return hash.toString(16).padStart(8, '0');
+  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
