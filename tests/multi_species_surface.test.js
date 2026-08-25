@@ -21,17 +21,19 @@ function distinctPassableTiles(world, count = 3) {
 
 test('Wolf identity survives exact snapshot round-trip and remains inert before predation slice', () => {
   const world = emptyWorld();
+  const control = emptyWorld();
   const [tile] = distinctPassableTiles(world, 1);
   const wolf = createWolf(world, { x: tile.x, y: tile.y, ageDays: 720, hunger: 0.35, health: 0.8 });
   const snapshot = snapshotWorld(world);
   assert.deepEqual(snapshotWorld(worldFromSnapshot(snapshot)), snapshot);
 
   const before = structuredClone(wolf);
-  const rngBefore = world.rng.snapshot();
+  assert.deepEqual(world.rng.snapshot(), control.rng.snapshot(), 'creating inert Wolf identity must not consume sequential RNG');
   tickWorld(world, 30);
+  tickWorld(control, 30);
   const current = world.creatures.find((creature) => creature.id === wolf.id);
   assert.deepEqual(current, before, 'capability 2 must not run Wolf age/hunger/movement/health behavior');
-  assert.deepEqual(world.rng.snapshot(), rngBefore, 'inert Wolf identity must not consume sequential RNG');
+  assert.deepEqual(world.rng.snapshot(), control.rng.snapshot(), 'presence of an inert Wolf must not add sequential RNG consumption');
 });
 
 test('spawn_creature accepts exactly Grazer/Wolf and rejected species allocate no identity', () => {
