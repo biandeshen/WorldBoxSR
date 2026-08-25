@@ -101,5 +101,7 @@ function relationHistory(world) {
 }
 
 function nonRelationHistory(world) {
-  return world.history.filter((event) => event.type !== 'polity.war_started' && event.type !== 'polity.peace_made');
+  return world.history
+    .filter((event) => event.type !== 'polity.war_started' && event.type !== 'polity.peace_made')
+    .map(({ id, ...event }) => event);
 }
