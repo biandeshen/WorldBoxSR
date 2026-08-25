@@ -20,66 +20,63 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Current release: v0.6.0 — Living Ecology
+## Release candidate: v0.7.0 — Scenario Builder & Sharing
 
-v0.6 turns the existing creature/resource simulation into one supported player-visible ecology experience: **natural Grazer populations visibly pressure vegetation, the landscape later recovers as that pressure falls, and a Wolf can hunt a Grazer through ordinary authoritative simulation.**
+v0.7 turns the existing deterministic startup/command architecture into one finite player creation loop:
 
-The shipped scope is deliberately finite:
+> **Compose a Scenario → share/import the exact same authoritative start → Run → Replay or Fork.**
 
-- **Living Ecology preset** — 24×24 canonical world with exactly 10 deterministic natural Grazer founders; natural births and old-age deaths come from ordinary simulation, with no later rescue/reseed/population target;
-- **Grazer + Wolf** — exactly two shipped creature identities, visually distinct and inspectable through one shared authoritative creature path;
-- **authoritative Wolf predation** — bounded deterministic hunger, prey seeking, one-tile movement, one-Grazer hunt/feeding and starvation; no renderer-owned kill or generic combat/food-web framework;
-- **ecology readability** — current behavior in Inspector, compact `🌿 N%`, readable Wolf→Grazer Pulse/Recent/Event Card, and truthful unavailable dead prey/current Wolf navigation;
-- **canonical release gate** — seed45 locks a real Y34→Y40 vegetation-pressure phase, Y40→Y50 recovery with fewer Grazers, then a fixed explicit QA Wolf movement→predation path; duplicate and Y40 save→load continuations are byte-identical.
+The shipped implementation breadth is frozen:
 
-Frozen canonical evidence:
-- Y34: `136 Grazers · 34.31% vegetation · 150 natural births`;
-- Y40: `116 · 17.50% · 156`;
-- Y50: `68 · 37.44% · 160`;
-- canonical Wolf #171: `(0,8) → (1,9)` then predates Grazer #110;
-- production Chromium reproduces Y40→Y50 through ordinary **1 year** Time and the hunt through **1 day** Time + Play;
-- Pulse, Recent, Event Card and current Wolf Inspector explain the result while paused read-only interaction preserves exact authoritative state.
+- **Scenario Recipe v1** — strict versioned startup input over current seed + `Sandbox | Living Ecology` + ordered Human/Grazer/Wolf placements; no live-world snapshot mirror;
+- **Scenario Setup** — compact paused editor using the existing Phaser map input and authoritative commands; Clear rematerializes and Run freezes the Recipe;
+- **portable sharing** — canonical JSON, unpadded-base64url `scenario=` links, fresh-tab exact reconstruction and atomic visible JSON Import;
+- **Replay** — deterministic rematerialization of the frozen Recipe start, never timeline rewind/event replay/snapshot restore;
+- **Fork / Edit** — an independent normalized editable copy whose source Recipe identity remains immutable;
+- **canonical release gate** — one real-browser journey proves ordinary Setup → Copy Link → fresh shared profile → Run/Meteor divergence → exact source Replay → Fork + fourth Human → fork divergence → exact fork Replay.
 
-This is an observed supported ecology phase, **not** a claim of equilibrium, carrying capacity or guaranteed coexistence. v0.6 does not ship Wolf reproduction/natural Wolf founders, additional species, a universal map-size initializer, hidden survival controls, an ecology dashboard, disease/seasons/climate/genetics or a generic food web.
+Frozen canonical identity:
+- source `Portable trio`: seed45 Sandbox, Human `(12,8)`, Grazer `(16,12)`, Wolf `(14,7)`, paused day 14400, fingerprint **`7f07ed67`**;
+- canonical fork: one additional Human `(12,8)`, fingerprint **`67543ff4`**;
+- canonical dirty source/fork fingerprints: `dfbad7ff` / `e0b5b305`;
+- canonical implementation gate artifact `9580488110` records `canonicalJourneyComplete: true` and four manually reviewed 1440×900 screenshots;
+- implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989` passed merged-main CI #811, Pages #57 including final public `/play/`, and full visual-qa #306.
 
-Release identity is immutable:
+v0.7 deliberately does **not** ship terrain/biome/resource painting, live snapshot savegames, Setup undo/remove stacks, timeline rewind, rules DSL/objectives, cloud/workshop services, custom map sizes or new simulation mechanics.
+
+**Publication is still pending in this release candidate.** `v0.7.0` is not considered shipped until the release PR merges, the existing release workflow creates an annotated `v0.7.0` tag + GitHub Release pointing exactly at that release merge commit, and release-commit CI, Pages/public `/play/` and full Chromium all pass.
+
+- [v0.7 canonical browser demo / QA](docs/demos/v0.7.0.md)
+- [v0.7.0 release notes](docs/releases/v0.7.0.md)
+- [v0.7 finite backlog](docs/backlog/v0.7.md)
+
+## Current shipped release: v0.6.0 — Living Ecology
+
+v0.6 is the current immutable published release. It shipped a supported 24×24 Living Ecology preset, natural Grazer lifecycle/resource pressure, Grazer + Wolf presentation, authoritative deterministic Wolf predation, restrained ecology readability and a canonical Y40→Y50 recovery→predation release path.
+
+Release identity:
 - release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
-- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb` points exactly to that commit;
-- GitHub Release `WorldBoxSR v0.6.0` is published from checked-in release notes;
-- release workflow #10, merged-main CI #748, Pages #50 including final public `/play/`, and full visual-qa #247 are green.
+- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb`;
+- release workflow #10, CI #748, Pages #50/public `/play/`, visual-qa #247 green.
 
 - [v0.6 canonical browser demo / QA](docs/demos/v0.6.0.md)
 - [v0.6.0 release notes](docs/releases/v0.6.0.md)
-- [v0.6 finite backlog](docs/backlog/v0.6.md)
 
-## Previous release: v0.5.0 — World Stories
-
-v0.5 turned bounded authoritative history into Causal Event Cards, exact Focused Story trails, a six-item same-tab Watchlist and four Chronicle lenses (`Highlights · Recent · Conflict · Rule`). One canonical real-browser path proved a player could move from a real recorded event through causes, map navigation, memory and a bounded story without narrative presentation becoming a second source of truth.
-
-- [v0.5 canonical browser demo / QA](docs/demos/v0.5.0.md)
-- [v0.5.0 release notes](docs/releases/v0.5.0.md)
-
-The six-power God Power Sandbox from v0.4 and civilization/ruler/war foundations from v0.3 remain release regressions.
-
-## Next planning stage: v0.7 — World Builder & Scenarios
-
-v0.6 publication is complete, so finite v0.7 planning may now begin. The roadmap reserves v0.7 for creation/scenario tooling, but the exact bounded scope still has to be chosen from shipped-product evidence before implementation starts.
+v0.5 World Stories, v0.4 God Power Sandbox and v0.3 civilization/ruler/war foundations remain full release regressions.
 
 ## Public playable demo
 
 **Play:** https://biandeshen.github.io/WorldBoxSR/play/
 
-`/play/` is the stable user-facing entry point. The custom GitHub Actions deployment publishes the compiled Phaser game there. The repository also carries a browser-runnable `/play/` fallback so that a mistakenly enabled legacy branch/Jekyll Pages deployment cannot replace the demo with the rendered README again.
+`/play/` is the stable user-facing entry point. The custom GitHub Actions deployment publishes the compiled Phaser game there and validates the final public URL after deployment/CDN convergence.
 
-The Pages build is validated in normal CI and by real Chromium gates. CI verifies the generated compiled `/play/` alias and legacy fallback; deployment then re-checks the final public `/play/` URL until the deployment/CDN has converged.
-
-Repository setting must remain **Settings → Pages → Build and deployment → Source → GitHub Actions**. GitHub Actions is the authoritative Pages publisher; the repository fallback exists only as defense in depth.
+Repository setting must remain **Settings → Pages → Build and deployment → Source → GitHub Actions**. GitHub Actions is the authoritative Pages publisher.
 
 ## Browser-only development with Codespaces
 
-Open the repository in GitHub Codespaces. The Node 22 dev container starts `npm run dev`, forwards port `8080`, and opens the WorldBoxSR preview inside the browser editor.
+Open the repository in GitHub Codespaces. The Node 22 dev container starts `npm run dev`, forwards the preview port, and opens WorldBoxSR in the browser editor.
 
-Use the codespace terminal for the same validation commands used locally and in CI:
+Use the same validation commands used locally and in CI:
 
 ```bash
 npm test
@@ -89,11 +86,17 @@ npm run pages:build
 npm run pages:check
 ```
 
+For real-browser release evidence:
+
+```bash
+bash tools/capture-visual-evidence.sh
+```
+
 ## GitHub-hosted simulation runs
 
-For a deterministic run without opening a local environment, use **Actions → simulation-console → Run workflow**. The workflow runs the same authoritative simulation CLI and preserves the complete JSON result as an artifact tied to that commit.
+Use **Actions → simulation-console → Run workflow** for deterministic runs without a local environment. The authoritative CLI result is preserved as an artifact tied to that commit.
 
-See [GitHub development platform](docs/development/github-platform.md) for the division of responsibilities between PRs, CI, Codespaces, Simulation Console, artifacts, Pages and releases.
+See [GitHub development platform](docs/development/github-platform.md) for PR, CI, Codespaces, Simulation Console, artifacts, Pages and release responsibilities.
 
 ## Run locally
 
@@ -102,7 +105,7 @@ Requires Node.js 22+.
 ```bash
 npm test
 npm run sim -- --seed 42 --years 100 --population 30
-npm run dev   # open http://127.0.0.1:8080
+npm run dev
 npm run pages:build
 npm run pages:check
 ```
