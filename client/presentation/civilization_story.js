@@ -1,5 +1,6 @@
 const STORY_TYPES = new Set([
   'god.meteor',
+  'god.rain',
   'polity.founded',
   'polity.dissolved',
   'polity.ruler_appointed',
@@ -27,6 +28,7 @@ const PULSE_TYPES = new Set([
 
 const PRIORITY = Object.freeze({
   'god.meteor': 110,
+  'god.rain': 108,
   'settlement.conquered': 100,
   'settlement.rebelled': 96,
   'polity.war_started': 92,
@@ -88,6 +90,14 @@ export function storyForEvent(world, event, daysPerYear = world?.config?.daysPer
         return { ...common, icon: '☄', headline: `Meteor strikes ${event.x},${event.y} — no effect`, detail: `The radius-${event.radius ?? 2} impact found no living targets or vegetation to remove.` };
       }
       return { ...common, icon: '☄', headline: `Meteor devastates ${event.x},${event.y}`, detail: `${lives} ${lives === 1 ? 'life' : 'lives'} lost · ${vegetation.toFixed(1)} vegetation removed across ${event.impactedTileCount ?? '?'} impacted tiles.` };
+    }
+    case 'god.rain': {
+      const vegetation = Number.isFinite(event.vegetationAdded) ? event.vegetationAdded : 0;
+      const food = Number.isFinite(event.foodAdded) ? event.foodAdded : 0;
+      if (event.noEffect) {
+        return { ...common, icon: '☂', headline: `Rain falls at ${event.x},${event.y} — no effect`, detail: `The radius-${event.radius ?? 2} area was already saturated or had no passable resource tiles to restore.` };
+      }
+      return { ...common, icon: '☂', headline: `Rain renews ${event.x},${event.y}`, detail: `+${vegetation.toFixed(1)} vegetation · +${food.toFixed(1)} food across ${event.passableTileCount ?? event.impactedTileCount ?? '?'} restored tiles.` };
     }
     case 'polity.founded': {
       const name = event.name ?? polity(event.polityId);
@@ -243,7 +253,7 @@ function uniqueStoryCandidates(history) {
 
 function storyDedupeKey(event) {
   const type = event.type;
-  if (type === 'god.meteor') return `intervention:${event.id ?? 'unknown'}`;
+  if (type === 'god.meteor' || type === 'god.rain') return `intervention:${event.id ?? 'unknown'}`;
   if (type.startsWith('polity.ruler_')) return `ruler:${event.polityId ?? 'unknown'}`;
   if (type === 'warband.engaged') return `battle:${event.relationKey ?? `${event.polityAId}:${event.polityBId}`}`;
   if (type.startsWith('warband.')) return `${type}:${event.relationKey ?? 'unknown'}:${event.polityId ?? event.warbandAId ?? 'unknown'}`;
@@ -254,7 +264,7 @@ function storyDedupeKey(event) {
 }
 
 function storyGroup(type) {
-  if (type === 'god.meteor') return 'intervention';
+  if (type === 'god.meteor' || type === 'god.rain') return 'intervention';
   if (type === 'settlement.conquered' || type === 'settlement.rebelled') return 'outcome';
   if (type === 'polity.war_started' || type === 'polity.peace_made') return 'diplomacy';
   if (type === 'warband.engaged' || type === 'warband.destroyed') return 'battle';
