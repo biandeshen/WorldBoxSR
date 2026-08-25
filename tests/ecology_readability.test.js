@@ -75,15 +75,14 @@ test('authoritative predation projects one exact readable ecology story', () => 
   assert.equal(story.pulse, false, 'the separate World Event Pulse owns live notification');
 });
 
-test('predation joins Recent only while v0.5 Highlights/Conflict/Rule policy stays exact', () => {
+test('predation joins Recent while Highlights delegates unchanged and Conflict/Rule stay exact', () => {
   const world = readableWorld();
-  const highlightsBefore = civilizationChronicle(world, { limit: 7 }).map((row) => row.eventId);
   const event = addPredation(world);
 
   assert.deepEqual(
     chronicleRowsForLens(world, 'highlights').map((row) => row.eventId),
-    highlightsBefore,
-    'ecology readability must not rewrite representative Highlights membership'
+    civilizationChronicle(world, { limit: 7 }).map((row) => row.eventId),
+    'ecology readability must keep delegating Highlights to the pre-existing representative policy'
   );
   assert.deepEqual(chronicleRowsForLens(world, 'recent', { limit: 3 }).map((row) => row.eventId), [7, 6, 5]);
   assert.equal(chronicleRowsForLens(world, 'recent', { limit: 1 })[0].headline, 'Wolf #167 hunted Grazer #112');
@@ -181,7 +180,6 @@ test('creature behavior and Living Ecology vegetation HUD are pure compact proje
   assert.equal(livingEcologyVegetationHud(summary, 'sandbox'), null);
   assert.equal(livingEcologyVegetationHud({ vegetationUtilization: 1.5 }, 'living_ecology'), '🌿 100%');
 
-  // Restore local test mutations before checking that projection calls themselves were neutral.
   wolf.hunger = 0.10;
   grazer.hunger = 0.10;
   assert.deepEqual(snapshotWorld(world), before);
