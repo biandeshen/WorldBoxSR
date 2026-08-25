@@ -50,9 +50,6 @@ Shipped coherent terrain/units/settlements, direct god powers with SFX/targeting
 ## v0.3.0 — Civilizations Rise
 **Status: shipped. Primary fantasy: “I can watch small settlements become rival powers.”**
 
-### Promise
-Turn existing settlement/territory/history foundations into visibly distinct political actors whose expansion and conflict can be watched from the map.
-
 ### Shipped scope
 1. authoritative polity/kingdom identity from settlements;
 2. ruler selection and succession;
@@ -63,101 +60,84 @@ Turn existing settlement/territory/history foundations into visibly distinct pol
 
 Detailed finite backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release QA: [`docs/demos/v0.3.0.md`](demos/v0.3.0.md).
 
-### Exit gate
-The default seed45 showcase and executable collision gate demonstrate distinct powers, real rulers, war, engagements and political-map change while Chronicle exposes the resulting story without debug metrics.
-
 ### Deliberate stop
-v0.3 does not deepen into economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay or broad art rewrites. Civilization depth pauses after this checkpoint.
+No economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay or broad art rewrite.
 
 ---
 
 ## v0.4.0 — God Power Sandbox
 **Status: shipped. Primary fantasy: “intervening is fun even before I care about the simulation.”**
 
-### Promise
-Make direct god intervention immediately legible and satisfying while keeping every meaningful consequence authoritative and historically traceable.
-
 ### Shipped scope
 1. six-power dock: Human, Grazer, Erase, Lightning, Meteor and Rain;
-2. Meteor — exact radius-2 preview, authoritative human/grazer mortality, vegetation destruction, truthful no-effect and strong accessible impact feedback;
-3. Rain — the same radius-2 preview, exact restoration of existing food/vegetation capacities, truthful saturation/no-effect and constructive accessible feedback;
-4. shared presentation metadata plus accepted-action `applied | no_effect` outcome semantics without introducing a second world model;
-5. World Chronicle preserves the two latest direct interventions alongside representative autonomous history;
-6. headless deterministic Meteor→Rain product gate using real engine commands;
-7. real Chromium pointer gate on canonical seed45 proving destruction and same-footprint recovery in one paused authoritative world.
+2. authoritative Meteor destruction + same-footprint Rain recovery;
+3. truthful `applied | no_effect` outcomes and accessible impact feedback;
+4. World Chronicle intervention history;
+5. headless + real Chromium deterministic Meteor→Rain gates.
 
-Detailed finite backlog: [`docs/backlog/v0.4.md`](backlog/v0.4.md). Release QA: [`docs/demos/v0.4.0.md`](demos/v0.4.0.md).
-
-### Exit gate
-A player can understand exactly where Meteor/Rain will act, apply them through the real browser input path, distinguish applied/no-effect/rejected outcomes, observe truthful authoritative consequences and recover the short intervention sequence from World Chronicle. Duplicate headless runs remain byte-identical.
+Detailed backlog: [`docs/backlog/v0.4.md`](backlog/v0.4.md). Release QA: [`docs/demos/v0.4.0.md`](demos/v0.4.0.md).
 
 ### Deliberate stop
-v0.4 stops at six powers. No fire propagation, plague/tornado framework, weather/hydrology simulation, ecology balancing, cooldown/inventory/progression, terrain editor, replay/rewind or renewed civilization depth is part of this release.
+No fire/plague/tornado framework, ecology balancing, cooldown/inventory/progression, terrain editor or replay/rewind.
 
 ---
 
 ## v0.5.0 — World Stories
 **Status: shipped. Primary fantasy: “this world has a history I can follow and remember.”**
 
-### Promise
-Turn existing causal history into a stronger game-facing memory layer without allowing narrative presentation or AI to become a second source of truth.
-
 ### Shipped scope
-1. **Causal Event Card** — readable headline/detail/provenance, explicit Subject and recorded Causes, retained-event drill-down, current map navigation and truthful unavailable refs;
-2. **Focused Story Trail** — exact supported stable-ref history, chronological oldest→newest, fixed limit 8, one-hop event focus and no inferred current-state association;
-3. **Watchlist** — explicit Pin/Unpin for retained events and supported entities, fixed limit 6, same-tab `sessionStorage`, safe sanitization and current-truth re-resolution;
-4. **Chronicle lenses** — exactly `Highlights · Recent · Conflict · Rule`, fixed 7-row limit, unchanged representative Highlights policy and explicit deterministic membership for the other lenses;
-5. **Canonical World Stories gate** — one deterministic real-Chromium session stitches ordinary gameplay causality → Event Card → retained cause → map navigation → Watchlist → Focused Story → Chronicle lens round-trip while story navigation remains read-only against the post-causality world fingerprint.
+1. Causal Event Card — readable recorded facts, Subject/Causes, retained-event drill-down, current map navigation and truthful unavailable refs;
+2. Focused Story Trail — exact stable-ref retained history, oldest→newest, capped at 8;
+3. Watchlist — six explicit same-tab stable refs with current-truth re-resolution;
+4. Chronicle lenses — exactly `Highlights · Recent · Conflict · Rule`, capped and deterministic;
+5. canonical real-browser World Stories path joining gameplay causality, Event Card, retained cause, map navigation, memory, story trail and lens round-trip while read-only story state remains outside authority.
 
-Detailed finite backlog: [`docs/backlog/v0.5.md`](backlog/v0.5.md). Release QA: [`docs/demos/v0.5.0.md`](demos/v0.5.0.md). Release notes: [`docs/releases/v0.5.0.md`](releases/v0.5.0.md).
+Detailed backlog: [`docs/backlog/v0.5.md`](backlog/v0.5.md). Release QA: [`docs/demos/v0.5.0.md`](demos/v0.5.0.md). Release notes: [`docs/releases/v0.5.0.md`](releases/v0.5.0.md).
 
-Release identity: tag `v0.5.0` points at commit `104dc7520b2e5ad39ec1d3c98c1cea94a11922b4`. Release workflow #9, CI #677, full Chromium visual-qa #187 and Pages #40 including the final public `/play/` check all passed.
-
-### Exit gate
-On deterministic seed45, ordinary Lightning produces a real ruler-death → normal-succession story. From the paused post-succession baseline a player can understand the recorded transition and cause, navigate to the involved polity, preserve the event + polity, follow an explicit bounded polity story, open a trail event, browse Recent/Conflict/Rule and restore exact Highlights without raw engine JSON or any read-only story action mutating authoritative world state.
+Release identity: tag `v0.5.0` points at commit `104dc7520b2e5ad39ec1d3c98c1cea94a11922b4`.
 
 ### Deliberate stop
-v0.5 does not add AI-authored canonical facts, a required AI summary, replay/rewind, graph/database infrastructure, semantic search/query language, relevance scoring, an analytics dashboard, cloud Watchlist sync, new god powers, ecology research or renewed economy/religion/technology/civilization-depth work. Bounded-history refs may expire and remain truthfully unavailable.
+No AI-authored canonical facts, required AI summary, replay/rewind, graph/database infrastructure, semantic search, relevance scoring, analytics dashboard, cloud Watchlist sync, new God Powers, ecology research or renewed civilization-depth breadth.
 
 ---
 
 ## v0.6.0 — Living Ecology
-**Status: active target; finite release gate #223 defined. Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”**
+**Status: implementation complete; release candidate packaging/publication in progress under #237. Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”**
 
 ### Promise
-Turn the already-authoritative grazer/resource mechanics into a visible supported ecology experience, then add exactly one new predator relationship so ecology becomes a player-readable world system rather than hidden creature math.
+Turn authoritative Grazer/resource mechanics into one supported visible ecology experience and add exactly one predator relationship without introducing a second renderer-side ecology model or hidden survival controller.
 
-### Supported scope
-- canonical release scope is **24×24** through an explicit Living Ecology preset;
-- existing/default sandbox behavior remains compatibility-safe rather than silently enabling unvalidated universal fauna;
-- natural grazers use the exact Sprint021 validated initializer: 10 founders from the vegetation-rich top32 passable cells, deterministic placement and keyed `[0,6y]` founder ages;
-- validated grazer reproduction/old-age settings are enabled only where the preset requires them;
-- one additional named predator species: **Wolf**;
-- extinction/collapse is allowed; no equilibrium or eternal-coexistence guarantee.
+### Shipped implementation scope
+1. **Supported Living Ecology preset** — canonical 24×24 world, exact 10-founder deterministic natural Grazer initializer, natural reproduction + gradual old age, no hidden reseed;
+2. **Grazer + Wolf creature surface** — exactly two shipped creature identities, shared selection/inspection/reference path and distinct visuals;
+3. **authoritative Wolf predation** — deterministic hunger, bounded prey search, one-tile chase, one-prey hunt/feeding, starvation and explicit causal history;
+4. **ecology readability** — current behavior Inspector, compact authoritative `🌿 N%`, readable predation Pulse/Recent/Event Card and truthful dead-prey/current-Wolf navigation;
+5. **canonical Living Ecology gate** — fixed seed45 pressure→recovery checkpoints, fixed Wolf continuation, byte-repeatability, Y40 save→load continuation and one full production Chromium release path.
 
-Detailed finite backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md).
+Detailed backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md). Release QA: [`docs/demos/v0.6.0.md`](demos/v0.6.0.md). Release notes: [`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
 
-### Ordered scope
-1. **Supported natural-fauna preset** — productize the proven 24×24 grazer initializer/settings with deterministic tests and real browser visibility;
-2. **Multi-species creature surface** — make Grazer + Wolf visually distinct/selectable/inspectable through the smallest necessary shared creature presentation path;
-3. **Wolf predation loop** — authoritative deterministic prey seeking/hunting through shared creature lifecycle/history, with no renderer-owned combat or hidden rescue spawning;
-4. **Ecology readability** — compact species/condition/resource-pressure and predation feedback without turning the game into an analytics dashboard;
-5. **Canonical Living Ecology gate** — one supported deterministic world proves natural grazer birth, vegetation pressure/recovery, at least one authoritative Wolf→Grazer predation consequence, exact repeatability and save/load continuation;
-6. release-only `v0.6.0` package/docs/tag/Pages handoff after merged-main verification.
+### Canonical release evidence
+Frozen natural trajectory:
+- Y34: `136 Grazers · 34.31% vegetation · 150 natural births`;
+- Y40 trough: `116 · 17.50% · 156`;
+- Y50 recovery: `68 · 37.44% · 160`.
 
-### Evidence boundary
-The release deliberately reuses accepted research instead of reopening compact-map tuning. Sprint021 passed 30/30 24×24 worlds for 120 years with multi-generation grazers and repeated vegetation cycles. By contrast, scalar founder counts, terminal-population classifiers, a 40-year population-low recovery envelope and encounter-safe placement are not promoted; encounter-safe placement specifically failed fresh validation with 4 rescues vs 6 harms.
+The permanent headless gate runs uninterrupted, duplicate and Y40 snapshot→restore paths and requires byte-identical final authority. After Y50, fixed QA Wolf #171 at `(0,8)` first moves to `(1,9)` and predates Grazer #110. Production Chromium reproduces Y40→Y50 through ordinary Time controls and exposes the hunt through Pulse, Recent, Event Card and current Wolf Inspector while paused presentation remains read-only.
 
-### Exit gate
-In the supported 24×24 preset, a player can identify both species, observe naturally reproduced grazers consuming vegetation, see an authoritative wolf predation event and its visible population/resource consequence, and inspect what happened without raw engine JSON. Duplicate headless runs are byte-identical and save/load continuation matches uninterrupted authority. The gate does not require either species to survive forever.
+Implementation freeze commit: `ac94bd0bfa59790f959c02c261c3506c378fb26d`; merged-main CI #740, Pages #47/public `/play/` and full visual-qa #239 are green.
 
 ### Deliberate stop
-No universal 16×16–48×48 initializer, equilibrium controller, hidden reseeding, disease, seasons/climate, genetics/evolution, plant-species model, generalized N-species food-web framework, new god powers or renewed civilization/economy/religion/technology breadth. At most three consecutive rejected ecology hypotheses may block the visible gate before scope must narrow.
+No universal 16×16–48×48 initializer, equilibrium/minimum-population controller, hidden rescue/reseed, natural Wolf-founder policy, Wolf reproduction/packs, additional species/generic food web, disease, seasons/climate, genetics/evolution, plant-species model, ecology dashboard/heatmap, new God Power or renewed civilization/economy/religion/technology breadth.
+
+### Publication gate
+v0.6 feature behavior is frozen. The release-only handoff may change package/docs only. It must verify final release-PR CI + full Chromium, then after merge verify release workflow/tag/GitHub Release, merged-main CI, full Chromium, Pages deploy and final public `/play/` before #223 is closed.
 
 ---
 
 ## v0.7.0 — World Builder & Scenarios
-World-generation UI, terrain/biome/life/civilization brushes, named scenarios/rules, save/import/export/share metadata, capture helpers and community-scenario groundwork.
+**Status: reserved next planning direction; blocked until v0.6.0 publication is verified.**
+
+Potential capability pool: world-generation UI, terrain/biome/life/civilization brushes, named scenarios/rules, save/import/export/share metadata, capture helpers and community-scenario groundwork. Exact scope must be planned as a finite release gate after v0.6 closes rather than inherited as a mega-sprint.
 
 ---
 
@@ -172,8 +152,8 @@ Onboarding, settings/keybinds/accessibility, performance budgets, audio/art cons
 ---
 
 ## v1.0 — Stable sandbox identity
-v1.0 means a stable product/compatibility contract, not every possible feature: reproducible worlds, dependable browser play, creation/intervention + civilizations + world stories working together, usable causal history, save/version policy and credible supported performance.
+v1.0 means a stable product/compatibility contract, not every possible feature: reproducible worlds, dependable browser play, creation/intervention + civilizations + world stories + supported ecology working together, usable causal history, save/version policy and credible supported performance.
 
 ## Current decision
 
-**v0.5.0 World Stories is closed and immutable. v0.6 Living Ecology is the only active product target.** Merge the planning gate first, then implement the supported natural-fauna preset as the single next slice. Do not begin Wolf/predation or additional ecology research in parallel, and do not promise universal fauna beyond the declared 24×24 release scope.
+**v0.6 implementation is frozen. Release-only handoff #237 / PR #238 is the sole active queue.** No v0.7 feature/planning work begins until package `0.6.0`, annotated tag, GitHub Release, merged-main CI, full Chromium, Pages deploy and final public `/play/` are verified and #223 closes.
