@@ -2,7 +2,8 @@ const TOOL_STYLES = Object.freeze({
   spawn_human: { color: 0x8ad6ff, fillAlpha: 0.11, label: 'Create human' },
   spawn_grazer: { color: 0xf0bf68, fillAlpha: 0.11, label: 'Create grazer' },
   erase: { color: 0xff6f6f, fillAlpha: 0.09, label: 'Erase humans' },
-  lightning: { color: 0xffdf68, fillAlpha: 0.13, label: 'Lightning' }
+  lightning: { color: 0xffdf68, fillAlpha: 0.13, label: 'Lightning' },
+  meteor: { color: 0xff8b55, fillAlpha: 0.14, label: 'Meteor · radius 2' }
 });
 
 export function targetStyle(tool, tile) {
@@ -15,6 +16,23 @@ export function targetStyle(tool, tile) {
     color: invalid ? 0xff6f6f : base.color,
     label: invalid ? `${base.label} · needs land` : base.label
   };
+}
+
+export function toolTargetRadius(tool) {
+  return tool === 'meteor' ? 2 : 0;
+}
+
+export function targetFootprint(tool, centerX, centerY, width, height) {
+  if (![centerX, centerY, width, height].every(Number.isInteger)) return [];
+  if (width < 1 || height < 1 || centerX < 0 || centerY < 0 || centerX >= width || centerY >= height) return [];
+  const radius = toolTargetRadius(tool);
+  const cells = [];
+  for (let y = Math.max(0, centerY - radius); y <= Math.min(height - 1, centerY + radius); y += 1) {
+    for (let x = Math.max(0, centerX - radius); x <= Math.min(width - 1, centerX + radius); x += 1) {
+      cells.push({ x, y, center: x === centerX && y === centerY });
+    }
+  }
+  return cells;
 }
 
 export function territoryCells(view) {
