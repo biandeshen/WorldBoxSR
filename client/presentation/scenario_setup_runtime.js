@@ -44,8 +44,6 @@ function attachWhenReady() {
   };
   scene.scenarioSetup = state;
 
-  // Keep Phaser's existing pointer/tile/input loop authoritative for map clicks.
-  // Setup owns only the useTool orchestration seam after pointerTile resolution.
   scene.useTool = (x, y, count) => {
     if (!state.active) return originalUseTool(x, y, count);
     useScenarioSetupTool(scene, state, ui, x, y, count);
@@ -63,8 +61,6 @@ function attachWhenReady() {
     });
   }
 
-  // An ordinary world reset after Run leaves Scenario state behind deliberately.
-  // It is a new normal world, so clear the frozen presentation identity.
   ui.reset.addEventListener('click', () => {
     if (state.active || state.busy) return;
     state.frozen = null;
@@ -155,6 +151,7 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
   const recipe = freezeScenarioSetup(recipeInput);
   const previousPaused = Boolean(scene.paused);
   const previousBooting = Boolean(scene.booting);
+  const previousBootText = ui.boot?.textContent ?? '';
   const previousDraft = state.draft;
   const previousFrozen = state.frozen;
   const previousActive = state.active;
@@ -189,6 +186,7 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
     return recipe;
   } catch (error) {
     scene.booting = previousBooting;
+    if (ui.boot) ui.boot.textContent = previousBootText;
     state.draft = previousDraft;
     state.frozen = previousFrozen;
     state.active = previousActive;
@@ -204,8 +202,6 @@ function useScenarioSetupTool(scene, state, ui, x, y, count) {
   if (state.busy || !state.draft) return;
   try {
     const action = scenarioSetupAction(state.selectedPlacement, x, y, count);
-    // Build/validate the next immutable draft before authority. Assignment still
-    // happens only after the command succeeds.
     const nextDraft = appendScenarioSetupAction(state.draft, action);
     applyScenarioSetup(scene.world, [action]);
     state.draft = nextDraft;
@@ -357,7 +353,6 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-// Retained for deterministic browser evidence without exposing raw JSON in UI.
 export function frozenScenarioRecipeString(scene) {
   return scene?.scenarioSetup?.frozen ? serializeScenarioRecipe(scene.scenarioSetup.frozen) : null;
 }
