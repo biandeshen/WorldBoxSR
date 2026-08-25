@@ -36,50 +36,29 @@ cleanup() {
 trap cleanup EXIT
 
 for _ in $(seq 1 50); do
-  if curl --silent --show-error --fail --max-time 1 "$base_url" >/dev/null 2>&1; then
-    break
-  fi
-  if ! kill -0 "$preview_pid" 2>/dev/null; then
-    cat "$log_file" >&2 || true
-    exit 1
-  fi
+  if curl --silent --show-error --fail --max-time 1 "$base_url" >/dev/null 2>&1; then break; fi
+  if ! kill -0 "$preview_pid" 2>/dev/null; then cat "$log_file" >&2 || true; exit 1; fi
   sleep 0.2
 done
 
 curl --silent --show-error --fail "$base_url" >/dev/null
 
 chrome_flags=(
-  --headless=new
-  --no-sandbox
-  --disable-dev-shm-usage
-  --hide-scrollbars
-  --window-size=1440,900
-  --force-device-scale-factor=1
-  --run-all-compositor-stages-before-draw
-  --virtual-time-budget=15000
-  --enable-webgl
-  --ignore-gpu-blocklist
-  --use-angle=swiftshader
-  --enable-unsafe-swiftshader
-  --enable-logging=stderr
-  --log-level=0
-  "--user-data-dir=$user_data_dir"
+  --headless=new --no-sandbox --disable-dev-shm-usage --hide-scrollbars
+  --window-size=1440,900 --force-device-scale-factor=1 --run-all-compositor-stages-before-draw
+  --virtual-time-budget=15000 --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader
+  --enable-unsafe-swiftshader --enable-logging=stderr --log-level=0 "--user-data-dir=$user_data_dir"
 )
 
 candidate_dom="$out_dir/candidate-dom.html"
 "$browser" "${chrome_flags[@]}" --dump-dom "$base_url" >"$candidate_dom" 2>"$out_dir/chrome-runtime.log"
-
 if ! grep -q "$ready_marker" "$candidate_dom"; then
   echo "Fully warmed Phaser showcase marker not found in rendered DOM" >&2
-  echo "Rendered boot status:" >&2
   grep -oE '<div id="boot-status"[^>]*>[^<]*' "$candidate_dom" | head -1 >&2 || true
-  echo "Renderer failure markers:" >&2
   grep -oE 'Renderer failed:[^<]*' "$candidate_dom" | head -3 >&2 || true
-  echo "Chrome log tail:" >&2
   tail -120 "$out_dir/chrome-runtime.log" >&2 || true
   exit 1
 fi
-
 if grep -q "Renderer failed:" "$candidate_dom"; then
   echo "Renderer failure marker found in rendered DOM" >&2
   grep -oE 'Renderer failed:[^<]*' "$candidate_dom" | head -3 >&2 || true
@@ -89,49 +68,20 @@ fi
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 
-# v0.4 regression: exercise the real god-hand loop rather than merely prove
-# buttons render. The helper uses real browser pointer events on one paused
-# authoritative world: Meteor damage followed by same-footprint Rain recovery.
 node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.5 Causal Event Card regression: use real Lightning input to create a ruler
-# death followed by normal deterministic succession, then follow the retained
-# death-event cause and a current map-capable reference without changing world
-# authority.
 node tools/capture-story-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.5 Focused Story Trail: on a fresh natural seed45 world, use real Chronicle
-# and Event Card clicks to Follow an explicit entity reference with >=2 retained
-# events, open a trail event, Clear focus, and require the serialized world
-# fingerprint to remain unchanged throughout the read-only navigation.
 node tools/capture-focused-story-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.5 Watchlist: in one real Chrome tab/session, Pin a retained event plus an
-# explicit entity, browse elsewhere, return through Watchlist, reload the same
-# tab so sessionStorage must rehydrate both refs, then Unpin/Clear. Bookmark UI
-# actions must leave authority unchanged on both sides of the reload boundary.
 node tools/capture-bookmark-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.5 Chronicle readability: on a fresh seed45 world, establish a real focused
-# event + Watchlist pin, click Highlights → Recent → Conflict → Rule, open an
-# Event Card from a non-default lens, return to Highlights, and require exact
-# representative IDs plus focus/bookmark/world authority to remain unchanged.
 node tools/capture-chronicle-lenses-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.5 release product gate: one fresh deterministic seed45 session uses the
-# shipped Lightning power to create a real death → succession story, freezes a
-# post-causality authority baseline, then stitches Event Card → Cause → Map →
-# Watchlist → Focused Story → Chronicle lenses through player-visible UI only.
-# Bound this final helper so a CDP/browser stall becomes a useful failed gate
-# with partial-stage evidence instead of consuming the entire Actions timeout.
 bash tools/run-world-stories-gate.sh "$browser" "$base_url" "$out_dir"
-
-# v0.6 capability 1: in a fresh browser, Sandbox must remain default and retain
-# its exact post-warmup 8-grazer behavior. Then the visible Mode selector resets
-# into Living Ecology, which must use natural reproduction/old-age config, avoid
-# god-spawn founder history, retain at least one natural birth, and allow a real
-# Alt-click grazer inspection without mutating paused authority.
 node tools/capture-natural-fauna-evidence.mjs "$browser" "$base_url" "$out_dir"
+
+# v0.6 capability 2: keep the natural Living Ecology grazer world, pause it,
+# explicitly spawn one inert Wolf through the same authoritative creature-spawn
+# command path (hidden QA tool; no product dock button), then real Alt-click both
+# species. Visuals/inspector/HUD must distinguish them while all post-spawn
+# read-only actions preserve the exact paused world fingerprint.
+node tools/capture-multi-species-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
@@ -168,7 +118,9 @@ world_stories_canonical_recovered=world-stories-canonical-recovered-1440x900.png
 world_stories_canonical_authority=world-stories-gate-evidence.json
 natural_fauna=living-ecology-natural-fauna-1440x900.png
 natural_fauna_authority=natural-fauna-evidence.json
-runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4/v0.5 regressions plus v0.6 Sandbox→Living Ecology natural-fauna selector/reset/inspection gate preserve declared authority boundaries
+multi_species=living-ecology-grazer-wolf-1440x900.png
+multi_species_authority=multi-species-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus v0.6 natural-fauna and Grazer/Wolf identity/inspection gates preserve declared authority boundaries
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"

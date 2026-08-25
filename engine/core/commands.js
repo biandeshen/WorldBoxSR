@@ -1,4 +1,5 @@
 import { createGrazer } from '../model/grazer.js';
+import { createWolf } from '../model/wolf.js';
 import { createHuman } from '../model/human.js';
 import { killCreature } from '../model/creature_lifecycle.js';
 import { killHuman } from '../model/human_lifecycle.js';
@@ -6,6 +7,7 @@ import { commandRef, eventRef, pushEvent, worldSubject } from '../model/events.j
 
 export const METEOR_RADIUS = 2;
 export const RAIN_RADIUS = 2;
+const SPAWNABLE_CREATURE_SPECIES = Object.freeze(['grazer', 'wolf']);
 
 export function applyCommand(world, command) {
   if (!command || typeof command.type !== 'string') throw new TypeError('command.type is required');
@@ -57,19 +59,20 @@ function spawnCreatures(world, command) {
   const x = integerInRange(command.x, 0, world.width - 1, 'x');
   const y = integerInRange(command.y, 0, world.height - 1, 'y');
   const count = boundedCount(command.count ?? 1);
-  if (command.species !== 'grazer') throw new RangeError('species must be grazer');
+  const species = spawnableCreatureSpecies(command.species);
   if (!world.tiles[y * world.width + x]?.passable) throw new RangeError('creatures cannot spawn on impassable tiles');
 
   const commandId = world.nextCommandId++;
   const creatureIds = [];
+  const create = species === 'grazer' ? createGrazer : createWolf;
   for (let i = 0; i < count; i += 1) {
-    creatureIds.push(createGrazer(world, { x, y }).id);
+    creatureIds.push(create(world, { x, y }).id);
   }
   pushEvent(world, {
     type: 'god.spawn_creature',
     subject: worldSubject(),
     causes: [commandRef(commandId, command.type)],
-    species: command.species,
+    species,
     x,
     y,
     count,
@@ -259,6 +262,13 @@ function killTargetHumans(world, targets, cause, causeEventId) {
     });
   }
   world.entities = world.entities.filter((entity) => entity.alive);
+}
+
+function spawnableCreatureSpecies(species) {
+  if (!SPAWNABLE_CREATURE_SPECIES.includes(species)) {
+    throw new RangeError(`species must be one of: ${SPAWNABLE_CREATURE_SPECIES.join(', ')}`);
+  }
+  return species;
 }
 
 function tileKey(x, y) {

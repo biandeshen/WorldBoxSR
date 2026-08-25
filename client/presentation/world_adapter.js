@@ -94,6 +94,7 @@ export function applyGodTool(world, tool, x, y, count = 1) {
   if (tool === 'erase') { applyCommand(world, { type: 'erase', x, y }); return acceptedGodAction('erase'); }
   if (tool === 'lightning') { applyCommand(world, { type: 'lightning', x, y }); return acceptedGodAction('lightning'); }
   if (tool === 'spawn_grazer') { applyCommand(world, { type: 'spawn_creature', species: 'grazer', x, y, count }); return acceptedGodAction('spawn_grazer'); }
+  if (tool === 'spawn_wolf') { applyCommand(world, { type: 'spawn_creature', species: 'wolf', x, y, count }); return acceptedGodAction('spawn_wolf'); }
   applyCommand(world, { type: 'spawn_human', x, y, count });
   return acceptedGodAction('spawn_human');
 }
@@ -103,6 +104,18 @@ export function worldView(world) {
   const polityById = new Map(world.polities.map((polity) => [polity.id, polity]));
   const relations = (world.relations ?? []).filter((relation) => relation.active).map((relation) => ({ ...relation }));
   const activeWarbands = (world.warbands ?? []).filter((warband) => warband.active).sort((a, b) => a.id - b.id);
+  const creatures = world.creatures
+    .filter((creature) => creature.alive)
+    .sort((a, b) => a.id - b.id)
+    .map((creature) => ({
+      id: creature.id,
+      species: creature.species,
+      x: creature.x,
+      y: creature.y,
+      ageDays: creature.ageDays,
+      hunger: creature.hunger,
+      health: creature.health
+    }));
   const warbands = activeWarbands.map((warband) => {
     const polity = polityById.get(warband.polityId);
     const opponent = polityById.get(warband.opponentPolityId);
@@ -157,7 +170,11 @@ export function worldView(world) {
         isRuler: polity?.rulerId === human.id
       };
     }),
-    grazers: world.creatures.filter((creature) => creature.alive && creature.species === 'grazer').map((creature) => ({ id: creature.id, x: creature.x, y: creature.y, ageDays: creature.ageDays, hunger: creature.hunger, health: creature.health })),
+    creatures,
+    // Temporary compatibility projection for legacy renderer/tests. Phaser and
+    // selection paths use `creatures`; remove this only when legacy no longer
+    // requires the historic grazer-only surface.
+    grazers: creatures.filter((creature) => creature.species === 'grazer'),
     settlements: world.settlements.map((settlement) => {
       const polity = Number.isInteger(settlement.polityId) ? polityById.get(settlement.polityId) : null;
       const relation = polity ? relevantRelation(relations, polity.id) : null;
@@ -184,8 +201,8 @@ export function selectionAt(world, x, y) {
   if (warband) return { kind: 'warband', value: warband };
   const human = world.entities.filter((entity) => entity.kind === 'human' && entity.x === x && entity.y === y).sort((a, b) => a.id - b.id)[0];
   if (human) return { kind: 'human', value: human };
-  const grazer = world.creatures.filter((creature) => creature.alive && creature.x === x && creature.y === y).sort((a, b) => a.id - b.id)[0];
-  if (grazer) return { kind: 'creature', value: grazer };
+  const creature = world.creatures.filter((candidate) => candidate.alive && candidate.x === x && candidate.y === y).sort((a, b) => a.id - b.id)[0];
+  if (creature) return { kind: 'creature', value: creature };
   const settlement = world.settlements.filter((candidate) => candidate.x === x && candidate.y === y).sort((a, b) => a.id - b.id)[0];
   if (settlement) return { kind: 'settlement', value: settlement };
   const tile = world.tiles.find((candidate) => candidate.x === x && candidate.y === y);
