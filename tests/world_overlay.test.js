@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createWorld } from '../engine/core/world.js';
 import { worldView } from '../client/presentation/world_adapter.js';
 import { polityColor } from '../client/presentation/polity_style.js';
-import { targetStyle, territoryCells, territorySignature } from '../client/presentation/world_overlay.js';
+import { targetFootprint, targetStyle, toolTargetRadius, territoryCells, territorySignature } from '../client/presentation/world_overlay.js';
 
 const runtimePath = fileURLToPath(new URL('../client/presentation/world_overlay_runtime.js', import.meta.url));
 const indexPath = fileURLToPath(new URL('../client/index.html', import.meta.url));
@@ -61,7 +61,24 @@ test('spawn targeting reports ocean as invalid while destructive powers remain v
   assert.equal(targetStyle('spawn_grazer', ocean).invalid, true);
   assert.equal(targetStyle('lightning', ocean).invalid, false);
   assert.equal(targetStyle('erase', ocean).invalid, false);
+  assert.equal(targetStyle('meteor', ocean).invalid, false);
   assert.equal(targetStyle('spawn_human', { passable: true }).invalid, false);
+});
+
+test('meteor preview exposes the exact clipped Chebyshev radius-2 footprint while ordinary powers remain single-tile', () => {
+  assert.equal(toolTargetRadius('meteor'), 2);
+  assert.equal(toolTargetRadius('lightning'), 0);
+  const center = targetFootprint('meteor', 4, 4, 9, 9);
+  assert.equal(center.length, 25);
+  assert.equal(center.filter((cell) => cell.center).length, 1);
+  assert.ok(center.some((cell) => cell.x === 2 && cell.y === 2));
+  assert.ok(center.some((cell) => cell.x === 6 && cell.y === 6));
+  assert.equal(center.some((cell) => cell.x === 7 && cell.y === 4), false);
+
+  const corner = targetFootprint('meteor', 0, 0, 9, 9);
+  assert.equal(corner.length, 9);
+  assert.deepEqual(corner.at(-1), { x: 2, y: 2, center: false });
+  assert.deepEqual(targetFootprint('lightning', 4, 4, 9, 9), [{ x: 4, y: 4, center: true }]);
 });
 
 test('overlay runtime remains presentation-only and loads after renderer bootstrap', () => {

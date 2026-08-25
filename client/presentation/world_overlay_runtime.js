@@ -1,5 +1,5 @@
 import { polityColor } from './polity_style.js';
-import { targetStyle, territoryCells, territorySignature } from './world_overlay.js';
+import { targetFootprint, targetStyle, territoryCells, territorySignature } from './world_overlay.js';
 
 const TILE_SIZE = 28;
 const TERRITORY_DEPTH = 6;
@@ -79,33 +79,37 @@ function drawTarget(screenX, screenY) {
   }
 
   const worldPoint = camera.getWorldPoint(screenX, screenY);
-  const x = Math.floor(worldPoint.x / TILE_SIZE);
-  const y = Math.floor(worldPoint.y / TILE_SIZE);
-  if (x < 0 || y < 0 || x >= scene.view.width || y >= scene.view.height) {
+  const centerX = Math.floor(worldPoint.x / TILE_SIZE);
+  const centerY = Math.floor(worldPoint.y / TILE_SIZE);
+  if (centerX < 0 || centerY < 0 || centerX >= scene.view.width || centerY >= scene.view.height) {
     clearTarget();
     return;
   }
 
-  const tile = scene.view.tiles[y * scene.view.width + x];
-  const style = targetStyle(toolSelect?.value || 'spawn_human', tile);
-  const px = x * TILE_SIZE;
-  const py = y * TILE_SIZE;
-  const inset = 2;
+  const tool = toolSelect?.value || 'spawn_human';
+  const footprint = targetFootprint(tool, centerX, centerY, scene.view.width, scene.view.height);
+  const inset = tool === 'meteor' ? 1 : 2;
   const corner = Math.max(5, TILE_SIZE * 0.22);
-
   targetGraphics.clear();
-  targetGraphics.fillStyle(style.color, style.fillAlpha);
-  targetGraphics.fillRect(px + inset, py + inset, TILE_SIZE - inset * 2, TILE_SIZE - inset * 2);
-  targetGraphics.lineStyle(Math.max(2, TILE_SIZE * 0.075), style.color, 0.96);
-  targetGraphics.strokeRect(px + inset, py + inset, TILE_SIZE - inset * 2, TILE_SIZE - inset * 2);
 
-  targetGraphics.lineStyle(Math.max(2.4, TILE_SIZE * 0.09), 0xffffff, 0.82);
-  drawCorners(targetGraphics, px + inset, py + inset, TILE_SIZE - inset * 2, corner);
+  for (const cell of footprint) {
+    const tile = scene.view.tiles[cell.y * scene.view.width + cell.x];
+    const style = targetStyle(tool, tile);
+    const px = cell.x * TILE_SIZE;
+    const py = cell.y * TILE_SIZE;
+    targetGraphics.fillStyle(style.color, cell.center ? style.fillAlpha * 1.25 : style.fillAlpha * 0.7);
+    targetGraphics.fillRect(px + inset, py + inset, TILE_SIZE - inset * 2, TILE_SIZE - inset * 2);
+    targetGraphics.lineStyle(Math.max(1.2, TILE_SIZE * 0.05), style.color, cell.center ? 0.98 : 0.54);
+    targetGraphics.strokeRect(px + inset, py + inset, TILE_SIZE - inset * 2, TILE_SIZE - inset * 2);
 
-  if (style.invalid) {
-    targetGraphics.lineStyle(Math.max(2.4, TILE_SIZE * 0.085), style.color, 0.95);
-    targetGraphics.lineBetween(px + 7, py + 7, px + TILE_SIZE - 7, py + TILE_SIZE - 7);
-    targetGraphics.lineBetween(px + TILE_SIZE - 7, py + 7, px + 7, py + TILE_SIZE - 7);
+    if (!cell.center) continue;
+    targetGraphics.lineStyle(Math.max(2.4, TILE_SIZE * 0.09), 0xffffff, 0.82);
+    drawCorners(targetGraphics, px + inset, py + inset, TILE_SIZE - inset * 2, corner);
+    if (style.invalid) {
+      targetGraphics.lineStyle(Math.max(2.4, TILE_SIZE * 0.085), style.color, 0.95);
+      targetGraphics.lineBetween(px + 7, py + 7, px + TILE_SIZE - 7, py + TILE_SIZE - 7);
+      targetGraphics.lineBetween(px + TILE_SIZE - 7, py + 7, px + 7, py + TILE_SIZE - 7);
+    }
   }
 }
 

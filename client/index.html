@@ -83,6 +83,9 @@
       <button class="power-button power-electric" type="button" data-tool-button="lightning" aria-label="Lightning" title="Lightning · key 4">
         <span class="power-icon">⚡</span><span class="power-label">Lightning</span><kbd>4</kbd>
       </button>
+      <button class="power-button power-danger" type="button" data-tool-button="meteor" aria-label="Meteor" title="Meteor · radius 2 · key 5">
+        <span class="power-icon">☄</span><span class="power-label">Meteor</span><kbd>5</kbd>
+      </button>
     </div>
 
     <select id="tool" class="visually-hidden-select" aria-label="god tool">
@@ -90,10 +93,11 @@
       <option value="spawn_grazer">🐾 Spawn grazer</option>
       <option value="erase">✕ Erase humans</option>
       <option value="lightning">⚡ Lightning</option>
+      <option value="meteor">☄ Meteor · radius 2</option>
     </select>
 
     <div id="hint">Click world: use power · Shift-click: spawn 10 · Drag: pan · Wheel: zoom · Alt-click: inspect</div>
-    <a id="renderer-link" href="?renderer=legacy" title="Open the v0.1 Canvas renderer for comparison">v0.1 renderer ↗</a>
+    <a id="renderer-link" href="?renderer=legacy" title="Open the legacy Canvas renderer for comparison">Legacy renderer ↗</a>
   </footer>
 
   <div id="event-toast" role="status" aria-live="polite"></div>

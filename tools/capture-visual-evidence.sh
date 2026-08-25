@@ -89,6 +89,14 @@ fi
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 
+# v0.4 evidence must exercise the real god-hand loop, not merely prove that the
+# new button renders. This helper uses Chrome DevTools Protocol directly (no new
+# browser dependency and no QA backdoor in product code): select Meteor, move a
+# real pointer over a populated tile, capture the radius preview, click through
+# Phaser input, assert an authoritative god.meteor event + truthful hit toast,
+# then capture impact and Chronicle aftermath.
+node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -98,7 +106,12 @@ legacy=${base_url}?renderer=legacy
 seed=45
 candidate_screenshot=phaser-seed45-1440x900.png
 legacy_screenshot=legacy-seed45-1440x900.png
-runtime_probe=${ready_marker}; Renderer failed marker absent
+meteor_target_preview=meteor-target-preview-1440x900.png
+meteor_impact=meteor-impact-1440x900.png
+meteor_aftermath=meteor-aftermath-chronicle-1440x900.png
+meteor_authority=meteor-evidence.json
+meteor_dom=meteor-dom.html
+runtime_probe=${ready_marker}; Renderer failed marker absent; real pointer Meteor creates authoritative god.meteor and truthful hit feedback
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"

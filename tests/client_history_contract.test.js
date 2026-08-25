@@ -29,7 +29,7 @@ test('history timeline DOM contract exists in the client shell', () => {
   }
 });
 
-test('god tool selector exposes human, grazer, erase, and lightning flows', () => {
+test('god tool selector exposes creation and destructive power flows including Meteor', () => {
   const html = readFileSync(indexPath, 'utf8');
   const main = readFileSync(mainPath, 'utf8');
 
@@ -38,12 +38,16 @@ test('god tool selector exposes human, grazer, erase, and lightning flows', () =
   assert.match(html, /value=["']spawn_grazer["']/);
   assert.match(html, /value=["']erase["']/);
   assert.match(html, /value=["']lightning["']/);
+  assert.match(html, /value=["']meteor["']/);
+  assert.match(html, /data-tool-button=["']meteor["']/);
   assert.match(main, /querySelector\(['"]#tool['"]\)/);
   assert.match(main, /toolSelect\.value === ['"]spawn_grazer['"]/);
   assert.match(main, /type: ['"]spawn_creature['"]/);
   assert.match(main, /species: ['"]grazer['"]/);
   assert.match(main, /toolSelect\.value === ['"]erase['"]/);
   assert.match(main, /toolSelect\.value === ['"]lightning['"]/);
+  assert.match(main, /toolSelect\.value === ['"]meteor['"]/);
+  assert.match(main, /type: ['"]meteor['"]/);
   assert.match(main, /shiftKey \? 10 : 1/);
 });
 

@@ -45,6 +45,31 @@ test('civilization story projection turns authoritative political events into re
   assert.match(formatChronicleDetail(story), /event #12/);
 });
 
+test('Meteor intervention is readable world history without pretending to be an autonomous world pulse', () => {
+  const world = {
+    config: { daysPerYear: 360 },
+    polities: [],
+    settlements: [],
+    history: [
+      { id: 1, day: 0, type: 'world.created' },
+      { id: 2, day: 360, type: 'god.meteor', x: 4, y: 5, radius: 2, impactedTileCount: 25, vegetationRemoved: 18.5, humanCount: 2, creatureCount: 1, noEffect: false }
+    ]
+  };
+
+  const story = storyForEvent(world, world.history[1]);
+  assert.equal(story.headline, 'Meteor devastates 4,5');
+  assert.match(story.detail, /3 lives/);
+  assert.match(story.detail, /18\.5 vegetation/);
+  assert.equal(story.pulse, false, 'direct player action uses direct power feedback rather than competing with autonomous event pulses');
+  const rows = civilizationChronicle(world, { limit: 2 });
+  assert.equal(rows[0].eventType, 'god.meteor');
+  assert.match(formatChronicleLabel(rows[0]), /☄ Meteor devastates 4,5/);
+
+  const noEffect = storyForEvent(world, { id: 3, day: 361, type: 'god.meteor', x: 0, y: 0, radius: 2, noEffect: true });
+  assert.match(noEffect.headline, /no effect/);
+  assert.match(noEffect.detail, /no living targets or vegetation/);
+});
+
 test('chronicle keeps civilization transitions visible and gracefully humanizes fallback events', () => {
   const world = {
     config: { daysPerYear: 360 },
