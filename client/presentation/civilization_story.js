@@ -17,7 +17,6 @@ const STORY_TYPES = new Set([
 const PULSE_TYPES = new Set([
   'polity.founded',
   'polity.dissolved',
-  'polity.ruler_succeeded',
   'polity.war_started',
   'polity.peace_made',
   'warband.engaged',
