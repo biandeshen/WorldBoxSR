@@ -217,21 +217,26 @@ async function waitForPredation(cdpClient, wolfId, timeoutMs) {
   return null;
 }
 
-async function vegetationEvidence(cdpClient) {
-  const state = await evaluate(cdpClient, `(() => {
-    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
-    if (!world) return null;
-    let vegetation = 0;
-    let capacity = 0;
-    for (const tile of world.tiles) {
-      vegetation += tile.vegetation;
-      capacity += tile.vegetationCapacity;
-    }
-    const percent = capacity > 0 ? Math.round((vegetation / capacity) * 100) : 0;
-    return { percent, hud: document.querySelector('#stats [data-ecology-vegetation]')?.textContent ?? '' };
-  })()`);
-  if (!state || state.hud !== `🌿 ${state.percent}%`) throw new Error(`vegetation HUD mismatch: ${JSON.stringify(state)}`);
-  return state;
+async function vegetationEvidence(cdpClient, timeoutMs = 2_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastState = null;
+  while (Date.now() < deadline) {
+    lastState = await evaluate(cdpClient, `(() => {
+      const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+      if (!world) return null;
+      let vegetation = 0;
+      let capacity = 0;
+      for (const tile of world.tiles) {
+        vegetation += tile.vegetation;
+        capacity += tile.vegetationCapacity;
+      }
+      const percent = capacity > 0 ? Math.round((vegetation / capacity) * 100) : 0;
+      return { percent, hud: document.querySelector('#stats [data-ecology-vegetation]')?.textContent ?? '' };
+    })()`);
+    if (lastState && lastState.hud === `🌿 ${lastState.percent}%`) return lastState;
+    await delay(50);
+  }
+  throw new Error(`vegetation HUD did not converge to current authority: ${JSON.stringify(lastState)}`);
 }
 
 async function wolfSpawnPoint(cdpClient) {
