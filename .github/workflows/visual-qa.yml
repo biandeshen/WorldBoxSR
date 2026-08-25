@@ -48,7 +48,7 @@ jobs:
             echo '- Production Vite build served through the real project-site base path.'
             echo '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.'
             echo '- v0.4 regression: paused seed45 real-pointer Meteor damage followed by same-footprint Rain capacity restoration remains required.'
-            echo '- v0.5 World Stories: Chromium clicks a real visible Chronicle event whose authoritative refs include a retained event cause plus a current map-capable entity.'
-            echo '- Event Card must expose readable Subject/Causes, follow the retained event cause, jump camera/inspector to the referenced world object, and preserve the serialized authoritative world fingerprint exactly.'
+            echo '- v0.5 World Stories uses real visible Chronicle entries for two causal-navigation paths: one retained event cause and one current map-capable authoritative reference.'
+            echo '- Event Cards must expose readable Subject/Causes, follow the retained event cause, jump camera/inspector to the referenced world object, and preserve the serialized authoritative world fingerprint exactly.'
             echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, God Power evidence, Event Card screenshots and authoritative JSON evidence.'
           } >> "$GITHUB_STEP_SUMMARY"
