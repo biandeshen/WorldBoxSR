@@ -1,6 +1,13 @@
 let context = null;
 
 export function soundRecipe(effect) {
+  if (effect === 'meteor') {
+    return [
+      { type: 'sawtooth', startHz: 110, endHz: 34, duration: 0.19, gain: 0.045 },
+      { type: 'triangle', startHz: 72, endHz: 28, duration: 0.18, gain: 0.038 },
+      { type: 'square', startHz: 640, endHz: 95, duration: 0.08, gain: 0.014 }
+    ];
+  }
   if (effect === 'lightning') {
     return [
       { type: 'sawtooth', startHz: 150, endHz: 48, duration: 0.16, gain: 0.035 },
