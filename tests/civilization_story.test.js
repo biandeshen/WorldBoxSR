@@ -127,7 +127,29 @@ test('repeated ruler churn cannot crowd war, battle, and conquest out of the civ
   assert.ok(types.includes('settlement.conquered'));
   assert.ok(types.includes('polity.war_started'));
   assert.ok(types.includes('warband.engaged'));
-  assert.equal(types.filter((type) => type === 'polity.ruler_succeeded').length, 2, 'only the latest ruler change per polity should remain representative');
+  assert.equal(types.filter((type) => type === 'polity.ruler_succeeded').length, 2, 'one representative ruler change per polity should survive ruler churn');
+  assert.ok(rows.some((entry) => entry.eventId === 7), 'without a retained event cause, the latest ruler change remains the fallback');
+});
+
+test('chronicle prefers a retained causal ruler transition over newer opaque ruler churn', () => {
+  const world = {
+    config: { daysPerYear: 360 },
+    polities: [{ id: 1, name: 'Amber Reach' }, { id: 2, name: 'Blue March' }],
+    settlements: [{ id: 7, name: 'Stoneford' }],
+    history: [
+      { id: 1, day: 200, type: 'human.died', subject: { kind: 'entity', entityKind: 'human', id: 10 }, entityId: 10, cause: 'old_age' },
+      { id: 2, day: 200, type: 'polity.ruler_succeeded', subject: { kind: 'entity', entityKind: 'polity', id: 1 }, causes: [{ kind: 'event', id: 1 }, { kind: 'entity', entityKind: 'human', id: 11 }], polityId: 1, name: 'Amber Reach', rulerId: 11, previousRulerId: 10, reason: 'death' },
+      { id: 3, day: 300, type: 'polity.ruler_succeeded', subject: { kind: 'entity', entityKind: 'polity', id: 1 }, causes: [{ kind: 'entity', entityKind: 'human', id: 12 }], polityId: 1, name: 'Amber Reach', rulerId: 12, previousRulerId: 11, reason: 'no_longer_member' },
+      { id: 4, day: 310, type: 'polity.founded', subject: { kind: 'entity', entityKind: 'polity', id: 2 }, polityId: 2, name: 'Blue March', capitalSettlementId: 7 },
+      { id: 5, day: 320, type: 'polity.ruler_appointed', subject: { kind: 'entity', entityKind: 'polity', id: 2 }, causes: [{ kind: 'entity', entityKind: 'human', id: 20 }], polityId: 2, name: 'Blue March', rulerId: 20, reason: 'founding' }
+    ]
+  };
+
+  const rows = civilizationChronicle(world, { limit: 2 });
+  assert.ok(rows.some((entry) => entry.eventId === 2), 'the ruler slot should keep the transition whose recorded event cause is still retained');
+  assert.ok(rows.some((entry) => entry.eventId === 4), 'the polity representative remains present');
+  assert.equal(rows.some((entry) => entry.eventId === 3), false, 'newer opaque churn should not replace a still-followable causal ruler story');
+  assert.equal(rows.some((entry) => entry.eventId === 5), false, 'the ruler slot should prefer a causal transition even when another polity has a newer ruler event');
 });
 
 test('pulse cursor ignores old history and chooses the highest-value new political transition', () => {
