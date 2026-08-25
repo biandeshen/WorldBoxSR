@@ -1,6 +1,8 @@
 import { serializeScenarioRecipe } from './scenario_recipe.js';
 import { parseScenarioRecipeText, scenarioShareUrl } from './scenario_transport.js';
 
+installStyleSheet();
+
 const startupError = document.querySelector('#scenario-startup-error');
 const toggle = document.querySelector('#scenario-portability-toggle');
 const panel = document.querySelector('#scenario-portability-panel');
@@ -45,7 +47,12 @@ function attachWhenReady() {
   copyButton.addEventListener('click', () => { void copyScenarioLink(state); });
   exportButton.addEventListener('click', () => exportScenarioJson(state));
   importButton.addEventListener('click', () => { void importScenarioJson(state); });
-  document.addEventListener('worldboxsr:scenario-recipe-change', () => refresh(state));
+  document.querySelector('#scenario-name')?.addEventListener('change', () => refresh(state));
+
+  const observer = new MutationObserver(() => refresh(state));
+  for (const target of [document.querySelector('#scenario-state-badge'), document.querySelector('#scenario-setup-count')]) {
+    if (target) observer.observe(target, { attributes: true, childList: true, characterData: true, subtree: true });
+  }
 
   refresh(state);
   showStartupError();
@@ -148,4 +155,13 @@ function setStatus(message, kind) {
 function safeFileName(name) {
   const value = String(name ?? 'scenario').trim().replace(/[^A-Za-z0-9._-]+/gu, '-').replace(/^-+|-+$/gu, '');
   return value || 'scenario';
+}
+
+function installStyleSheet() {
+  if (document.querySelector('link[data-scenario-portability-style]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('../scenario_portability.css', import.meta.url).href;
+  link.dataset.scenarioPortabilityStyle = 'true';
+  document.head.append(link);
 }
