@@ -72,6 +72,13 @@ node tools/capture-canonical-ecology-evidence.mjs "$browser" "$base_url" "$out_d
 # gameplay changes the world without rewriting the frozen recipe.
 node tools/capture-scenario-setup-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.7 capability 3: author one visible Scenario, use Copy Link + Export JSON,
+# open the generated scenario= link in a fresh Chrome profile, then import the
+# same canonical JSON from another fresh ordinary world. All three starts must
+# be byte-identical paused authority; one impassable JSON import must fail
+# atomically without changing world, recipe, URL or visible boot status.
+node tools/capture-scenario-portability-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -120,7 +127,12 @@ canonical_ecology_authority=canonical-ecology-evidence.json
 scenario_setup=scenario-setup-three-actions-1440x900.png
 scenario_running_start=scenario-running-start-1440x900.png
 scenario_setup_authority=scenario-setup-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus v0.7 Scenario Setup compose→reject→rename→Clear→rebuild→Run boundary preserve declared authority ownership
+scenario_portable_share=scenario-portable-share-1440x900.png
+scenario_portable_shared_start=scenario-portable-shared-start-1440x900.png
+scenario_portable_imported=scenario-portable-imported-1440x900.png
+scenario_portability_authority=scenario-portability-evidence.json
+scenario_portability_export=Portable-trio.worldboxsr-scenario.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus v0.7 Scenario Setup and Copy Link/Export/fresh-link/Import portability preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
