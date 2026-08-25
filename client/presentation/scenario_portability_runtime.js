@@ -81,15 +81,15 @@ async function copyScenarioLink(state) {
   const recipe = currentRecipe(state);
   if (!recipe) return setStatus('No Scenario Recipe is available to copy.', 'error');
   const url = scenarioShareUrl(window.location, recipe, { renderer: 'phaser' });
+  text.value = url;
   try {
     if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
     await navigator.clipboard.writeText(url);
-    setStatus('Scenario link copied.', 'ok');
+    setStatus('Scenario link copied. The same link is shown below.', 'ok');
   } catch {
-    text.value = url;
     text.focus();
     text.select();
-    setStatus('Clipboard unavailable — the Scenario link is shown in the text box.', 'warn');
+    setStatus('Clipboard unavailable — the Scenario link is shown below for manual copy.', 'warn');
   }
 }
 
