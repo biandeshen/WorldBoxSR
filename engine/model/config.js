@@ -36,7 +36,14 @@ export const DEFAULT_CONFIG = Object.freeze({
   grazerRecoveryPerDay: 0.004,
   grazerPassiveMoveChance: 0.12,
   grazerBirthChancePerEligiblePairPerDay: 0,
-  grazerOldAgeMortalityEnabled: false
+  grazerOldAgeMortalityEnabled: false,
+  wolfHungerPerDay: 0.01,
+  wolfHungryThreshold: 0.35,
+  wolfPreySearchRadius: 6,
+  wolfFeedAmount: 0.70,
+  wolfStarvationThreshold: 0.90,
+  wolfStarvationDamagePerDay: 0.025,
+  wolfRecoveryPerDay: 0.004
 });
 
 export function mergeConfig(overrides = {}) {
