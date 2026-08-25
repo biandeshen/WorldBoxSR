@@ -116,6 +116,7 @@ resetButton?.addEventListener('click', () => {
 });
 
 renderWatchlist();
+if (bookmarks.length > 0 && !worldScene()?.world) waitForWorldThenRenderWatchlist();
 
 export function renderEventCard(eventId) {
   const scene = worldScene();
@@ -180,7 +181,7 @@ function renderWatchlist() {
   const scene = worldScene();
   if (!storyWatchlist) return false;
   if (!scene?.world) {
-    storyWatchlist.hidden = bookmarks.length === 0;
+    storyWatchlist.hidden = true;
     return false;
   }
 
@@ -189,6 +190,15 @@ function renderWatchlist() {
   storyWatchlist.hidden = entries.length === 0;
   storyWatchlist.dataset.watchlistCount = String(entries.length);
   return true;
+}
+
+function waitForWorldThenRenderWatchlist(attempt = 0) {
+  if (worldScene()?.world) {
+    renderWatchlist();
+    return;
+  }
+  if (attempt >= 300) return;
+  globalThis.setTimeout?.(() => waitForWorldThenRenderWatchlist(attempt + 1), 100);
 }
 
 function refreshCurrentEventCard() {
