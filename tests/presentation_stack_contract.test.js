@@ -16,7 +16,8 @@ test('v0.2 pins the accepted Phaser and Vite spike versions', () => {
   assert.equal(packageJson.dependencies?.phaser, '4.2.1');
   assert.equal(packageJson.devDependencies?.vite, '8.1.0');
   assert.equal(packageJson.scripts?.dev, 'vite');
-  assert.equal(packageJson.scripts?.['pages:build'], 'vite build');
+  assert.equal(packageJson.scripts?.build, 'vite build');
+  assert.equal(packageJson.scripts?.['pages:build'], 'vite build && node tools/build-pages.js');
 });
 
 test('Phaser is default while the legacy renderer remains an explicit comparison path', () => {
