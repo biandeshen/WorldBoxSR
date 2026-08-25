@@ -47,7 +47,9 @@ function attachWhenReady() {
   ui.enter.addEventListener('click', () => { void enterScenarioSetup(scene, state, ui); });
   ui.clear.addEventListener('click', () => { void clearAndRebuild(scene, state, ui); });
   ui.run.addEventListener('click', () => runScenario(scene, state, ui));
-  ui.name.addEventListener('change', () => renameDraft(scene, state, ui));
+  // Scenario name is presentation-only recipe identity. Commit it while the
+  // player types so correctness never depends on blur/change timing.
+  ui.name.addEventListener('input', () => renameDraft(scene, state, ui));
   for (const button of ui.placements) {
     button.addEventListener('click', () => {
       if (!state.active || state.busy) return;
