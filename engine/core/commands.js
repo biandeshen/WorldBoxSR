@@ -5,6 +5,7 @@ import { killHuman } from '../model/human_lifecycle.js';
 import { commandRef, eventRef, pushEvent, worldSubject } from '../model/events.js';
 
 export const METEOR_RADIUS = 2;
+export const RAIN_RADIUS = 2;
 
 export function applyCommand(world, command) {
   if (!command || typeof command.type !== 'string') throw new TypeError('command.type is required');
@@ -20,6 +21,8 @@ export function applyCommand(world, command) {
       return strikeLightning(world, command);
     case 'meteor':
       return strikeMeteor(world, command);
+    case 'rain':
+      return blessWithRain(world, command);
     default:
       throw new Error(`Unknown command type: ${command.type}`);
   }
@@ -175,6 +178,53 @@ function strikeMeteor(world, command) {
     creatureIds,
     noEffect,
     eventId: meteorEvent.id
+  };
+}
+
+function blessWithRain(world, command) {
+  const x = integerInRange(command.x, 0, world.width - 1, 'x');
+  const y = integerInRange(command.y, 0, world.height - 1, 'y');
+  const tiles = impactTiles(world, x, y, RAIN_RADIUS);
+  const passableTiles = tiles.filter((tile) => tile.passable);
+  let vegetationAdded = 0;
+  let foodAdded = 0;
+
+  for (const tile of passableTiles) {
+    vegetationAdded += Math.max(0, tile.vegetationCapacity - tile.vegetation);
+    foodAdded += Math.max(0, tile.foodCapacity - tile.food);
+  }
+  const noEffect = vegetationAdded <= 1e-12 && foodAdded <= 1e-12;
+
+  const commandId = world.nextCommandId++;
+  const rainEvent = pushEvent(world, {
+    type: 'god.rain',
+    subject: worldSubject(),
+    causes: [commandRef(commandId, command.type)],
+    x,
+    y,
+    radius: RAIN_RADIUS,
+    impactedTileCount: tiles.length,
+    passableTileCount: passableTiles.length,
+    vegetationAdded,
+    foodAdded,
+    noEffect
+  });
+
+  for (const tile of passableTiles) {
+    tile.vegetation = tile.vegetationCapacity;
+    tile.food = tile.foodCapacity;
+  }
+
+  return {
+    x,
+    y,
+    radius: RAIN_RADIUS,
+    impactedTileCount: tiles.length,
+    passableTileCount: passableTiles.length,
+    vegetationAdded,
+    foodAdded,
+    noEffect,
+    eventId: rainEvent.id
   };
 }
 

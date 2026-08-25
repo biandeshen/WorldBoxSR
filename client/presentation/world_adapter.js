@@ -44,6 +44,10 @@ export function applyGodTool(world, tool, x, y, count = 1) {
     const outcome = applyCommand(world, { type: 'meteor', x, y });
     return { accepted: true, effect: 'meteor', ...outcome };
   }
+  if (tool === 'rain') {
+    const outcome = applyCommand(world, { type: 'rain', x, y });
+    return { accepted: true, effect: 'rain', ...outcome };
+  }
   if (tool === 'erase') { applyCommand(world, { type: 'erase', x, y }); return { accepted: true, effect: 'erase' }; }
   if (tool === 'lightning') { applyCommand(world, { type: 'lightning', x, y }); return { accepted: true, effect: 'lightning' }; }
   if (tool === 'spawn_grazer') { applyCommand(world, { type: 'spawn_creature', species: 'grazer', x, y, count }); return { accepted: true, effect: 'spawn_grazer' }; }

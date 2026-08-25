@@ -47,6 +47,8 @@ jobs:
             echo '- Production Vite build served through the real project-site base path.'
             echo '- Headless Chromium must confirm a fully warmed Phaser showcase.'
             echo '- `Renderer failed` must be absent from the rendered DOM.'
-            echo '- Interactive Meteor gate uses a real browser pointer: selects Meteor, captures the exact radius preview, clicks a populated tile, requires an authoritative `god.meteor` event and truthful hit feedback, then captures blast + Chronicle aftermath.'
-            echo '- Artifact `visual-evidence` preserves rendered DOM/logs, fixed 1440×900 Phaser + legacy screenshots, and Meteor target/impact/aftermath evidence.'
+            echo '- Interactive God Power gate pauses seed45, uses real browser pointer events to preview/click Meteor, then previews/clicks Rain on the same footprint.'
+            echo '- Gate requires authoritative `god.meteor` then `god.rain`, truthful direct-action toasts, exact Rain before/after resource deltas, and every passable Rain tile restored to existing capacities.'
+            echo '- Final World Chronicle must retain Rain followed by Meteor as player-readable intervention history; direct actions do not masquerade as autonomous pulses.'
+            echo '- Artifact `visual-evidence` preserves DOM/logs, fixed Phaser + legacy screenshots, Meteor target/impact, Rain target/recovery, final Chronicle screenshot, and authoritative JSON evidence.'
           } >> "$GITHUB_STEP_SUMMARY"

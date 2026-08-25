@@ -8,10 +8,84 @@ export function playToolEffect(scene, effect, tileX, tileY, tileSize) {
   playToolSound(effect);
 
   if (effect === 'meteor') return playMeteor(scene, x, y, tileSize, profile);
+  if (effect === 'rain') return playRain(scene, x, y, tileSize, profile);
   if (effect === 'lightning') return playLightning(scene, x, y, tileSize, profile);
   if (effect === 'erase') return playErase(scene, x, y, tileSize, profile);
   if (effect === 'spawn_grazer') return playSpawn(scene, x, y, tileSize, 0xf0bf68, 7, profile);
   return playSpawn(scene, x, y, tileSize, 0x8ad6ff, 6, profile);
+}
+
+function playRain(scene, x, y, tileSize, profile) {
+  const halo = scene.add.circle(x, y, tileSize * 0.62, 0x6ed4ff, profile.reducedMotion ? 0.05 : 0.11)
+    .setStrokeStyle(Math.max(1.5, tileSize * 0.065), 0x8be9ff, profile.reducedMotion ? 0.48 : 0.78)
+    .setDepth(1000);
+  const growth = scene.add.circle(x, y, tileSize * 0.35, 0x6bcf72, 0.025)
+    .setStrokeStyle(Math.max(1.8, tileSize * 0.075), 0x78df7f, profile.reducedMotion ? 0.52 : 0.88)
+    .setDepth(1001);
+  const drops = [];
+  const count = scaledSparkCount(16, profile);
+  const columns = Math.max(4, Math.ceil(Math.sqrt(count)));
+  for (let index = 0; index < count; index += 1) {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const spread = tileSize * (profile.reducedMotion ? 1.4 : 2.25);
+    const startX = x + ((column / Math.max(1, columns - 1)) - 0.5) * spread;
+    const startY = y - tileSize * (profile.reducedMotion ? 0.75 : 1.75) - row * tileSize * 0.32;
+    const drop = scene.add.rectangle(
+      startX,
+      startY,
+      Math.max(1.5, tileSize * 0.045),
+      Math.max(5, tileSize * 0.22),
+      index % 3 === 0 ? 0xa9efff : 0x62cfff,
+      profile.reducedMotion ? 0.58 : 0.86
+    ).setDepth(1003);
+    drop.setRotation(0.08);
+    drops.push(drop);
+    scene.tweens.add({
+      targets: drop,
+      y: y + tileSize * (profile.reducedMotion ? 0.65 : 1.45),
+      alpha: 0,
+      duration: profile.reducedMotion ? 210 : 430,
+      delay: (index % columns) * (profile.reducedMotion ? 8 : 18),
+      ease: 'Quad.In',
+      onComplete: () => drop.destroy()
+    });
+  }
+
+  const growthSparks = createSparks(
+    scene,
+    x,
+    y,
+    tileSize,
+    0x72dd75,
+    scaledSparkCount(10, profile),
+    1002
+  );
+
+  scene.tweens.add({
+    targets: halo,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.25 : 2.6,
+    duration: profile.reducedMotion ? 260 : 560,
+    ease: 'Quad.Out',
+    onComplete: () => halo.destroy()
+  });
+  scene.tweens.add({
+    targets: growth,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.7 : 4.2,
+    duration: profile.reducedMotion ? 280 : 620,
+    ease: 'Cubic.Out',
+    onComplete: () => growth.destroy()
+  });
+  animateSparks(
+    scene,
+    growthSparks,
+    x,
+    y,
+    tileSize * (profile.reducedMotion ? 0.55 : 1.35),
+    profile.reducedMotion ? 220 : 480
+  );
 }
 
 function playMeteor(scene, x, y, tileSize, profile) {

@@ -45,29 +45,44 @@ test('civilization story projection turns authoritative political events into re
   assert.match(formatChronicleDetail(story), /event #12/);
 });
 
-test('Meteor intervention is readable world history without pretending to be an autonomous world pulse', () => {
+test('Meteor and Rain interventions remain readable world history without pretending to be autonomous pulses', () => {
   const world = {
     config: { daysPerYear: 360 },
     polities: [],
     settlements: [],
     history: [
       { id: 1, day: 0, type: 'world.created' },
-      { id: 2, day: 360, type: 'god.meteor', x: 4, y: 5, radius: 2, impactedTileCount: 25, vegetationRemoved: 18.5, humanCount: 2, creatureCount: 1, noEffect: false }
+      { id: 2, day: 360, type: 'god.meteor', x: 4, y: 5, radius: 2, impactedTileCount: 25, vegetationRemoved: 18.5, humanCount: 2, creatureCount: 1, noEffect: false },
+      { id: 3, day: 360, type: 'god.rain', x: 4, y: 5, radius: 2, impactedTileCount: 25, passableTileCount: 23, vegetationAdded: 19.25, foodAdded: 8.75, noEffect: false }
     ]
   };
 
-  const story = storyForEvent(world, world.history[1]);
-  assert.equal(story.headline, 'Meteor devastates 4,5');
-  assert.match(story.detail, /3 lives/);
-  assert.match(story.detail, /18\.5 vegetation/);
-  assert.equal(story.pulse, false, 'direct player action uses direct power feedback rather than competing with autonomous event pulses');
-  const rows = civilizationChronicle(world, { limit: 2 });
-  assert.equal(rows[0].eventType, 'god.meteor');
-  assert.match(formatChronicleLabel(rows[0]), /☄ Meteor devastates 4,5/);
+  const meteor = storyForEvent(world, world.history[1]);
+  assert.equal(meteor.headline, 'Meteor devastates 4,5');
+  assert.match(meteor.detail, /3 lives/);
+  assert.match(meteor.detail, /18\.5 vegetation/);
+  assert.equal(meteor.pulse, false);
 
-  const noEffect = storyForEvent(world, { id: 3, day: 361, type: 'god.meteor', x: 0, y: 0, radius: 2, noEffect: true });
-  assert.match(noEffect.headline, /no effect/);
-  assert.match(noEffect.detail, /no living targets or vegetation/);
+  const rain = storyForEvent(world, world.history[2]);
+  assert.equal(rain.headline, 'Rain renews 4,5');
+  assert.match(rain.detail, /\+19\.3 vegetation/);
+  assert.match(rain.detail, /\+8\.8 food/);
+  assert.match(rain.detail, /23 restored tiles/);
+  assert.equal(rain.pulse, false, 'direct player restoration uses direct power feedback rather than competing with autonomous event pulses');
+
+  const rows = civilizationChronicle(world, { limit: 3 });
+  assert.equal(rows[0].eventType, 'god.rain');
+  assert.equal(rows[1].eventType, 'god.meteor');
+  assert.match(formatChronicleLabel(rows[0]), /☂ Rain renews 4,5/);
+  assert.match(formatChronicleLabel(rows[1]), /☄ Meteor devastates 4,5/);
+  assert.equal(latestCivilizationPulse(world, { afterEventId: 1 }), null, 'direct interventions do not become autonomous pulse events');
+
+  const meteorNoEffect = storyForEvent(world, { id: 4, day: 361, type: 'god.meteor', x: 0, y: 0, radius: 2, noEffect: true });
+  assert.match(meteorNoEffect.headline, /no effect/);
+  assert.match(meteorNoEffect.detail, /no living targets or vegetation/);
+  const rainNoEffect = storyForEvent(world, { id: 5, day: 361, type: 'god.rain', x: 0, y: 0, radius: 2, noEffect: true });
+  assert.match(rainNoEffect.headline, /no effect/);
+  assert.match(rainNoEffect.detail, /already saturated/);
 });
 
 test('chronicle keeps civilization transitions visible and gracefully humanizes fallback events', () => {

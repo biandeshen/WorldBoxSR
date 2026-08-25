@@ -3,7 +3,8 @@ const TOOL_STYLES = Object.freeze({
   spawn_grazer: { color: 0xf0bf68, fillAlpha: 0.11, label: 'Create grazer' },
   erase: { color: 0xff6f6f, fillAlpha: 0.09, label: 'Erase humans' },
   lightning: { color: 0xffdf68, fillAlpha: 0.13, label: 'Lightning' },
-  meteor: { color: 0xff8b55, fillAlpha: 0.14, label: 'Meteor · radius 2' }
+  meteor: { color: 0xff8b55, fillAlpha: 0.14, label: 'Meteor · radius 2' },
+  rain: { color: 0x6ed4ff, fillAlpha: 0.13, label: 'Rain · radius 2' }
 });
 
 export function targetStyle(tool, tile) {
@@ -19,7 +20,7 @@ export function targetStyle(tool, tile) {
 }
 
 export function toolTargetRadius(tool) {
-  return tool === 'meteor' ? 2 : 0;
+  return tool === 'meteor' || tool === 'rain' ? 2 : 0;
 }
 
 export function targetFootprint(tool, centerX, centerY, width, height) {

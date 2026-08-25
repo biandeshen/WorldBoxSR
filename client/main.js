@@ -124,6 +124,10 @@ canvas.addEventListener('wheel', (event) => {
 }, { passive: false });
 
 function applyToolAt(x, y, shiftKey) {
+  if (toolSelect.value === 'rain') {
+    rainAt(x, y);
+    return;
+  }
   if (toolSelect.value === 'meteor') {
     meteorAt(x, y);
     return;
@@ -173,6 +177,11 @@ function lightningAt(x, y) {
 
 function meteorAt(x, y) {
   applyCommand(world, { type: 'meteor', x, y });
+  refreshHud();
+}
+
+function rainAt(x, y) {
+  applyCommand(world, { type: 'rain', x, y });
   refreshHud();
 }
 

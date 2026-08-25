@@ -8,7 +8,8 @@ const toolLabels = {
   spawn_grazer: 'Create grazers',
   erase: 'Erase humans',
   lightning: 'Lightning',
-  meteor: 'Meteor · radius 2'
+  meteor: 'Meteor · radius 2',
+  rain: 'Rain · radius 2'
 };
 
 for (const button of powerButtons) {
@@ -26,7 +27,8 @@ window.addEventListener('keydown', (event) => {
     '2': 'spawn_grazer',
     '3': 'erase',
     '4': 'lightning',
-    '5': 'meteor'
+    '5': 'meteor',
+    '6': 'rain'
   };
 
   const tool = shortcuts[event.key];
