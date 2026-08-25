@@ -6,7 +6,7 @@ Last updated: 2026-08-25
 
 The project is in **v0.3.0 — Civilizations Rise release-candidate handoff**. Release gate: #181. Finite backlog: `docs/backlog/v0.3.md`.
 
-v0.2.0 — Playable World is closed and tagged. The complete v0.3 civilization implementation is now assembled in #198 after the polity, ruler, relations, visible conflict, and political-outcome slices were merged independently.
+v0.2.0 — Playable World is closed and tagged. The complete v0.3 civilization implementation is assembled in #198 after the polity, ruler, relations, visible conflict, and political-outcome slices were merged independently.
 
 ## Current authoritative capability
 
