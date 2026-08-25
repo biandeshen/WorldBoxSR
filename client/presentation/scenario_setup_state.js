@@ -51,6 +51,10 @@ export function clearScenarioSetup(recipeInput) {
   return normalizeScenarioRecipe({ ...recipe, setup: [] });
 }
 
+export function forkScenarioSetup(recipeInput) {
+  return normalizeScenarioRecipe(recipeInput);
+}
+
 export function freezeScenarioSetup(recipeInput) {
   return deepFreeze(normalizeScenarioRecipe(recipeInput));
 }
