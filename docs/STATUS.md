@@ -19,7 +19,8 @@ The v0.3 story surface is presentation-only over authoritative causal history. I
 - deterministic collision gate uses real engine polity/ruler/relation/warband/conquest systems and passes reproducibly;
 - default seed45 by year 40 independently produces multiple powers with rulers, a war, multiple engagements, conquest and rebellion;
 - Chronicle selection prevents ruler churn from crowding war/battle/outcome history out of the player-visible story;
-- final capability-6/7 CI and Chromium Visual QA are green.
+- the final code head after removing the temporary seed45 probe passes both CI and Chromium Visual QA;
+- rendered DOM shows player-readable default-showcase entries including rebellion, peace, conquest and army destruction.
 
 ## Binding product decisions
 
