@@ -26,19 +26,24 @@ function attachWhenReady() {
   if (!ui) return;
 
   const originalUseTool = scene.useTool.bind(scene);
+  const startupRecipe = globalThis.__WORLDBOXSR_STARTUP_SCENARIO__ ?? null;
   const state = {
     attached: true,
     active: false,
     busy: false,
     selectedPlacement: 'human',
     draft: null,
-    frozen: null,
-    originalUseTool
+    frozen: startupRecipe ? freezeScenarioSetup(startupRecipe) : null,
+    originalUseTool,
+    currentRecipe() {
+      return state.active ? state.draft : state.frozen;
+    },
+    installPortableRecipe(recipe) {
+      return installPortableRecipe(scene, state, ui, recipe);
+    }
   };
   scene.scenarioSetup = state;
 
-  // Keep Phaser's existing pointer/tile/input loop authoritative for map clicks.
-  // Setup owns only the useTool orchestration seam after pointerTile resolution.
   scene.useTool = (x, y, count) => {
     if (!state.active) return originalUseTool(x, y, count);
     useScenarioSetupTool(scene, state, ui, x, y, count);
@@ -56,8 +61,6 @@ function attachWhenReady() {
     });
   }
 
-  // An ordinary world reset after Run leaves Scenario state behind deliberately.
-  // It is a new normal world, so clear the frozen presentation identity.
   ui.reset.addEventListener('click', () => {
     if (state.active || state.busy) return;
     state.frozen = null;
@@ -141,12 +144,64 @@ async function rebuildScenarioWorld(scene, state, ui, recipe, label) {
   }
 }
 
+async function installPortableRecipe(scene, state, ui, recipeInput) {
+  if (state.busy) throw new Error('Scenario is busy');
+  if (typeof scene.installReadyWorld !== 'function') throw new Error('Scenario world installer is unavailable');
+
+  const recipe = freezeScenarioSetup(recipeInput);
+  const previousPaused = Boolean(scene.paused);
+  const previousBooting = Boolean(scene.booting);
+  const previousBootText = ui.boot?.textContent ?? '';
+  const previousDraft = state.draft;
+  const previousFrozen = state.frozen;
+  const previousActive = state.active;
+
+  state.busy = true;
+  state.active = false;
+  scene.booting = true;
+  setPaused(scene, ui, true);
+  setLocked(ui, true);
+  if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · importing Scenario…';
+
+  try {
+    const world = await materializeScenarioRecipe(recipe, {
+      onProgress: ({ year, targetYear }) => {
+        if (ui.boot) ui.boot.textContent = `Phaser 4 · authoritative simulation · imported Scenario ${year.toFixed(0)}/${targetYear}y`;
+      }
+    });
+
+    scene.worldGeneration += 1;
+    scene.installReadyWorld(world, { paused: true });
+    ui.seed.value = String(recipe.base.seed);
+    ui.preset.value = recipe.base.preset;
+    state.draft = null;
+    state.frozen = recipe;
+    state.active = false;
+    state.selectedPlacement = 'human';
+    state.busy = false;
+    setLocked(ui, false);
+    if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · imported Scenario ready';
+    scene.showToast?.(`Imported Scenario · ${recipe.name} · paused start`);
+    renderScenarioSetup(state, ui);
+    return recipe;
+  } catch (error) {
+    scene.booting = previousBooting;
+    if (ui.boot) ui.boot.textContent = previousBootText;
+    state.draft = previousDraft;
+    state.frozen = previousFrozen;
+    state.active = previousActive;
+    state.busy = false;
+    setPaused(scene, ui, previousPaused);
+    setLocked(ui, previousActive);
+    renderScenarioSetup(state, ui);
+    throw error;
+  }
+}
+
 function useScenarioSetupTool(scene, state, ui, x, y, count) {
   if (state.busy || !state.draft) return;
   try {
     const action = scenarioSetupAction(state.selectedPlacement, x, y, count);
-    // Build/validate the next immutable draft before authority. Assignment still
-    // happens only after the command succeeds.
     const nextDraft = appendScenarioSetupAction(state.draft, action);
     applyScenarioSetup(scene.world, [action]);
     state.draft = nextDraft;
@@ -239,9 +294,12 @@ function recentActionMarkup(recipe) {
 }
 
 function setPaused(scene, ui, paused) {
-  scene.paused = Boolean(paused);
-  ui.pause.textContent = scene.paused ? '▶ Play' : 'Ⅱ Pause';
-  ui.pause.dataset.active = scene.paused ? 'true' : 'false';
+  if (typeof scene.setPaused === 'function') scene.setPaused(paused);
+  else {
+    scene.paused = Boolean(paused);
+    ui.pause.textContent = scene.paused ? '▶ Play' : 'Ⅱ Pause';
+    ui.pause.dataset.active = scene.paused ? 'true' : 'false';
+  }
 }
 
 function setLocked(ui, locked) {
@@ -295,7 +353,6 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-// Retained for deterministic browser evidence without exposing raw JSON in UI.
 export function frozenScenarioRecipeString(scene) {
   return scene?.scenarioSetup?.frozen ? serializeScenarioRecipe(scene.scenarioSetup.frozen) : null;
 }
