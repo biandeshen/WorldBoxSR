@@ -94,12 +94,17 @@ fi
 # authoritative world: Meteor damage followed by same-footprint Rain recovery.
 node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"
 
-# v0.5 World Stories gate: on a fresh paused seed45 world, click a real visible
-# Chronicle event whose recorded causes include a retained event and a current
-# map-capable entity. Require the richer Event Card, follow the retained event,
-# jump to the related world object, and prove navigation leaves world state
-# byte-identical under JSON serialization.
+# v0.5 Causal Event Card regression: use real Lightning input to create a ruler
+# death followed by normal deterministic succession, then follow the retained
+# death-event cause and a current map-capable reference without changing world
+# authority.
 node tools/capture-story-evidence.mjs "$browser" "$base_url" "$out_dir"
+
+# v0.5 Focused Story Trail: on a fresh natural seed45 world, use real Chronicle
+# and Event Card clicks to Follow an explicit entity reference with >=2 retained
+# events, open a trail event, Clear focus, and require the serialized world
+# fingerprint to remain unchanged throughout the read-only navigation.
+node tools/capture-focused-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
@@ -121,7 +126,10 @@ story_event_card=story-causal-event-card-1440x900.png
 story_event_cause=story-event-cause-opened-1440x900.png
 story_map_navigation=story-map-reference-navigation-1440x900.png
 story_authority=story-evidence.json
-runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 real-pointer damage/recovery plus v0.5 causal Event Card/event-ref/map-ref navigation with authoritative world fingerprint unchanged
+focused_story_trail=story-focused-trail-1440x900.png
+focused_story_event=story-focused-trail-event-opened-1440x900.png
+focused_story_authority=focused-story-evidence.json
+runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 Event Card cause/map navigation + natural explicit Follow Story trail all preserve authoritative world state
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
