@@ -70,6 +70,9 @@ try {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     return world?.creatures?.some((creature) => creature.alive && creature.species === 'wolf' && creature.x === ${wolfTile.tileX} && creature.y === ${wolfTile.tileY}) === true;
   })()`, 2_000);
+  // HUD refresh is intentionally throttled by the runtime. Wait for that
+  // existing cadence instead of forcing a product-only synchronous refresh for QA.
+  await waitForExpression(cdp, `document.querySelector('#stats')?.textContent?.includes('🐺 1') === true`, 2_000);
 
   const spawned = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
