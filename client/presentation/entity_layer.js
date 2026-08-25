@@ -5,20 +5,20 @@ export class EntityLayer {
     this.scene = scene;
     this.tileSize = tileSize;
     this.humans = new Map();
-    this.grazers = new Map();
+    this.creatures = new Map();
   }
 
   sync(view, now, duration = 140) {
     syncCollection({ scene: this.scene, tileSize: this.tileSize, map: this.humans, rows: view.humans, now, duration, create: createHumanVisual, updateState: updateHumanState });
-    syncCollection({ scene: this.scene, tileSize: this.tileSize, map: this.grazers, rows: view.grazers, now, duration, create: createGrazerVisual, updateState: updateGrazerState });
+    syncCollection({ scene: this.scene, tileSize: this.tileSize, map: this.creatures, rows: view.creatures ?? view.grazers ?? [], now, duration, create: createCreatureVisual, updateState: updateCreatureState });
   }
 
   update(now) {
     updateCollection(this.humans, now, this.tileSize);
-    updateCollection(this.grazers, now, this.tileSize);
+    updateCollection(this.creatures, now, this.tileSize);
   }
 
-  destroy() { destroyCollection(this.humans); destroyCollection(this.grazers); }
+  destroy() { destroyCollection(this.humans); destroyCollection(this.creatures); }
 }
 
 function syncCollection({ scene, tileSize, map, rows, now, duration, create, updateState }) {
@@ -32,11 +32,18 @@ function syncCollection({ scene, tileSize, map, rows, now, duration, create, upd
       visual.fromX = target.x; visual.fromY = target.y; visual.toX = target.x; visual.toY = target.y; visual.startedAt = now; visual.duration = duration;
       map.set(row.id, visual);
     } else {
-      visual.fromX = visual.container.x;
-      visual.fromY = visual.anchorY ?? visual.container.y;
-      visual.toX = target.x; visual.toY = target.y; visual.startedAt = now; visual.duration = duration;
-      const dx = visual.toX - visual.fromX;
-      if (Math.abs(dx) > 0.01) visual.facing = dx < 0 ? -1 : 1;
+      if (visual.species && row.species && visual.species !== row.species) {
+        destroyVisual(visual);
+        visual = create(scene, row, target.x, target.y, tileSize);
+        visual.fromX = target.x; visual.fromY = target.y; visual.toX = target.x; visual.toY = target.y; visual.startedAt = now; visual.duration = duration;
+        map.set(row.id, visual);
+      } else {
+        visual.fromX = visual.container.x;
+        visual.fromY = visual.anchorY ?? visual.container.y;
+        visual.toX = target.x; visual.toY = target.y; visual.startedAt = now; visual.duration = duration;
+        const dx = visual.toX - visual.fromX;
+        if (Math.abs(dx) > 0.01) visual.facing = dx < 0 ? -1 : 1;
+      }
     }
     visual.anchorY = target.y;
     updateState(visual, row);
@@ -86,6 +93,11 @@ function createHumanVisual(scene, human, x, y, tileSize) {
   return { container, shadow, tunic, tunicLight, status, crown, baseScale, facing: hashFacing(human.id), bobPhase: human.id * 1.731, bobSpeed: 0.009, idleBob: 0.28, moveBob: 0.72, anchorY: y };
 }
 
+function createCreatureVisual(scene, creature, x, y, tileSize) {
+  if (creature.species === 'wolf') return createWolfVisual(scene, creature, x, y, tileSize);
+  return createGrazerVisual(scene, creature, x, y, tileSize);
+}
+
 function createGrazerVisual(scene, grazer, x, y, tileSize) {
   const baseScale = Math.max(0.9, tileSize / 24);
   const shadow = scene.add.ellipse(0, 5.2, 13, 3.7, 0x061015, 0.25);
@@ -102,7 +114,29 @@ function createGrazerVisual(scene, grazer, x, y, tileSize) {
   const container = scene.add.container(x, y, [shadow, rearLeg, frontLeg, body, flank, neck, head, ear, muzzle, eye, status]);
   container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-  return { container, shadow, status, baseScale, facing: hashFacing(grazer.id + 1000), bobPhase: grazer.id * 2.137, bobSpeed: 0.0075, idleBob: 0.18, moveBob: 0.48, anchorY: y };
+  return { species: 'grazer', container, shadow, status, baseScale, facing: hashFacing(grazer.id + 1000), bobPhase: grazer.id * 2.137, bobSpeed: 0.0075, idleBob: 0.18, moveBob: 0.48, anchorY: y };
+}
+
+function createWolfVisual(scene, wolf, x, y, tileSize) {
+  const baseScale = Math.max(0.9, tileSize / 24);
+  const shadow = scene.add.ellipse(0, 5.2, 13.5, 3.8, 0x061015, 0.3);
+  const tail = scene.add.rectangle(-7.4, -0.9, 7.2, 2.3, 0x4b5560, 1).setAngle(-24);
+  const rearLeg = scene.add.rectangle(-3.8, 4.4, 2, 5.4, 0x353c43, 1);
+  const frontLeg = scene.add.rectangle(3.3, 4.4, 2, 5.4, 0x353c43, 1);
+  const body = scene.add.rectangle(-0.7, 0, 12.6, 7.1, 0x59636d, 1);
+  const back = scene.add.rectangle(-1.7, -2.1, 8.7, 2, 0x78838c, 0.95);
+  const chest = scene.add.rectangle(4.5, 0.1, 3.2, 5.8, 0x444d55, 1);
+  const head = scene.add.rectangle(6.5, -2.8, 6.2, 5.4, 0x505a63, 1);
+  const leftEar = scene.add.triangle(4.6, -6.7, 0, 4, 2.2, 0, 4.2, 4, 0x3c444b, 1);
+  const rightEar = scene.add.triangle(7.7, -6.7, 0, 4, 2.2, 0, 4.2, 4, 0x3c444b, 1);
+  const muzzle = scene.add.rectangle(9.1, -1.9, 3.5, 2.4, 0x858c91, 1);
+  const nose = scene.add.rectangle(10.6, -1.9, 1.2, 1.4, 0x171b1e, 1);
+  const eye = scene.add.rectangle(7.3, -3.4, 1.1, 1.1, 0xf0b65a, 1);
+  const status = scene.add.circle(0, -10.5, 2.1, 0xf1c45d, 0).setStrokeStyle(1, 0x151b20, 0);
+  const container = scene.add.container(x, y, [shadow, tail, rearLeg, frontLeg, body, back, chest, head, leftEar, rightEar, muzzle, nose, eye, status]);
+  container.setScale(baseScale);
+  container.setDepth(30 + y / Math.max(1, tileSize));
+  return { species: 'wolf', container, shadow, status, baseScale, facing: hashFacing(wolf.id + 2000), bobPhase: wolf.id * 2.491, bobSpeed: 0.007, idleBob: 0.14, moveBob: 0.44, anchorY: y };
 }
 
 function updateHumanState(visual, human) {
@@ -113,7 +147,7 @@ function updateHumanState(visual, human) {
   updateStatus(visual, human.health, human.hunger);
 }
 
-function updateGrazerState(visual, grazer) { updateStatus(visual, grazer.health, grazer.hunger); }
+function updateCreatureState(visual, creature) { updateStatus(visual, creature.health, creature.hunger); }
 
 function updateStatus(visual, health, hunger) {
   if (health < 0.42) {
