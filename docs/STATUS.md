@@ -17,11 +17,11 @@ Release identity is fixed:
 - Pages: #40 — build, deploy and final public `/play/` verification green;
 - post-tag status closure #222 merged without moving/amending the release tag.
 
-The active product stage is now **v0.6.0 — Living Ecology**. Release gate: #223. Finite backlog: `docs/backlog/v0.6.md`.
+The active product stage is **v0.6.0 — Living Ecology**. Release gate: #223. Finite backlog: `docs/backlog/v0.6.md`.
 
-v0.6 planning is intentionally supported-scope rather than universal ecology research. The canonical release target is a **24×24 Living Ecology preset** that productizes the already-validated natural grazer loop and adds exactly one visible predator relationship: **Wolf → Grazer**.
+Planning #224 is merged. Capability 1 — **Supported natural-fauna preset** (#225 / #226) — is implementation-complete with deterministic + real Chromium evidence and is at the final documentation-synchronized merge gate.
 
-No v0.6 implementation should begin before the finite backlog/planning PR is merged. After that, capability 1 is the supported natural-fauna preset; do not start Wolf work before the preset foundation is authority-correct and browser-visible.
+After #226 merges and merged-main CI/Pages/Chromium/public `/play/` verification succeeds, the only next implementation slice is **Multi-species creature surface**. Do not begin authoritative Wolf predation before the two-species projection/render/selection/inspection surface is merged-main green.
 
 ## Current authoritative capability
 
@@ -29,14 +29,13 @@ The deterministic engine remains the only world truth: seeded/serializable RNG, 
 
 World Stories is a shipped query/presentation layer over bounded `world.history`. Existing event `subject` / `causes` / explicit stable domain IDs are authoritative; unresolved refs remain visible rather than guessed. Focus, Watchlist and Chronicle-lens selection stay outside world/snapshot authority.
 
-Creature ecology currently has a stronger authoritative base than the public product surface exposes:
-- grazer hunger, vegetation consumption, movement toward vegetation, starvation/recovery;
-- keyed reproduction with partner/local-resource gates;
-- keyed gradual old-age mortality;
-- shared creature lifecycle death bookkeeping/events;
-- deterministic creature IDs/state and save/load infrastructure;
-- current default config deliberately keeps grazer reproduction/old-age mortality disabled;
-- current 24×24 showcase injects 8 grazers after warmup rather than running natural fauna from world start.
+Creature ecology now has its first explicit player-facing supported mode:
+- Phaser topbar exposes `Sandbox · Living Ecology`;
+- Sandbox remains default and preserves its existing reproduction-off / old-age-off world plus post-warmup 8-grazer showcase injection;
+- Living Ecology is deliberately supported only at 24×24 for the v0.6 canonical scope;
+- it promotes the exact Sprint021 10-founder natural-grazer initializer and validated reproduction/old-age settings into runtime authority;
+- there is no hidden reseed/population target after initialization;
+- Legacy Canvas remains a Sandbox-only compatibility/comparison renderer rather than duplicating preset orchestration.
 
 ## v0.5 shipped capability
 
@@ -86,27 +85,42 @@ The final real-browser gate proves the four story surfaces work together in one 
 12. no raw engine JSON appears;
 13. every read-only story/navigation action after the post-succession baseline preserves the exact authoritative world fingerprint + paused state.
 
-## v0.6 evidence carried forward
+## v0.6 natural-fauna evidence
 
-The Living Ecology plan is grounded in existing grazer research rather than restarting ecology tuning:
+Capability 1 promotes existing accepted research rather than introducing a new ecology tuning hypothesis:
 
-- **24×24 natural grazer initializer is accepted for supported scope:** exactly 10 founders on the 32 vegetation-richest passable cells, deterministic round-robin placement, keyed founder ages `[0,6y]`, reproduction `0.001`, gradual old-age mortality enabled;
-- Sprint021 passed all 30 seeds through 120 years with no extinction, multi-generation replacement reproduction, bounded abundance, repeated vegetation pressure/recovery and unchanged sequential RNG;
+- initializer constants exactly match Sprint021: 10 founders, vegetation-rich top32 passable pool, deterministic round-robin placement, keyed `[0,6y]` founder ages, age salt `0x1b56c4e9`, `bornDay = -ageDays`;
+- Living Ecology config enables `grazerBirthChancePerEligiblePairPerDay: 0.001` and gradual grazer old-age mortality only; existing hunger/eating/movement/reproduction/mortality formulas are unchanged;
+- strict authority guard requires 24×24, day0, empty creature domain and the validated ecology config;
+- founder initialization consumes zero sequential RNG, allocates normal creature IDs, and creates no `god.spawn_creature` history or command IDs;
+- deterministic tests lock exact founder IDs/coordinates/ages, duplicate byte identity, snapshot round-trip, unsupported-scope rejection and RNG neutrality;
+- bounded seed45 authority test demonstrates natural birth + material vegetation drawdown with no hidden reseeding;
+- adapter tests prove Sandbox remains default/exact and Living Ecology never receives the post-warmup 8-grazer showcase injection;
+- real Chromium uses the visible Mode selector and real `↻ World` reset: Sandbox is first verified at 8 manual showcase grazers, then Living Ecology reaches year40 with **116 living grazers and 156 natural births**, with **0** god founder-spawn events;
+- browser pauses and real Alt-clicks Grazer #33; inspector shows age/health/hunger/tile and the serialized paused world fingerprint is unchanged by inspection;
+- branch head `cf24df29e32037daedafd1350bc284d62c76c5ee` passed CI #689 + full visual-qa #197; visual artifact #9562468337 digest `sha256:722e9da4f43aa10e318c93ab1d8aee700f02a36b37da384e95b1d71866d0f284`;
+- manual 1440×900 review passes: `Living Ecology` mode is clear, 116 grazers create visible ecology density without hiding terrain/polities/humans, inspector is readable and the map remains primary.
+
+## v0.6 evidence carried forward / rejected breadth
+
+- Sprint021 passed all 30 tested seeds through 120 years with no extinction, multi-generation replacement reproduction, bounded abundance, repeated vegetation pressure/recovery and unchanged sequential RNG;
 - 32×32/48×48 research suggests no founder up-scaling is required, but v0.6 does not promise those sizes;
 - compact 16×16 universal initialization is deliberately unresolved;
 - scalar founder count is rejected as a universal compact fix;
 - terminal population-at-year-X is rejected as a compact persistence classifier because resource-demography cycles are phase-sensitive;
 - the 40-year low-population OR zero-birth recovery envelope failed unseen validation;
 - encounter-safe founder placement was rejected after fresh paired validation produced **4 rescues vs 6 harms**;
-- therefore v0.6 must not smuggle any of those rejected compact-map hypotheses into runtime merely to claim universal fauna support.
+- none of those rejected compact-map hypotheses may leak into runtime merely to claim universal fauna support.
 
 ## v0.6 binding product decisions
 
 - Primary promise: **watch vegetation, grazers and one predator species form a visible causal ecology.**
 - Canonical map/preset scope is 24×24; supported scope beats universal scope.
-- The natural-fauna preset uses the exact validated grazer initializer/settings; existing default sandbox compatibility remains explicit.
+- Sandbox remains default and compatibility-safe; Living Ecology is an explicit player choice in the Phaser product surface.
+- Legacy Canvas remains Sandbox-only comparison UI; do not duplicate v0.6 preset/product orchestration there.
 - Add exactly one new predator species: **Wolf**. Do not build a generalized N-species ecology framework.
-- Wolf predation must be authoritative simulation using shared creature lifecycle/history, never renderer-owned combat.
+- Capability 2 must first generalize the existing grazer-only presentation surface just enough for Grazer + Wolf; do not add hunting behavior in that slice.
+- Wolf predation later must be authoritative simulation using shared creature lifecycle/history, never renderer-owned combat.
 - Extinction is acceptable. No minimum population, equilibrium or hidden survival controller is allowed.
 - Wolf reproduction is not automatically in scope; add it only if the supported canonical gate cannot form a coherent living predator loop without it.
 - Save/load and deterministic repeatability are release requirements for new creature state.
@@ -116,10 +130,10 @@ The Living Ecology plan is grounded in existing grazer research rather than rest
 
 ## Current decision gate
 
-1. merge the v0.6 planning PR containing release gate #223 + `docs/backlog/v0.6.md` + reconciled ROADMAP/STATUS;
-2. open exactly one first implementation issue for **Supported natural-fauna preset**;
-3. implement the validated 24×24 grazer initializer/preset with no universal compact-map claims and no sequential-RNG coupling;
-4. require normal deterministic tests + real Chromium visible-player evidence before merge;
-5. only after the natural-fauna preset is merged-main green, open the multi-species surface slice;
-6. do not start Wolf predation, generalized ecology refactors or additional research in parallel with slice 1;
-7. keep v0.5 release identity immutable while v0.6 proceeds.
+1. require documentation-synchronized #226 CI + full Chromium success;
+2. squash merge #226 and close #225;
+3. verify merged `main` CI, Pages build/deploy + public `/play/`, and full Chromium including the Living Ecology gate;
+4. open exactly one capability 2 issue/branch for **Multi-species creature surface**;
+5. preserve grazer behavior while changing projection/render/selection/inspection only as required for Grazer + Wolf identity;
+6. do **not** implement Wolf hunting/predation or reproduction in capability 2;
+7. only after capability 2 is merged-main green, open the authoritative Wolf predation slice.
