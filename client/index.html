@@ -37,6 +37,7 @@
       </label>
       <button id="reset" type="button" title="Create the showcase world from this seed">↻ World</button>
       <button id="scenario-setup-enter" type="button" title="Build a deterministic Human, Grazer and Wolf starting setup">＋ Scenario</button>
+      <button id="scenario-portability-toggle" type="button" title="Copy, export or import a Scenario Recipe">⇪ Recipe</button>
       <span id="scenario-state-badge" hidden>SETUP</span>
       <button id="pause" type="button">Ⅱ Pause</button>
       <button id="reset-camera" type="button" title="Fit the world in view">⌂ View</button>
@@ -54,6 +55,7 @@
 
   <aside id="inspector-panel" aria-label="world inspector">
     <div id="boot-status">Starting renderer…</div>
+    <div id="scenario-startup-error" role="alert" hidden></div>
     <div id="inspector">Alt-click a tile or entity to inspect it.</div>
 
     <details id="timeline">
@@ -115,6 +117,26 @@
     <div id="scenario-running-summary" hidden>Scenario ready for ordinary gameplay.</div>
   </section>
 
+  <section id="scenario-portability-panel" hidden aria-label="Scenario Recipe sharing and import">
+    <div class="scenario-portability-header">
+      <div>
+        <small>PORTABLE RECIPE</small>
+        <strong id="scenario-portability-summary">No Scenario selected</strong>
+      </div>
+      <button id="scenario-portability-close" type="button" aria-label="Close Recipe panel">×</button>
+    </div>
+    <div class="scenario-portability-actions">
+      <button id="scenario-copy-link" type="button" disabled>Copy Link</button>
+      <button id="scenario-export-json" type="button" disabled>Export JSON</button>
+    </div>
+    <label class="scenario-portability-input">
+      <span>Recipe JSON</span>
+      <textarea id="scenario-recipe-text" rows="5" spellcheck="false" placeholder="Paste a WorldBoxSR Scenario Recipe JSON here"></textarea>
+    </label>
+    <button id="scenario-import-json" type="button">Import JSON</button>
+    <div id="scenario-portability-status" role="status" aria-live="polite">Create or import a Scenario to share it.</div>
+  </section>
+
   <footer id="power-dock">
     <div class="power-dock-title">
       <span>GOD POWERS</span>
@@ -161,6 +183,7 @@
   <script type="module" src="./presentation/ui_controls.js"></script>
   <script type="module" src="./bootstrap.js"></script>
   <script type="module" src="./presentation/scenario_setup_runtime.js"></script>
+  <script type="module" src="./presentation/scenario_portability_runtime.js"></script>
   <script type="module" src="./presentation/camera_runtime.js"></script>
   <script type="module" src="./presentation/world_overlay_runtime.js"></script>
   <script type="module" src="./presentation/selection_highlight_runtime.js"></script>
