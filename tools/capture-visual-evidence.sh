@@ -93,6 +93,13 @@ node tools/capture-wolf-predation-evidence.mjs "$browser" "$base_url" "$out_dir"
 # vegetation utilization, live Pulse, Recent Chronicle and Causal Event Card.
 node tools/capture-ecology-readability-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.6 canonical release gate: start paused on the supported Y40 Living Ecology
+# trough, advance to exact Y50 recovery through the real 1-year Time control,
+# click the one frozen QA Wolf setup tile, then use ordinary 1-day Play to prove
+# movement → predation → readable Pulse/Recent/Event Card/current Wolf. This is
+# orchestration/evidence only; it adds no ecology mechanic or balance behavior.
+node tools/capture-canonical-ecology-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -134,7 +141,11 @@ wolf_predation=living-ecology-wolf-predation-1440x900.png
 wolf_predation_authority=wolf-predation-evidence.json
 ecology_readability=living-ecology-readability-1440x900.png
 ecology_readability_authority=ecology-readability-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus v0.6 natural-fauna, Grazer/Wolf identity, real Wolf predation and ecology-readability gates preserve declared authority boundaries
+canonical_ecology_trough=living-ecology-canonical-trough-y40-1440x900.png
+canonical_ecology_recovery=living-ecology-canonical-recovery-y50-1440x900.png
+canonical_ecology_predation=living-ecology-canonical-predation-1440x900.png
+canonical_ecology_authority=canonical-ecology-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus all v0.6 component gates and the canonical Living Ecology trough→recovery→predation story preserve declared authority boundaries
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
