@@ -53,7 +53,7 @@ try {
   if (!paused) throw new Error('failed to pause world and open Chronicle');
   await delay(120);
 
-  const candidate = await evaluate(cdp, `(() => {
+  const candidates = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const world = scene?.world;
     if (!world) throw new Error('world unavailable');
@@ -71,46 +71,59 @@ try {
       }
       return null;
     };
-    const buttons = [...document.querySelectorAll('#history-list button[data-event-id]')];
-    for (const button of buttons) {
+    const rows = [...document.querySelectorAll('#history-list button[data-event-id]')].map((button) => {
       const eventId = Number(button.dataset.eventId);
       const historyEvent = world.history.find((value) => value.id === eventId);
-      if (!historyEvent) continue;
-      const eventCause = historyEvent.causes?.find((ref) => ref.kind === 'event' && world.history.some((value) => value.id === ref.id));
-      const refs = [historyEvent.subject, ...(historyEvent.causes ?? [])].filter(Boolean);
-      const mapRef = refs.find((ref) => current(ref));
-      if (!eventCause || !mapRef) continue;
       const rect = button.getBoundingClientRect();
-      return {
+      const retainedEventCause = historyEvent?.causes?.find((ref) => ref.kind === 'event' && world.history.some((value) => value.id === ref.id)) ?? null;
+      const refs = historyEvent ? [historyEvent.subject, ...(historyEvent.causes ?? [])].filter(Boolean) : [];
+      const mapRef = refs.find((ref) => current(ref)) ?? null;
+      return historyEvent ? {
         eventId,
         eventType: historyEvent.type,
-        eventCauseId: eventCause.id,
+        retainedEventCause,
         mapRef,
         button: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
-        worldFingerprint: JSON.stringify(world)
-      };
-    }
-    return null;
+        text: button.textContent ?? ''
+      } : null;
+    }).filter(Boolean);
+    return {
+      rows,
+      eventCandidate: rows.find((row) => row.retainedEventCause) ?? null,
+      mapCandidate: rows.find((row) => row.mapRef) ?? null,
+      worldFingerprint: JSON.stringify(world)
+    };
   })()`);
-  if (!candidate) throw new Error('no visible Chronicle event had both a retained event cause and map-capable authoritative ref');
 
-  await clickPoint(cdp, candidate.button);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${candidate.eventId}'`, 3_000);
-  const firstCard = await cardEvidence(cdp);
-  if (firstCard.eventButtons < 1) throw new Error('Causal Event Card did not expose retained event cause navigation');
-  if (firstCard.mapButtons < 1) throw new Error('Causal Event Card did not expose map-capable reference navigation');
-  if (!firstCard.text.includes('Subject') || !firstCard.text.includes('Causes')) throw new Error('Causal Event Card is missing Subject/Causes sections');
+  if (!candidates.eventCandidate) {
+    throw new Error(`no visible Chronicle event had a retained event cause; visible=${JSON.stringify(candidates.rows)}`);
+  }
+  if (!candidates.mapCandidate) {
+    throw new Error(`no visible Chronicle event had a current map-capable authoritative ref; visible=${JSON.stringify(candidates.rows)}`);
+  }
+
+  const eventCandidate = candidates.eventCandidate;
+  await clickPoint(cdp, eventCandidate.button);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventCandidate.eventId}'`, 3_000);
+  const eventCard = await cardEvidence(cdp);
+  if (eventCard.eventButtons < 1) throw new Error('Causal Event Card did not expose retained event cause navigation');
+  if (!eventCard.text.includes('Causes')) throw new Error('Causal Event Card is missing Causes section');
   await captureScreenshot(cdp, join(outDir, 'story-causal-event-card-1440x900.png'));
 
+  const eventCauseId = eventCandidate.retainedEventCause.id;
   const eventCausePoint = await elementCenter(cdp, '#history-detail button[data-event-card-nav="event"]');
   await clickPoint(cdp, eventCausePoint);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${candidate.eventCauseId}'`, 3_000);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventCauseId}'`, 3_000);
   const causeCard = await cardEvidence(cdp);
-  if (causeCard.eventId !== candidate.eventCauseId) throw new Error('event-cause navigation opened the wrong retained event');
+  if (causeCard.eventId !== eventCauseId) throw new Error('event-cause navigation opened the wrong retained event');
   await captureScreenshot(cdp, join(outDir, 'story-event-cause-opened-1440x900.png'));
 
-  await clickPoint(cdp, candidate.button);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${candidate.eventId}'`, 3_000);
+  const mapCandidate = candidates.mapCandidate;
+  await clickPoint(cdp, mapCandidate.button);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${mapCandidate.eventId}'`, 3_000);
+  const mapCard = await cardEvidence(cdp);
+  if (mapCard.mapButtons < 1) throw new Error('map-capable Chronicle event did not expose a map navigation button');
+
   const mapTarget = await evaluate(cdp, `(() => {
     const button = document.querySelector('#history-detail button[data-event-card-nav="map"]');
     if (!button) return null;
@@ -127,6 +140,7 @@ try {
   if (!mapTarget) throw new Error('map navigation target disappeared from Event Card');
   await clickPoint(cdp, mapTarget);
   await delay(160);
+
   const mapEvidence = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const world = scene?.world;
@@ -144,19 +158,28 @@ try {
   if (!mapEvidence.expected || !mapEvidence.inspector.includes(mapEvidence.expected)) {
     throw new Error(`map navigation inspector did not identify referenced object: expected ${mapEvidence.expected}; got ${mapEvidence.inspector}`);
   }
-  if (mapEvidence.worldFingerprint !== candidate.worldFingerprint) throw new Error('story navigation mutated authoritative world state');
+  if (mapEvidence.worldFingerprint !== candidates.worldFingerprint) throw new Error('story navigation mutated authoritative world state');
   await captureScreenshot(cdp, join(outDir, 'story-map-reference-navigation-1440x900.png'));
 
   writeFileSync(join(outDir, 'story-evidence.json'), `${JSON.stringify({
-    selectedEvent: { id: candidate.eventId, type: candidate.eventType },
-    retainedCauseEventId: candidate.eventCauseId,
-    mapTarget: { entityKind: mapTarget.entityKind, entityId: mapTarget.entityId, x: mapTarget.tileX, y: mapTarget.tileY },
-    firstCard,
-    causeCard,
-    inspector: mapEvidence.inspector
+    eventNavigation: {
+      selectedEvent: { id: eventCandidate.eventId, type: eventCandidate.eventType, label: eventCandidate.text },
+      retainedCauseEventId: eventCauseId,
+      card: eventCard,
+      causeCard
+    },
+    mapNavigation: {
+      selectedEvent: { id: mapCandidate.eventId, type: mapCandidate.eventType, label: mapCandidate.text },
+      target: { entityKind: mapTarget.entityKind, entityId: mapTarget.entityId, x: mapTarget.tileX, y: mapTarget.tileY },
+      card: mapCard,
+      inspector: mapEvidence.inspector
+    }
   }, null, 2)}\n`);
 
-  console.log(`World Stories evidence: event #${candidate.eventId} ${candidate.eventType} → event #${candidate.eventCauseId}; map ${mapTarget.entityKind} #${mapTarget.entityId}`);
+  console.log(
+    `World Stories evidence: event #${eventCandidate.eventId} ${eventCandidate.eventType} → event #${eventCauseId}; `
+    + `map event #${mapCandidate.eventId} ${mapCandidate.eventType} → ${mapTarget.entityKind} #${mapTarget.entityId}`
+  );
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
