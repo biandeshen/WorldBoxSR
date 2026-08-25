@@ -1,4 +1,4 @@
-import { creatureInspectorText, livingEcologyVegetationHud } from './ecology_readability.js';
+import { creatureBehaviorLabel, creatureInspectorText, livingEcologyVegetationHud } from './ecology_readability.js';
 import { showcasePresetForWorld, worldSummary } from './world_adapter.js';
 
 if (document.documentElement.dataset.renderer === 'phaser') attachWhenReady();
@@ -31,9 +31,10 @@ function renderCurrentCreatureInspector(scene, inspector) {
 
   const creatureId = Number(match[2]);
   const creature = scene.world?.creatures?.find((candidate) => candidate.alive && candidate.id === creatureId);
-  const desired = creature
-    ? creatureInspectorText(creature, scene.world.config)
-    : `${match[1]} #${creatureId}\nnot currently present`;
+  let desired = `${match[1]} #${creatureId}\nnot currently present`;
+  if (creature && creatureBehaviorLabel(creature, scene.world.config)) {
+    desired = creatureInspectorText(creature, scene.world.config);
+  }
   if (desired && desired !== current) inspector.textContent = desired;
 }
 
