@@ -4,12 +4,14 @@ import { playToolEffect } from './presentation/effects_layer.js';
 import { SettlementLayer } from './presentation/settlement_layer.js';
 import { createTerrainLayer, renderTerrain } from './presentation/terrain_layer.js';
 import { WarbandLayer } from './presentation/warband_layer.js';
+import { materializeScenarioRecipe } from './presentation/scenario_recipe.js';
 import { advanceWorld, applyGodTool, createShowcaseWorld, evolveShowcaseWorld, selectionAt, SHOWCASE, worldSummary, worldView } from './presentation/world_adapter.js';
 import { civilizationChronicle, formatChronicleDetail, formatChronicleLabel, latestCivilizationPulse, latestHistoryEventId } from './presentation/civilization_story.js';
 
 const TILE_SIZE = 28;
 const STEP_INTERVAL_MS = 110;
 const seedInput = document.querySelector('#seed');
+const presetSelect = document.querySelector('#world-preset');
 const resetButton = document.querySelector('#reset');
 const resetCameraButton = document.querySelector('#reset-camera');
 const pauseButton = document.querySelector('#pause');
@@ -22,6 +24,7 @@ const historyList = document.querySelector('#history-list');
 const historyDetail = document.querySelector('#history-detail');
 const bootStatus = document.querySelector('#boot-status');
 const eventToast = document.querySelector('#event-toast');
+const startupScenario = globalThis.__WORLDBOXSR_STARTUP_SCENARIO__ ?? null;
 if (bootStatus) bootStatus.textContent = 'Phaser 4 · module loaded · starting scene…';
 
 class WorldScene extends Phaser.Scene {
@@ -51,7 +54,8 @@ class WorldScene extends Phaser.Scene {
       this.bindInput();
       this.bindDom();
       this.game.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
-      this.resetWorld();
+      if (startupScenario) void this.loadStartupScenario(startupScenario);
+      else this.resetWorld();
     } catch (error) {
       this.reportRendererFailure(error);
       throw error;
@@ -96,6 +100,56 @@ class WorldScene extends Phaser.Scene {
     if (bootStatus) bootStatus.textContent = `Phaser 4 · authoritative simulation · evolving showcase 0/${SHOWCASE.warmupYears}y`;
     this.showToast(`World ${seed} · evolving toward showcase`);
     window.setTimeout(() => { void this.finishShowcaseWarmup(token, seed); }, 0);
+  }
+
+  async loadStartupScenario(recipe) {
+    const token = ++this.worldGeneration;
+    this.booting = true;
+    this.setPaused(true);
+    if (seedInput) seedInput.value = String(recipe.base.seed);
+    if (presetSelect) presetSelect.value = recipe.base.preset;
+    if (bootStatus) bootStatus.textContent = 'Phaser 4 · authoritative simulation · loading shared Scenario…';
+
+    try {
+      const world = await materializeScenarioRecipe(recipe, {
+        onProgress: ({ year, targetYear }) => {
+          if (token !== this.worldGeneration) return;
+          if (bootStatus) bootStatus.textContent = `Phaser 4 · authoritative simulation · shared Scenario ${year.toFixed(0)}/${targetYear}y`;
+        }
+      });
+      if (token !== this.worldGeneration) return;
+      this.installReadyWorld(world, { paused: true });
+      if (bootStatus) bootStatus.textContent = 'Phaser 4 · authoritative simulation · shared Scenario ready';
+      this.showToast(`Scenario · ${recipe.name} · paused start`);
+    } catch (error) {
+      if (token !== this.worldGeneration) return;
+      globalThis.__WORLDBOXSR_STARTUP_SCENARIO__ = null;
+      globalThis.__WORLDBOXSR_STARTUP_SCENARIO_ERROR__ = `Scenario link rejected: ${error?.message || error}`;
+      this.booting = false;
+      console.error(error);
+      this.resetWorld();
+    }
+  }
+
+  installReadyWorld(world, { paused = true } = {}) {
+    this.world = world;
+    this.storyCursorId = latestHistoryEventId(world);
+    this.view = worldView(world);
+    if (this.terrain) this.terrain.destroy();
+    this.settlements.destroy();
+    this.entities.destroy();
+    this.warbands.destroy();
+    this.terrain = createTerrainLayer(this, this.view, TILE_SIZE);
+    this.settlements.sync(this.view);
+    this.entities.sync(this.view, this.time.now, 0);
+    this.warbands.sync(this.view, this.time.now, 0);
+    this.resetCamera();
+    this.refreshHud();
+    this.refreshChronicle();
+    this.booting = false;
+    this.nextStepAt = this.time.now + STEP_INTERVAL_MS;
+    this.setPaused(paused);
+    return world;
   }
 
   async finishShowcaseWarmup(token, seed) {
@@ -191,11 +245,15 @@ class WorldScene extends Phaser.Scene {
   bindDom() {
     resetButton?.addEventListener('click', () => this.resetWorld());
     resetCameraButton?.addEventListener('click', () => this.resetCamera());
-    pauseButton?.addEventListener('click', () => {
-      this.paused = !this.paused;
+    pauseButton?.addEventListener('click', () => this.setPaused(!this.paused));
+  }
+
+  setPaused(paused) {
+    this.paused = Boolean(paused);
+    if (pauseButton) {
       pauseButton.textContent = this.paused ? '▶ Play' : 'Ⅱ Pause';
       pauseButton.dataset.active = this.paused ? 'true' : 'false';
-    });
+    }
   }
 
   pointerTile(pointer) {
