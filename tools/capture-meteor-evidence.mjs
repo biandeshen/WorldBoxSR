@@ -42,13 +42,22 @@ try {
   await cdp.send('Runtime.enable');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
 
-  await evaluate(cdp, `(() => {
+  const paused = await evaluate(cdp, `(() => {
+    const pause = document.querySelector('#pause');
+    if (!pause) throw new Error('missing #pause');
+    pause.click();
+    return { active: pause.dataset.active, text: pause.textContent };
+  })()`);
+  if (paused?.active !== 'true') throw new Error(`Pause control did not freeze the showcase: ${JSON.stringify(paused)}`);
+
+  const meteorSelected = await evaluate(cdp, `(() => {
     const tool = document.querySelector('#tool');
     if (!tool) throw new Error('missing #tool');
     tool.value = 'meteor';
     tool.dispatchEvent(new Event('change', { bubbles: true }));
     return document.querySelector('[data-tool-button="meteor"]')?.dataset?.active === 'true';
   })()`);
+  if (!meteorSelected) throw new Error('Meteor button did not become active after tool selection');
 
   const targetPoint = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
@@ -106,7 +115,8 @@ try {
       event,
       toast: document.querySelector('#event-toast')?.textContent ?? '',
       population: scene?.world?.entities?.length ?? null,
-      creatures: scene?.world?.creatures?.length ?? null
+      creatures: scene?.world?.creatures?.length ?? null,
+      year: scene?.world?.day / scene?.world?.config?.daysPerYear
     };
   })()`);
   if (!evidence.event) throw new Error('real pointer click did not create authoritative god.meteor event');
@@ -121,15 +131,19 @@ try {
 
   await evaluate(cdp, `(() => { const timeline = document.querySelector('#timeline'); if (timeline) timeline.open = true; return timeline?.open ?? false; })()`);
   await delay(760);
+  const aftermathDom = await evaluate(cdp, 'document.documentElement.outerHTML');
+  if (!/Meteor devastates/.test(aftermathDom)) throw new Error('Meteor entry disappeared from paused Chronicle evidence');
   await captureScreenshot(cdp, join(outDir, 'meteor-aftermath-chronicle-1440x900.png'));
-  console.log(`Meteor visual evidence: target ${targetPoint.x},${targetPoint.y}; ${evidence.event.humanCount} human(s), ${evidence.event.creatureCount} creature(s), ${evidence.event.vegetationRemoved.toFixed(1)} vegetation`);
+  console.log(`Meteor visual evidence: target ${targetPoint.x},${targetPoint.y}; ${evidence.event.humanCount} human(s), ${evidence.event.creatureCount} creature(s), ${evidence.event.vegetationRemoved.toFixed(1)} vegetation; year ${evidence.year.toFixed(2)}`);
 } finally {
   try { cdp?.close(); } catch {}
-  chrome.kill('SIGTERM');
-  await Promise.race([new Promise((resolve) => chrome.once('exit', resolve)), delay(1500)]);
-  if (chrome.exitCode === null) chrome.kill('SIGKILL');
+  await stopChrome(chrome);
   closeFd(logFd);
-  rmSync(userDataDir, { recursive: true, force: true });
+  try {
+    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 });
+  } catch (error) {
+    console.warn(`Could not fully remove temporary Chrome profile ${userDataDir}: ${error?.message || error}`);
+  }
 }
 
 async function waitForDevToolsPort(dataDir, child) {
@@ -226,6 +240,22 @@ async function captureScreenshot(cdpClient, path) {
   const result = await cdpClient.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false });
   if (!result.data) throw new Error(`No screenshot bytes returned for ${path}`);
   writeFileSync(path, Buffer.from(result.data, 'base64'));
+}
+
+async function stopChrome(child) {
+  if (child.exitCode !== null) return;
+  child.kill('SIGTERM');
+  if (await waitForExit(child, 2_000)) return;
+  child.kill('SIGKILL');
+  await waitForExit(child, 2_000);
+}
+
+async function waitForExit(child, timeoutMs) {
+  if (child.exitCode !== null) return true;
+  return Promise.race([
+    new Promise((resolve) => child.once('exit', () => resolve(true))),
+    delay(timeoutMs).then(() => false)
+  ]);
 }
 
 function ensureAlive(child) {
