@@ -40,31 +40,38 @@ jobs:
     if: github.event.repository.private == false
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}play/
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-      - name: Verify live Pages URL serves the game
+      - name: Verify final public Play URL serves the game
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: bash
         run: |
           set -euo pipefail
+          play_url="${PAGE_URL%/}/play/"
           body=""
+
+          # A branch/Jekyll Pages deployment may race this custom workflow. Wait
+          # beyond the observed overlap before validating the URL README exposes.
+          sleep 20
+
           for attempt in {1..20}; do
-            body="$(curl --fail --silent --show-error --location --max-time 15 "$PAGE_URL" || true)"
+            body="$(curl --fail --silent --show-error --location --max-time 15 "$play_url" || true)"
             if grep -Fq '<title>WorldBoxSR — Playable World</title>' <<<"$body" \
               && grep -Fq 'id="phaser-root"' <<<"$body" \
               && grep -Fq 'id="power-dock"' <<<"$body"; then
-              echo "Live Pages demo verified at $PAGE_URL"
+              echo "Final public Play URL verified at $play_url"
               exit 0
             fi
-            echo "Attempt $attempt: live Pages content has not converged to the game artifact yet."
+            echo "Attempt $attempt: final public Play URL is not serving the game yet."
             sleep 6
           done
-          echo "::error::Live Pages URL does not serve the WorldBoxSR game after deployment: $PAGE_URL"
+
+          echo "::error::Public Play URL does not serve WorldBoxSR after deployment convergence: $play_url"
           printf '%s\n' "$body" | sed -n '1,80p'
           exit 1
