@@ -17,7 +17,7 @@ export function resolveSelection(view, descriptor) {
   const collection = descriptor.kind === 'human'
     ? view.humans
     : descriptor.kind === 'creature'
-      ? view.grazers
+      ? (view.creatures ?? view.grazers)
       : descriptor.kind === 'settlement'
         ? view.settlements
         : null;
