@@ -72,7 +72,7 @@ v0.3 does not deepen into economy/trade/religion/technology, sophisticated tacti
 ---
 
 ## v0.4.0 — God Power Sandbox
-**Status: shipped checkpoint on release merge. Primary fantasy: “intervening is fun even before I care about the simulation.”**
+**Status: shipped. Primary fantasy: “intervening is fun even before I care about the simulation.”**
 
 ### Promise
 Make direct god intervention immediately legible and satisfying while keeping every meaningful consequence authoritative and historically traceable.
@@ -97,36 +97,34 @@ v0.4 stops at six powers. No fire propagation, plague/tornado framework, weather
 ---
 
 ## v0.5.0 — World Stories
-**Current target. Primary fantasy: “this world has a history I can follow and remember.”**
+**Status: implementation complete; release handoff in progress. Primary fantasy: “this world has a history I can follow and remember.”**
 
 ### Promise
 Turn existing causal history into a stronger game-facing memory layer without allowing narrative presentation or AI to become a second source of truth.
 
-### Capability pool
-- clearer event cards/headlines/details for high-value world changes;
-- causal drill-down from an event to the people, settlements, powers and prior events that explain it;
-- bookmarks/favorites for people, settlements, polities and events worth following;
-- ruler/dynasty/settlement/polity story views built from recorded facts;
-- timeline navigation and useful history filtering/search rather than raw debug logs;
-- compact “what changed?” summaries derived from authoritative events;
-- optional AI summaries only when every factual claim can be traced back to recorded world state/history.
+### Shipped scope
+1. **Causal Event Card** — readable headline/detail/provenance, explicit Subject and recorded Causes, retained-event drill-down, current map navigation and truthful unavailable refs;
+2. **Focused Story Trail** — exact supported stable-ref history, chronological oldest→newest, fixed limit 8, one-hop event focus and no inferred current-state association;
+3. **Watchlist** — explicit Pin/Unpin for retained events and supported entities, fixed limit 6, same-tab `sessionStorage`, safe sanitization and current-truth re-resolution;
+4. **Chronicle lenses** — exactly `Highlights · Recent · Conflict · Rule`, fixed 7-row limit, unchanged representative Highlights policy and explicit deterministic membership for the other lenses;
+5. **Canonical World Stories gate** — one deterministic real-Chromium session stitches ordinary gameplay causality → Event Card → retained cause → map navigation → Watchlist → Focused Story → Chronicle lens round-trip while story navigation remains read-only against the post-causality world fingerprint.
 
-### Guardrails
-- no AI-authored canonical facts, hidden motives or invented causal links;
-- no broad replay/rewind engine unless a small story interaction concretely requires it;
-- no v0.4 power accumulation disguised as story work;
-- no ecology research or v0.8 civilization-depth work as blockers;
-- prefer one excellent causal story path over a broad analytics dashboard.
+Detailed finite backlog: [`docs/backlog/v0.5.md`](backlog/v0.5.md). Release QA: [`docs/demos/v0.5.0.md`](demos/v0.5.0.md).
 
-### Candidate exit gate
-A player can select one meaningful world event from the default showcase, understand what happened and why, navigate to the involved entities/places, preserve it for later and recover a coherent short story without reading raw engine JSON.
+### Exit gate
+On deterministic seed45, ordinary Lightning produces a real ruler-death → normal-succession story. From the paused post-succession baseline a player can understand the recorded transition and cause, navigate to the involved polity, preserve the event + polity, follow an explicit bounded polity story, open a trail event, browse Recent/Conflict/Rule and restore exact Highlights without raw engine JSON or any read-only story action mutating authoritative world state.
+
+### Deliberate stop
+v0.5 does not add AI-authored canonical facts, a required AI summary, replay/rewind, graph/database infrastructure, semantic search/query language, relevance scoring, an analytics dashboard, cloud Watchlist sync, new god powers, ecology research or renewed economy/religion/technology/civilization-depth work. Bounded-history refs may expire and remain truthfully unavailable.
 
 ---
 
 ## v0.6.0 — Living Ecology
-**Primary fantasy: “the environment and animal life form a visible system around civilizations.”**
+**Next target after v0.5.0 release verification. Primary fantasy: “the environment and animal life form a visible system around civilizations.”**
 
-Return to preserved grazer evidence only after civilization/god/story loops are compelling: supported natural-fauna presets, multiple species, biome affinity/migration, predation/food-web foundations, deterministic initialization and ecology observability. Coherent extinction remains allowed; no hidden survival controller.
+Return to preserved grazer evidence only after the v0.5 tag/release/public deployment is verified. Candidate scope: supported natural-fauna presets, multiple species, biome affinity/migration, predation/food-web foundations, deterministic initialization and ecology observability. Coherent extinction remains allowed; no hidden survival controller.
+
+This stage must receive its own finite backlog and explicit product gate before implementation begins; the v0.5 release handoff is not permission to start unbounded ecology work.
 
 ---
 
@@ -150,4 +148,4 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.4 God Power Sandbox is closed on the v0.4.0 release checkpoint. v0.5 World Stories is the only next product-development stage.** Start with the smallest player-visible causal-story path over existing authoritative history. Do not add more v0.4 powers or reopen ecology/civilization breadth as near-term blockers.
+**v0.5 World Stories feature implementation is frozen.** Complete only the `v0.5.0` release handoff, automated tag/Release creation, Pages/public verification and release-gate closure. **v0.6 Living Ecology is next only after that delivery is verifiably complete.** Do not reopen v0.5 story breadth or start ecology/civilization work inside the release branch.
