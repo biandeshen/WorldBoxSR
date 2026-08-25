@@ -20,44 +20,36 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Current release: v0.4.0 — God Power Sandbox
+## Current release: v0.5.0 — World Stories
 
-v0.4 strengthens direct intervention without turning the project into a power catalog or hiding consequences behind presentation-only effects.
+v0.5 turns the world's bounded authoritative history into a compact game-facing memory layer without letting narrative presentation become a second source of truth.
 
-The public God Powers dock intentionally contains **six** powers:
+The release ships four connected story surfaces:
 
-- `1` Human;
-- `2` Grazer;
-- `3` Erase;
-- `4` Lightning;
-- `5` Meteor;
-- `6` Rain.
+- **Causal Event Cards** — readable headline/detail/provenance, explicit Subject/Causes, truthful unresolved refs, retained-event drill-down and navigation back to current map-capable world objects;
+- **Focused Story Trail** — Follow an explicit stable event/entity ref into exact retained history, oldest→newest, capped at 8, with no current-state association guessing;
+- **Watchlist** — explicitly Pin up to 6 retained event/entity refs in same-tab `sessionStorage`, re-resolve them against current truth and keep unavailable refs honestly visible;
+- **Chronicle lenses** — exactly `Highlights · Recent · Conflict · Rule`, each capped at 7; Highlights preserves the previous representative-history policy while the other lenses use fixed explicit history rules rather than relevance scoring.
 
-The release adds one complete destructive/constructive area loop:
+One canonical real-Chromium gate stitches the complete player path together. On deterministic seed45, ordinary Lightning creates a real ruler death → normal succession story; the player then opens the succession Event Card, follows its retained death cause, returns to the involved polity on the map, Pins the event + polity, follows that polity's bounded story trail, opens a trail event and round-trips all Chronicle lenses. From the paused post-succession baseline onward, every story/navigation action must preserve the exact authoritative serialized world state.
 
-- Meteor previews and applies an exact radius-2 footprint, kills in-footprint humans/grazers through lifecycle authority and clears impacted passable vegetation;
-- Rain uses the same radius-2 footprint and restores existing food/vegetation values to their already-authoritative capacities without resurrecting life or rewriting climate/terrain;
-- accepted actions distinguish real `applied` outcomes from truthful `no_effect`; invalid land-only creation remains a genuine rejection before command identity allocation;
-- Meteor/Rain have distinct generated FX/SFX, with reduced-motion/reduced-flash behavior preserved;
-- World Chronicle retains the two latest direct god interventions alongside representative autonomous history;
-- direct actions do not masquerade as autonomous world-event pulses;
-- a headless deterministic gate runs real engine Meteor→Rain commands and proves damage, exact recovery, non-resurrection, stable terrain/capacities/RNG and byte-identical repeatability;
-- the real Chromium gate pauses canonical seed45 at year 40, drives actual pointer input, destroys a footprint with Meteor and restores the same footprint with Rain;
-- CI, Pages and Chromium remain product/release gates.
+World Stories deliberately does **not** ship AI-authored canonical facts, replay/rewind, a graph database, relevance scoring, cloud Watchlist sync or an analytics dashboard. Bounded-history refs can expire and are shown truthfully unavailable instead of being invented back into existence.
 
-v0.4 deliberately stops here: no seventh power, fire propagation, plague/tornado framework, weather/hydrology simulation, cooldown/progression system, ecology research or renewed civilization-depth work.
-
+- [v0.5 canonical browser demo / QA](docs/demos/v0.5.0.md)
+- [v0.5.0 release notes](docs/releases/v0.5.0.md)
+- [v0.5 finite backlog](docs/backlog/v0.5.md)
 - [v0.4 canonical browser demo / QA](docs/demos/v0.4.0.md)
 - [v0.4.0 release notes](docs/releases/v0.4.0.md)
-- [v0.4 finite backlog](docs/backlog/v0.4.md)
-- [v0.3 canonical browser demo / QA](docs/demos/v0.3.0.md)
-- [v0.3.0 release notes](docs/releases/v0.3.0.md)
 
-## Next product stage: v0.5 — World Stories
+## Previous release: v0.4.0 — God Power Sandbox
 
-The next stage shifts from adding more god powers to making the world's accumulated history easier to **follow, revisit and remember**. The focus is game-first Chronicle/event presentation, causal drill-down, useful story views/bookmarks and timeline navigation while keeping all narrative claims grounded in authoritative recorded facts.
+The six-power God Powers dock remains part of the playable sandbox: Human, Grazer, Erase, Lightning, Meteor and Rain. v0.4 established authoritative Meteor destruction, Rain recovery, truthful `applied | no_effect` outcomes and a real paused Chromium Meteor→Rain gate. v0.5 preserves those capabilities as regressions rather than adding a seventh power.
 
-Living Ecology remains intentionally later (currently v0.6), and deeper Civilization Depth remains later still. Neither should block v0.5.
+## Next product stage: v0.6 — Living Ecology
+
+After the v0.5 release handoff is fully verified, the next bounded product stage returns to visible environmental and animal-life systems: supported natural-fauna presets, multiple species, biome affinity/migration, predation/food-web foundations, deterministic initialization and ecology observability.
+
+Coherent extinction remains acceptable when causally truthful; no hidden survival controller should be introduced merely to force a desired outcome. Deeper Civilization Depth remains later still.
 
 ## Public playable demo
 
