@@ -9,7 +9,7 @@ const audioPath = fileURLToPath(new URL('../client/presentation/audio_feedback.j
 const effectsPath = fileURLToPath(new URL('../client/presentation/effects_layer.js', import.meta.url));
 
 test('each core god power has a tiny generated sound recipe', () => {
-  for (const effect of ['spawn_human', 'spawn_grazer', 'erase', 'lightning', 'meteor']) {
+  for (const effect of ['spawn_human', 'spawn_grazer', 'erase', 'lightning', 'meteor', 'rain']) {
     const recipe = soundRecipe(effect);
     assert.ok(recipe.length >= 1, `${effect} has no recipe`);
     for (const tone of recipe) {
@@ -30,6 +30,20 @@ test('Meteor feedback is materially stronger while remaining accessibility-profi
   assert.match(source, /function playMeteor/);
   assert.match(source, /profile\.reducedMotion/);
   assert.match(source, /if \(profile\.cameraShake\)/);
+});
+
+test('Rain feedback is constructive, reduced-motion aware, and does not shake the camera', () => {
+  const rain = soundRecipe('rain');
+  assert.ok(rain.length >= 2);
+  assert.ok(rain.every((tone) => tone.endHz > tone.startHz), 'Rain tones should rise rather than sound destructive');
+  const source = readFileSync(effectsPath, 'utf8');
+  const rainStart = source.indexOf('function playRain');
+  const meteorStart = source.indexOf('function playMeteor');
+  assert.ok(rainStart >= 0 && meteorStart > rainStart);
+  const rainSource = source.slice(rainStart, meteorStart);
+  assert.match(rainSource, /profile\.reducedMotion/);
+  assert.match(rainSource, /scaledSparkCount/);
+  assert.doesNotMatch(rainSource, /cameraShake|\.shake\(/);
 });
 
 test('reduced-motion profile removes camera shake and sharply lowers flash intensity', () => {
