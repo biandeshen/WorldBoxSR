@@ -66,15 +66,15 @@ try {
     await clickPoint(cdp, eventPoint);
     await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventId}'`, 3_000);
 
-    const followCandidates = await evaluate(cdp, `(() => [...document.querySelectorAll('#history-detail button[data-event-card-follow][data-ref-kind="entity"]')].map((button, index) => ({
-      index,
+    const followCandidates = await evaluate(cdp, `(() => [...document.querySelectorAll('#history-detail button[data-event-card-follow][data-ref-kind="entity"]')].map((button) => ({
       entityKind: button.dataset.refEntityKind,
       entityId: Number(button.dataset.refId),
       text: button.textContent ?? ''
     })))()`);
 
     for (const candidate of followCandidates) {
-      const followPoint = await elementCenter(cdp, `#history-detail button[data-event-card-follow][data-ref-kind="entity"]:nth-of-type(${candidate.index + 1})`, false);
+      const selector = `#history-detail button[data-event-card-follow][data-ref-kind="entity"][data-ref-entity-kind="${candidate.entityKind}"][data-ref-id="${candidate.entityId}"]`;
+      const followPoint = await elementCenter(cdp, selector, false);
       if (!followPoint) continue;
       await clickPoint(cdp, followPoint);
       await delay(100);
