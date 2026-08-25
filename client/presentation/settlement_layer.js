@@ -21,7 +21,7 @@ export class SettlementLayer {
 }
 
 function settlementSignature(settlement) {
-  return [settlement.name, settlement.active ? 'active' : 'abandoned', populationTier(settlement.population), settlement.population, settlement.polityId ?? 'none', settlement.polityName ?? 'none', settlement.polityColorIndex ?? 'none', settlement.polityBannerStyle ?? 'none', settlement.rulerId ?? 'vacant', settlement.isCapital ? 'capital' : 'member'].join('|');
+  return [settlement.name, settlement.active ? 'active' : 'abandoned', populationTier(settlement.population), settlement.population, settlement.polityId ?? 'none', settlement.polityName ?? 'none', settlement.polityColorIndex ?? 'none', settlement.polityBannerStyle ?? 'none', settlement.rulerId ?? 'vacant', settlement.isCapital ? 'capital' : 'member', settlement.relationStance ?? 'none', settlement.atWar ? 'war' : 'peace'].join('|');
 }
 
 function createSettlementVisual(scene, settlement, tileSize) {
@@ -32,7 +32,11 @@ function createSettlementVisual(scene, settlement, tileSize) {
   const color = polityColor(settlement.polityColorIndex ?? Math.max(0, settlement.id - 1));
   const children = [];
   const ground = scene.add.ellipse(0, 3, 36 + tier * 5, 25 + tier * 4, settlement.active ? 0x9b8451 : 0x68645b, settlement.active ? 0.22 : 0.12);
-  ground.setStrokeStyle(1.2, settlement.active ? color : 0x80796e, settlement.active ? 0.48 : 0.2); children.push(ground);
+  ground.setStrokeStyle(1.2, settlement.atWar ? 0xd35a4a : (settlement.active ? color : 0x80796e), settlement.atWar ? 0.9 : (settlement.active ? 0.48 : 0.2)); children.push(ground);
+  if (settlement.atWar && settlement.active) {
+    children.push(scene.add.ellipse(0, 3, 43 + tier * 5, 31 + tier * 4, 0x000000, 0).setStrokeStyle(1.5, 0xe16b58, 0.72));
+    children.push(scene.add.text(-19 - tier, -20 - tier, '⚔', { fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontSize: '11px', color: '#ff8b76', stroke: '#10151c', strokeThickness: 3 }).setOrigin(0.5));
+  }
   const roadColor = settlement.active ? 0xbba56c : 0x777168;
   children.push(scene.add.rectangle(0, 3, 30 + tier * 3, 3.2, roadColor, 0.58), scene.add.rectangle(0, 3, 3.2, 21 + tier * 3, roadColor, 0.58));
   const houseCount = Math.max(1, Math.min(6, tier + 1));
@@ -46,11 +50,12 @@ function createSettlementVisual(scene, settlement, tileSize) {
 
   const primaryName = settlement.isCapital && settlement.polityName ? `♛ ${settlement.polityName}` : settlement.name;
   const rulerText = Number.isInteger(settlement.rulerId) ? `♔ #${settlement.rulerId}` : '♔ vacant';
+  const diplomacyText = settlement.atWar ? ` · ⚔ ${settlement.relationCounterpartName ?? 'war'}` : '';
   const secondaryText = settlement.polityName
-    ? (settlement.isCapital ? `${rulerText} · ${settlement.name} · ⌂ ${settlement.population}` : `${settlement.polityName} · ⌂ ${settlement.population}`)
+    ? (settlement.isCapital ? `${rulerText} · ${settlement.name} · ⌂ ${settlement.population}${diplomacyText}` : `${settlement.polityName} · ⌂ ${settlement.population}${diplomacyText}`)
     : `⌂ ${settlement.population}`;
   const label = scene.add.text(0, -28 - tier, primaryName, { fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontSize: tier >= 3 ? '11px' : '10px', fontStyle: 'bold', color: settlement.active ? '#fff2bf' : '#b9b1a2', stroke: '#10151c', strokeThickness: 3, align: 'center' }).setOrigin(0.5, 1);
-  const population = scene.add.text(0, -25 - tier, secondaryText, { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '8px', color: settlement.active ? '#d8e1cd' : '#938d84', stroke: '#10151c', strokeThickness: 2, align: 'center' }).setOrigin(0.5, 0);
+  const population = scene.add.text(0, -25 - tier, secondaryText, { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '8px', color: settlement.atWar ? '#ffb4a7' : (settlement.active ? '#d8e1cd' : '#938d84'), stroke: '#10151c', strokeThickness: 2, align: 'center' }).setOrigin(0.5, 0);
   children.push(label, population);
   if (!settlement.active) children.push(scene.add.text(0, 0, '×', { fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontSize: '18px', color: '#a9a39a', stroke: '#202020', strokeThickness: 2 }).setOrigin(0.5));
   const container = scene.add.container(x, y, children); container.setScale(scale); container.setAlpha(settlement.active ? 1 : 0.48); container.setDepth(20 + y / Math.max(1, tileSize)); return container;
