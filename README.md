@@ -20,36 +20,46 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Current release: v0.5.0 — World Stories
+## Current release candidate: v0.6.0 — Living Ecology
 
-v0.5 turns the world's bounded authoritative history into a compact game-facing memory layer without letting narrative presentation become a second source of truth.
+v0.6 turns the existing creature/resource simulation into one supported player-visible ecology experience: **natural Grazer populations visibly pressure vegetation, the landscape later recovers as that pressure falls, and a Wolf can hunt a Grazer through ordinary authoritative simulation.**
 
-The release ships four connected story surfaces:
+The supported release scope is deliberately finite:
 
-- **Causal Event Cards** — readable headline/detail/provenance, explicit Subject/Causes, truthful unresolved refs, retained-event drill-down and navigation back to current map-capable world objects;
-- **Focused Story Trail** — Follow an explicit stable event/entity ref into exact retained history, oldest→newest, capped at 8, with no current-state association guessing;
-- **Watchlist** — explicitly Pin up to 6 retained event/entity refs in same-tab `sessionStorage`, re-resolve them against current truth and keep unavailable refs honestly visible;
-- **Chronicle lenses** — exactly `Highlights · Recent · Conflict · Rule`, each capped at 7; Highlights preserves the previous representative-history policy while the other lenses use fixed explicit history rules rather than relevance scoring.
+- **Living Ecology preset** — 24×24 canonical world with exactly 10 deterministic natural Grazer founders; natural births and old-age deaths come from ordinary simulation, with no later rescue/reseed/population target;
+- **Grazer + Wolf** — exactly two shipped creature identities, visually distinct and inspectable through one shared authoritative creature path;
+- **authoritative Wolf predation** — bounded deterministic hunger, prey seeking, one-tile movement, one-Grazer hunt/feeding and starvation; no renderer-owned kill or generic combat/food-web framework;
+- **ecology readability** — current behavior in Inspector, compact `🌿 N%`, readable Wolf→Grazer Pulse/Recent/Event Card, and truthful unavailable dead prey/current Wolf navigation;
+- **canonical release gate** — seed45 locks a real Y34→Y40 vegetation-pressure phase, Y40→Y50 recovery with fewer Grazers, then a fixed explicit QA Wolf movement→predation path; duplicate and Y40 save→load continuations are byte-identical.
 
-One canonical real-Chromium gate stitches the complete player path together. On deterministic seed45, ordinary Lightning creates a real ruler death → normal succession story; the player then opens the succession Event Card, follows its retained death cause, returns to the involved polity on the map, Pins the event + polity, follows that polity's bounded story trail, opens a trail event and round-trips all Chronicle lenses. From the paused post-succession baseline onward, every story/navigation action must preserve the exact authoritative serialized world state.
+Frozen canonical evidence:
+- Y34: `136 Grazers · 34.31% vegetation · 150 natural births`;
+- Y40: `116 · 17.50% · 156`;
+- Y50: `68 · 37.44% · 160`;
+- canonical Wolf #171: `(0,8) → (1,9)` then predates Grazer #110;
+- the browser reproduces Y40→Y50 through the ordinary **1 year** Time control and the hunt through **1 day** Time + Play;
+- Pulse, Recent, Event Card and current Wolf Inspector explain the result while paused read-only interaction preserves exact authoritative state.
 
-World Stories deliberately does **not** ship AI-authored canonical facts, replay/rewind, a graph database, relevance scoring, cloud Watchlist sync or an analytics dashboard. Bounded-history refs can expire and are shown truthfully unavailable instead of being invented back into existence.
+This is an observed supported ecology phase, **not** a claim of equilibrium, carrying capacity or guaranteed coexistence. v0.6 does not ship Wolf reproduction/natural Wolf founders, additional species, a universal map-size initializer, hidden survival controls, an ecology dashboard, disease/seasons/climate/genetics or a generic food web.
+
+- [v0.6 canonical browser demo / QA](docs/demos/v0.6.0.md)
+- [v0.6.0 release notes](docs/releases/v0.6.0.md)
+- [v0.6 finite backlog](docs/backlog/v0.6.md)
+
+Publication of tag/Release `v0.6.0` is completed by the repository release workflow after the release PR merges. Until that publication check is green, v0.7 feature work remains blocked.
+
+## Previous release: v0.5.0 — World Stories
+
+v0.5 turned bounded authoritative history into Causal Event Cards, exact Focused Story trails, a six-item same-tab Watchlist and four Chronicle lenses (`Highlights · Recent · Conflict · Rule`). One canonical real-browser path proved a player could move from a real recorded event through causes, map navigation, memory and a bounded story without narrative presentation becoming a second source of truth.
 
 - [v0.5 canonical browser demo / QA](docs/demos/v0.5.0.md)
 - [v0.5.0 release notes](docs/releases/v0.5.0.md)
-- [v0.5 finite backlog](docs/backlog/v0.5.md)
-- [v0.4 canonical browser demo / QA](docs/demos/v0.4.0.md)
-- [v0.4.0 release notes](docs/releases/v0.4.0.md)
 
-## Previous release: v0.4.0 — God Power Sandbox
+The six-power God Power Sandbox from v0.4 and civilization/ruler/war foundations from v0.3 remain release regressions.
 
-The six-power God Powers dock remains part of the playable sandbox: Human, Grazer, Erase, Lightning, Meteor and Rain. v0.4 established authoritative Meteor destruction, Rain recovery, truthful `applied | no_effect` outcomes and a real paused Chromium Meteor→Rain gate. v0.5 preserves those capabilities as regressions rather than adding a seventh power.
+## Next planning stage after v0.6 publication: v0.7 — World Builder & Scenarios
 
-## Next product stage: v0.6 — Living Ecology
-
-After the v0.5 release handoff is fully verified, the next bounded product stage returns to visible environmental and animal-life systems: supported natural-fauna presets, multiple species, biome affinity/migration, predation/food-web foundations, deterministic initialization and ecology observability.
-
-Coherent extinction remains acceptable when causally truthful; no hidden survival controller should be introduced merely to force a desired outcome. Deeper Civilization Depth remains later still.
+The roadmap currently reserves v0.7 for creation/scenario tooling, but its exact finite scope must be planned **after** v0.6 tag/Release/Pages/Chromium publication is verified. No v0.7 work belongs in the v0.6 release handoff.
 
 ## Public playable demo
 
@@ -57,7 +67,7 @@ Coherent extinction remains acceptable when causally truthful; no hidden surviva
 
 `/play/` is the stable user-facing entry point. The custom GitHub Actions deployment publishes the compiled Phaser game there. The repository also carries a browser-runnable `/play/` fallback so that a mistakenly enabled legacy branch/Jekyll Pages deployment cannot replace the demo with the rendered README again.
 
-The Pages build is validated in normal CI and by a real Chromium interaction gate. CI verifies both the generated compiled `/play/` alias and the legacy fallback, then the deployment workflow re-checks the final public `/play/` URL until the deployment/CDN has converged.
+The Pages build is validated in normal CI and by real Chromium gates. CI verifies the generated compiled `/play/` alias and legacy fallback; deployment then re-checks the final public `/play/` URL until the deployment/CDN has converged.
 
 Repository setting must remain **Settings → Pages → Build and deployment → Source → GitHub Actions**. GitHub Actions is the authoritative Pages publisher; the repository fallback exists only as defense in depth.
 
