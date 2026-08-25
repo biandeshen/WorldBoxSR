@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createWorld } from '../engine/core/world.js';
+import { godPowerForShortcut, godPowerMeta } from '../client/presentation/god_power_catalog.js';
 import { applyGodTool } from '../client/presentation/world_adapter.js';
 
 const indexPath = fileURLToPath(new URL('../client/index.html', import.meta.url));
-const controlsPath = fileURLToPath(new URL('../client/presentation/ui_controls.js', import.meta.url));
 const phaserPath = fileURLToPath(new URL('../client/phaser_main.js', import.meta.url));
 const legacyPath = fileURLToPath(new URL('../client/main.js', import.meta.url));
 
@@ -21,6 +21,7 @@ test('presentation adapter returns authoritative Rain restoration and saturation
   center.vegetation = 0;
   const result = applyGodTool(hitWorld, 'rain', 3, 3);
   assert.equal(result.accepted, true);
+  assert.equal(result.status, 'applied');
   assert.equal(result.effect, 'rain');
   assert.equal(result.noEffect, false);
   assert.equal(result.radius, 2);
@@ -36,20 +37,21 @@ test('presentation adapter returns authoritative Rain restoration and saturation
   }
   const noEffect = applyGodTool(saturatedWorld, 'rain', 0, 0);
   assert.equal(noEffect.accepted, true);
+  assert.equal(noEffect.status, 'no_effect');
   assert.equal(noEffect.effect, 'rain');
   assert.equal(noEffect.noEffect, true);
 });
 
-test('Rain is a first-class power button, hotkey, legacy command, and truthful Phaser feedback path', () => {
+test('Rain is a first-class catalog/button/hotkey, legacy command, and truthful Phaser feedback path', () => {
   const html = readFileSync(indexPath, 'utf8');
-  const controls = readFileSync(controlsPath, 'utf8');
   const phaser = readFileSync(phaserPath, 'utf8');
   const legacy = readFileSync(legacyPath, 'utf8');
 
+  assert.equal(godPowerForShortcut('6'), 'rain');
+  assert.equal(godPowerMeta('rain').label, 'Rain · radius 2');
+  assert.equal(godPowerMeta('rain').targetRadius, 2);
   assert.match(html, /data-tool-button=["']rain["']/);
   assert.match(html, /Rain · radius 2 · key 6/);
-  assert.match(controls, /['"]6['"]:\s*['"]rain['"]/);
-  assert.match(controls, /Rain · radius 2/);
   assert.match(phaser, /result\.effect === ['"]rain['"]/);
   assert.match(phaser, /area already saturated/);
   assert.match(phaser, /vegetationAdded\.toFixed\(1\)/);
