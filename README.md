@@ -34,7 +34,7 @@ v0.2 turns the deterministic v0.1 world into a browser-playable god-game vertica
 - reduced-motion/reduced-flash treatment for strong effects;
 - autonomous world-event pulse backed by causal history;
 - deterministic seed45 showcase with an executable 5-second readability target and 30-second autonomous-event gate;
-- production Chromium Visual QA over the same `/WorldBoxSR/` path used by Pages.
+- production Chromium Visual QA over the same `/WorldBoxSR/play/` entry used by Pages.
 
 The old Canvas renderer remains available in v0.2 only as `?renderer=legacy` A/B/regression evidence. The default product is Phaser.
 
@@ -56,9 +56,9 @@ Deeper Living Ecology work remains intentionally later (currently v0.6). Non-cor
 
 `/play/` is the stable user-facing entry point. The custom GitHub Actions deployment publishes the compiled Phaser game there. The repository also carries a browser-runnable `/play/` fallback so that a mistakenly enabled legacy branch/Jekyll Pages deployment cannot replace the demo with the rendered README again.
 
-The Pages build is validated in normal CI and by a real Chromium visual gate. CI verifies both the generated compiled `/play/` alias and the legacy fallback, then the deployment workflow re-checks the final public `/play/` URL after the deployment-race window.
+The Pages build is validated in normal CI and by a real Chromium visual gate. CI verifies both the generated compiled `/play/` alias and the legacy fallback, then the deployment workflow re-checks the final public `/play/` URL until the deployment/CDN has converged.
 
-Repository setting should still be **Settings → Pages → Build and deployment → Source → GitHub Actions**. That removes the redundant legacy Jekyll deployment entirely; the repository fallback exists as defense in depth, not as the preferred publishing mode.
+Repository setting must remain **Settings → Pages → Build and deployment → Source → GitHub Actions**. GitHub Actions is the authoritative Pages publisher; the repository fallback exists only as defense in depth.
 
 ## Browser-only development with Codespaces
 

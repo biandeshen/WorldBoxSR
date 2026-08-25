@@ -56,10 +56,6 @@ jobs:
           play_url="${PAGE_URL%/}/play/"
           body=""
 
-          # A branch/Jekyll Pages deployment may race this custom workflow. Wait
-          # beyond the observed overlap before validating the URL README exposes.
-          sleep 20
-
           for attempt in {1..20}; do
             body="$(curl --fail --silent --show-error --location --max-time 15 "$play_url" || true)"
             if grep -Fq '<title>WorldBoxSR — Playable World</title>' <<<"$body" \
@@ -68,7 +64,7 @@ jobs:
               echo "Final public Play URL verified at $play_url"
               exit 0
             fi
-            echo "Attempt $attempt: final public Play URL is not serving the game yet."
+            echo "Attempt $attempt: final public Play URL has not converged to the game yet."
             sleep 6
           done
 
