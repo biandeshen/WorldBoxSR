@@ -50,6 +50,7 @@ export function applyGodTool(world, tool, x, y, count = 1) {
 export function worldView(world) {
   const settlementById = new Map(world.settlements.map((settlement) => [settlement.id, settlement]));
   const polityById = new Map(world.polities.map((polity) => [polity.id, polity]));
+  const relations = (world.relations ?? []).filter((relation) => relation.active).map((relation) => ({ ...relation }));
   return {
     width: world.width,
     height: world.height,
@@ -71,9 +72,19 @@ export function worldView(world) {
     grazers: world.creatures.filter((creature) => creature.alive && creature.species === 'grazer').map((creature) => ({ id: creature.id, x: creature.x, y: creature.y, ageDays: creature.ageDays, hunger: creature.hunger, health: creature.health })),
     settlements: world.settlements.map((settlement) => {
       const polity = Number.isInteger(settlement.polityId) ? polityById.get(settlement.polityId) : null;
-      return { id: settlement.id, name: settlement.name, x: settlement.x, y: settlement.y, active: settlement.active, population: settlement.population, foundedDay: settlement.foundedDay, polityId: polity?.id ?? null, polityName: polity?.name ?? null, polityColorIndex: polity?.colorIndex ?? null, polityBannerStyle: polity?.bannerStyle ?? null, rulerId: polity?.rulerId ?? null, isCapital: polity?.capitalSettlementId === settlement.id };
+      const relation = polity ? relevantRelation(relations, polity.id) : null;
+      const counterpartId = relation ? (relation.polityAId === polity.id ? relation.polityBId : relation.polityAId) : null;
+      const counterpart = Number.isInteger(counterpartId) ? polityById.get(counterpartId) : null;
+      return {
+        id: settlement.id, name: settlement.name, x: settlement.x, y: settlement.y, active: settlement.active, population: settlement.population, foundedDay: settlement.foundedDay,
+        polityId: polity?.id ?? null, polityName: polity?.name ?? null, polityColorIndex: polity?.colorIndex ?? null, polityBannerStyle: polity?.bannerStyle ?? null,
+        rulerId: polity?.rulerId ?? null, isCapital: polity?.capitalSettlementId === settlement.id,
+        relationStance: relation?.stance ?? null, relationScore: relation?.score ?? null, relationCounterpartId: counterpartId, relationCounterpartName: counterpart?.name ?? null,
+        atWar: relation?.atWar ?? false
+      };
     }),
-    polities: world.polities.map((polity) => ({ id: polity.id, name: polity.name, capitalSettlementId: polity.capitalSettlementId, settlementIds: [...polity.settlementIds], foundedDay: polity.foundedDay, active: polity.active, dissolvedDay: polity.dissolvedDay, colorIndex: polity.colorIndex, bannerStyle: polity.bannerStyle, rulerId: polity.rulerId ?? null, rulerSinceDay: polity.rulerSinceDay ?? null, rulerSequence: polity.rulerSequence ?? 0 }))
+    polities: world.polities.map((polity) => ({ id: polity.id, name: polity.name, capitalSettlementId: polity.capitalSettlementId, settlementIds: [...polity.settlementIds], foundedDay: polity.foundedDay, active: polity.active, dissolvedDay: polity.dissolvedDay, colorIndex: polity.colorIndex, bannerStyle: polity.bannerStyle, rulerId: polity.rulerId ?? null, rulerSinceDay: polity.rulerSinceDay ?? null, rulerSequence: polity.rulerSequence ?? 0 })),
+    relations
   };
 }
 
@@ -88,4 +99,10 @@ export function selectionAt(world, x, y) {
   if (settlement) return { kind: 'settlement', value: settlement };
   const tile = world.tiles.find((candidate) => candidate.x === x && candidate.y === y);
   return tile ? { kind: 'tile', value: tile } : null;
+}
+
+function relevantRelation(relations, polityId) {
+  return relations
+    .filter((relation) => relation.polityAId === polityId || relation.polityBId === polityId)
+    .sort((a, b) => Number(b.atWar) - Number(a.atWar) || a.score - b.score || a.key.localeCompare(b.key))[0] ?? null;
 }
