@@ -29,7 +29,7 @@ test('history timeline DOM contract exists in the client shell', () => {
   }
 });
 
-test('god tool selector exposes creation and destructive power flows including Meteor', () => {
+test('god tool selector exposes creation, destruction, and restoration flows including Meteor and Rain', () => {
   const html = readFileSync(indexPath, 'utf8');
   const main = readFileSync(mainPath, 'utf8');
 
@@ -39,7 +39,9 @@ test('god tool selector exposes creation and destructive power flows including M
   assert.match(html, /value=["']erase["']/);
   assert.match(html, /value=["']lightning["']/);
   assert.match(html, /value=["']meteor["']/);
+  assert.match(html, /value=["']rain["']/);
   assert.match(html, /data-tool-button=["']meteor["']/);
+  assert.match(html, /data-tool-button=["']rain["']/);
   assert.match(main, /querySelector\(['"]#tool['"]\)/);
   assert.match(main, /toolSelect\.value === ['"]spawn_grazer['"]/);
   assert.match(main, /type: ['"]spawn_creature['"]/);
@@ -48,10 +50,12 @@ test('god tool selector exposes creation and destructive power flows including M
   assert.match(main, /toolSelect\.value === ['"]lightning['"]/);
   assert.match(main, /toolSelect\.value === ['"]meteor['"]/);
   assert.match(main, /type: ['"]meteor['"]/);
+  assert.match(main, /toolSelect\.value === ['"]rain['"]/);
+  assert.match(main, /type: ['"]rain['"]/);
   assert.match(main, /shiftKey \? 10 : 1/);
 });
 
-test('browser entry renders, selects, resolves, and inspects typed creatures', () => {
+test('browser entry renders, selects, resolves, and inspects typed creatures and renewable resources', () => {
   const main = readFileSync(mainPath, 'utf8');
 
   assert.match(main, /world\.creatures/);
@@ -59,5 +63,6 @@ test('browser entry renders, selects, resolves, and inspects typed creatures', (
   assert.match(main, /selection\.kind === ['"]creature['"]/);
   assert.match(main, /CREATURE #\$\{target\.id\}/);
   assert.match(main, /creature\.species !== ['"]grazer['"]/);
+  assert.match(main, /food \$\{target\.food\.toFixed\(2\)\}/);
   assert.match(main, /vegetation \$\{target\.vegetation\.toFixed\(2\)\}/);
 });
