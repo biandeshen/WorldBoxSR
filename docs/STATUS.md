@@ -4,100 +4,91 @@ Last updated: 2026-08-25
 
 ## Management state
 
-**v0.6.0 — Living Ecology is shipped and closed.** Its release identity is now immutable:
-- implementation freeze commit `ac94bd0bfa59790f959c02c261c3506c378fb26d`;
+**v0.6.0 — Living Ecology is shipped and closed.** Immutable release identity:
+- implementation freeze `ac94bd0bfa59790f959c02c261c3506c378fb26d`;
 - release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
 - annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb`, targeting exactly the release commit;
-- GitHub Release `WorldBoxSR v0.6.0` published from `docs/releases/v0.6.0.md`;
-- release workflow #10 green;
-- release-commit CI #748 green;
-- Pages #50 build/deploy + final public `/play/` verification green;
-- full visual-qa #247 green, including the canonical Living Ecology release gate and all prior v0.4/v0.5 regressions.
+- GitHub Release published from checked-in release notes;
+- release workflow #10, release-commit CI #748, Pages #50/public `/play/`, full visual-qa #247 green;
+- post-release closeout #239 merged as `bd746e08ae7d2d26e4063c6b53f8a509e999f1da`; closeout CI #750, Pages #51/public `/play/`, visual-qa #248 green;
+- release gate #223 and handoff #237 are closed.
 
-Release gate: #223. Release handoff: #237 / PR #238. Both may close after this publication-verified documentation closeout merges.
+**v0.7.0 — Scenario Builder & Sharing is now the active planning target.** Release gate: #240. Finite backlog: `docs/backlog/v0.7.md` on the planning branch until its planning PR merges.
 
-**v0.5.0 — World Stories remains shipped and immutable.** Its release commit is `104dc7520b2e5ad39ec1d3c98c1cea94a11922b4`; release workflow #9, CI #677, visual-qa #187 and Pages #40 remain the recorded release evidence.
+No v0.7 implementation is allowed before the planning-only PR passes CI and merges. After that, open exactly one implementation slice: **Versioned Scenario Recipe contract + deterministic materializer**.
 
-## Frozen v0.6 product scope
+## v0.7 planning decision
 
-The deterministic engine remains the only ecology truth. Presentation explains current/recorded facts but owns no movement, birth, death, hunting, resources or rescue.
+### Player promise
 
-Shipped supported scope:
-- explicit 24×24 Living Ecology preset while Sandbox remains compatibility-safe default;
-- exactly 10 deterministic natural Grazer founders at day0, no fake god founder history and no later rescue/reseed/population target;
-- Grazer reproduction `0.001` + gradual old-age mortality with existing movement/eating/starvation behavior unchanged;
-- exactly two shipped creature identities: Grazer + Wolf;
-- deterministic Wolf hunger/prey search/one-step chase/predation/feeding/starvation with no sequential RNG, reproduction/packs/natural-founder policy;
-- compact current creature behavior, `🌿 N%`, predation Pulse/Recent/Event Card and current map/Inspector readability;
-- coherent extinction remains acceptable; no equilibrium/coexistence guarantee.
+A player can assemble a small world setup, serialize it as a compact deterministic **Scenario Recipe**, share/import it, reopen the exact same authoritative starting world, then Run, Replay or Fork a different history.
 
-## Capability delivery record
+### Why Scenario Recipe first
 
-1. Supported natural-fauna preset — #225/#226 — merged-main verified.
-2. Multi-species Grazer + Wolf surface — #227/#228 — merged-main verified.
-3. Authoritative Wolf predation — #229/#230 — merged-main verified.
-4. Ecology readability — #231/#232 — merged-main verified.
-5. Canonical Living Ecology release gate — #233/#235 — merged-main verified.
-6. Release package/publication — #237/#238 — tag/Release/CI/Chromium/Pages/public URL verified.
+Current shipped architecture already contains the expensive deterministic substrate:
+- seeded world creation and exact internal snapshot/load continuation;
+- current 24×24 Sandbox/Living Ecology production startup;
+- authoritative Human/Grazer/Wolf creation commands;
+- reset/seed/mode/time UI;
+- a minimal Simulation Lab named-scenario concept.
 
-## Canonical release evidence
+But the browser has no player-facing scenario recipe, save/import/export/share workflow, and URL state currently only handles renderer selection. There is also **no authoritative terrain/biome mutation command**. Therefore v0.7 does not fake a full world painter in UI code; it first makes reproducible starting setups portable.
 
-### Natural pressure → recovery
+### Frozen recipe scope
 
-The permanent seed45/24×24 gate freezes:
-- **Y34:** `136` living Grazers · vegetation `34.31%` · `150` natural births;
-- **Y40 trough:** `116` · `17.50%` · `156`;
-- **Y50 recovery:** `68` · `37.44%` · `160`.
+Recipe v1 is versioned startup input, not a snapshot/live-state mirror. It contains only:
+- bounded presentation name metadata;
+- base `seed`;
+- current base preset `sandbox | living_ecology`;
+- ordered, bounded placement actions for exactly Human · Grazer · Wolf.
 
-Observed facts:
-- Y34→Y40 vegetation pressure: `-16.81` percentage points;
-- Y40→Y50 recovery: `+19.94` points while living Grazers fall `116 → 68` through ordinary lifecycle;
-- pre-Wolf deaths through Y50 are recorded old age;
-- zero hidden creature spawn/rescue/reseed occurs before explicit Wolf QA setup.
+Materialization reuses the existing supported 24×24 product startup and existing 40-year showcase-ready semantics, then applies setup placements through authoritative command APIs while paused.
 
-This is an observed phase, not an equilibrium/carrying-capacity claim and not a claim that Wolf caused the earlier recovery.
+Release bounds:
+- max 32 placement actions;
+- max 10 entities per action;
+- no recipe = byte-compatible v0.6 startup;
+- malformed/unknown recipe data fails explicitly before allocating command/entity/event identity;
+- metadata/codec never enters world snapshots/history/RNG.
 
-### Canonical Wolf continuation
+## Ordered v0.7 slices
 
-Fixed Y50 setup:
-- tile `(0,8)`, nearest living Grazer distance `3`;
-- canonical Wolf #171;
-- first movement `(0,8) → (1,9)`;
-- first prey Grazer #110;
-- exactly one explicit QA Wolf spawn and no further god creature spawn.
+1. **Versioned Scenario Recipe contract + deterministic materializer** — NEXT.
+2. **Scenario Setup workspace** — visible paused Human/Grazer/Wolf placement + Run boundary.
+3. **Portable recipe** — Copy Link + canonical JSON Export/Import + fresh-tab reconstruction.
+4. **Replay + Fork** — exact start rematerialization and editable copy semantics.
+5. **Canonical Scenario Builder gate** — headless + production Chromium create/share/import/exact-start/Run/Replay/Fork proof.
+6. **Release-only v0.7.0 handoff** after merged-main delivery checks.
 
-### Repeatability / save-load
+## v0.7 architecture/truth boundaries
 
-`tests/canonical_living_ecology_gate.test.js` runs uninterrupted, duplicate and Y40 snapshot→restore paths. All three report identical facts and finish with byte-identical authoritative snapshots. Ecology Story/Event Card/Pulse projections remain snapshot/RNG neutral.
+- Engine remains the only world truth.
+- Recipe is startup input to existing world creation/commands, never a second simulation or save-state mirror.
+- Setup UI must not push entities/events or edit world arrays directly.
+- Successful setup placement is appended to recipe only after authoritative command success.
+- Setup stops at explicit Run; later gameplay/God Powers are not silently recorded into recipe.
+- Replay means rebuild the recipe start, not timeline rewind.
+- Fork creates a new editable recipe without mutating the imported/shared normalized source.
+- Phaser is the v0.7 product surface; Legacy remains comparison compatibility only.
 
-### Browser release path
+## Explicit v0.7 non-goals
 
-Production Chromium reproduces the same release story through product controls:
-- Living Ecology Mode/Reset → exact paused Y40 `🐾116 · 🌿18%`;
-- ordinary `1 year` Time + Play → exact Y50 `🐾68 · 🌿37%`;
-- real map click at `(0,8)` → sole explicit QA Wolf;
-- ordinary `1 day` Time + Play → Wolf #171 movement and predation of Grazer #110;
-- Pulse + Recent + Event Card explain `Wolf #171 hunted Grazer #110`;
-- dead prey stays unavailable, living Wolf Cause remains map-navigable and current Wolf Inspector shows post-feed authority;
-- paused read-only Chronicle/Event Card/map/inspection keeps serialized authority unchanged.
-
-## Binding v0.6 decisions
-
-- Supported scope beats universal scope: v0.6 is canonical 24×24 Living Ecology, not universal ecosystem initialization.
-- Existing validated Grazer behavior is frozen.
-- Exactly one predator species: Wolf; no generalized food web/DSL.
-- Wolf predation is authoritative engine behavior; renderer-owned hunting is forbidden.
-- Extinction is allowed. No minimum population, equilibrium or hidden survival controller.
-- No hidden creature rescue after initialization.
-- Wolf reproduction and natural Wolf founder policy remain deferred.
-- Ecology readability stays game-facing; no permanent analytics dashboard/heatmap.
-- No disease, seasons/climate, genetics/evolution, plant-species simulation, economy/religion/technology or renewed civilization depth in v0.6.
+- no terrain/elevation/moisture/biome/water painter;
+- no arbitrary tile/resource editor;
+- no full player-facing live snapshot save-game UI;
+- no config/rules DSL or scripting/mod execution;
+- no objectives, victory/defeat or challenge scoring;
+- no cloud/accounts/workshop/discovery backend;
+- no AI-generated canonical scenario facts;
+- no custom map-size contract;
+- no new ecology/civilization mechanics;
+- no generic conversion of every God Power into a recipe action.
 
 ## Current decision gate
 
-v0.6 is finished. After this docs-only closeout merges and #223/#237 close, the next queue is **finite v0.7 planning only**:
-1. define one coherent World Builder & Scenarios player promise;
-2. select the smallest ordered capability set from the existing roadmap pool;
-3. define explicit non-goals and architecture/truth boundaries;
-4. define one canonical player-visible browser gate before implementation;
-5. do not start implementation until the finite v0.7 backlog is approved.
+1. require the planning branch to contain only `docs/backlog/v0.7.md`, ROADMAP and STATUS changes;
+2. run normal CI and merge the planning PR;
+3. create one capability-1 issue/branch only;
+4. define Recipe v1 validation/materialization with pure tests before any visible Setup UI;
+5. preserve v0.6 startup regressions exactly;
+6. only after capability 1 merges may Scenario Setup workspace begin.
