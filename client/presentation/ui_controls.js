@@ -7,7 +7,8 @@ const toolLabels = {
   spawn_human: 'Create humans',
   spawn_grazer: 'Create grazers',
   erase: 'Erase humans',
-  lightning: 'Lightning'
+  lightning: 'Lightning',
+  meteor: 'Meteor · radius 2'
 };
 
 for (const button of powerButtons) {
@@ -24,7 +25,8 @@ window.addEventListener('keydown', (event) => {
     '1': 'spawn_human',
     '2': 'spawn_grazer',
     '3': 'erase',
-    '4': 'lightning'
+    '4': 'lightning',
+    '5': 'meteor'
   };
 
   const tool = shortcuts[event.key];
@@ -37,10 +39,10 @@ const params = new URLSearchParams(window.location.search);
 const legacy = params.get('renderer') === 'legacy';
 if (rendererLink) {
   rendererLink.href = legacy ? window.location.pathname : '?renderer=legacy';
-  rendererLink.textContent = legacy ? 'v0.2 renderer ↗' : 'v0.1 renderer ↗';
+  rendererLink.textContent = legacy ? 'Phaser renderer ↗' : 'Legacy renderer ↗';
   rendererLink.title = legacy
-    ? 'Return to the Phaser v0.2 renderer'
-    : 'Open the v0.1 Canvas renderer for comparison';
+    ? 'Return to the Phaser renderer'
+    : 'Open the legacy Canvas renderer for comparison';
 }
 
 syncPowerButtons();
