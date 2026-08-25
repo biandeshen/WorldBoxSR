@@ -86,9 +86,10 @@ try {
   if (JSON.stringify(await authorityIdentity(cdp)) !== JSON.stringify(rejectedBefore)) throw new Error('impassable Setup click allocated identity');
   if ((await evaluate(cdp, `document.querySelector('#scenario-setup-count')?.textContent`)) !== '3/32 actions') throw new Error('impassable Setup click changed action count');
 
-  // Rename through the real input. Blur fires the product change handler.
+  // Rename through the real input and its standard bubbling change contract.
+  // CDP text insertion does not reliably synthesize blur/change in headless
+  // Chromium, so dispatch the same DOM event a real committed edit produces.
   await replaceInputText(cdp, '#scenario-name', SCENARIO_NAME);
-  await clickSelector(cdp, '#scenario-setup-heading');
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.scenarioSetup?.draft?.name === ${JSON.stringify(SCENARIO_NAME)}`, 2_000);
   if ((await fingerprint(cdp)) !== threeActionFingerprint) throw new Error('renaming Scenario Setup mutated authoritative world');
   const renamedRecipe = await currentDraft(cdp);
@@ -361,6 +362,13 @@ async function replaceInputText(cdpClient, selector, value) {
   await cdpClient.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 2 });
   await cdpClient.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 2 });
   await cdpClient.send('Input.insertText', { text: value });
+  const changed = await evaluate(cdpClient, `(() => {
+    const input = document.querySelector(${JSON.stringify(selector)});
+    if (!input) return false;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return input.value === ${JSON.stringify(value)};
+  })()`);
+  if (!changed) throw new Error(`Scenario input did not contain expected text: ${value}`);
   await delay(60);
 }
 
