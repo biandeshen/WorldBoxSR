@@ -43,12 +43,12 @@ Established the deterministic simulation foundation: terrain/resources, human li
 ## v0.2.0 — Playable World
 **Status: shipped.** Tag `v0.2.0` is the player-visible Phaser/Vite checkpoint.
 
-Shipped coherent terrain/units/settlements, direct god powers with SFX/targeting, responsive camera, authoritative territory, persistent inspection, event pulse, deterministic 30-second showcase gate, Pages and real Chromium Visual QA. The legacy Canvas path remains only as a v0.2 comparison escape hatch and should retire when no concrete regression workflow still requires it.
+Shipped coherent terrain/units/settlements, direct god powers with SFX/targeting, responsive camera, authoritative territory, persistent inspection, event pulse, deterministic showcase gate, Pages and real Chromium Visual QA.
 
 ---
 
 ## v0.3.0 — Civilizations Rise
-**Status: shipped checkpoint on release merge. Primary fantasy: “I can watch small settlements become rival powers.”**
+**Status: shipped. Primary fantasy: “I can watch small settlements become rival powers.”**
 
 ### Promise
 Turn existing settlement/territory/history foundations into visibly distinct political actors whose expansion and conflict can be watched from the map.
@@ -67,37 +67,59 @@ Detailed finite backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release QA: 
 The default seed45 showcase and executable collision gate demonstrate distinct powers, real rulers, war, engagements and political-map change while Chronicle exposes the resulting story without debug metrics.
 
 ### Deliberate stop
-v0.3 does not deepen into economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay or broad art rewrites. Civilization depth now pauses.
+v0.3 does not deepen into economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay or broad art rewrites. Civilization depth pauses after this checkpoint.
 
 ---
 
 ## v0.4.0 — God Power Sandbox
-**Current target. Primary fantasy: “intervening is fun even before I care about the simulation.”**
+**Status: shipped checkpoint on release merge. Primary fantasy: “intervening is fun even before I care about the simulation.”**
 
 ### Promise
-Make the god-hand loop strong enough that creating, destroying and manipulating the world is satisfying immediately, while every meaningful consequence remains authoritative and historically traceable.
+Make direct god intervention immediately legible and satisfying while keeping every meaningful consequence authoritative and historically traceable.
 
-### Capability pool
-- clearer power categories/tooltips and faster selection;
-- creation powers beyond the current Human/Grazer baseline where they create visible world consequences;
-- terrain/environment creation candidates such as rain/fertility or biome/terrain shaping;
-- destructive candidates such as fire, meteor, plague or tornado, chosen by visible product value rather than feature count;
-- social intervention candidates only when they reuse authoritative civilization state cleanly;
-- stronger particles/decals/audio/camera feedback and truthful rejected/no-effect states;
-- causal history records accepted intervention consequences and lets secondary effects remain observable.
+### Shipped scope
+1. six-power dock: Human, Grazer, Erase, Lightning, Meteor and Rain;
+2. Meteor — exact radius-2 preview, authoritative human/grazer mortality, vegetation destruction, truthful no-effect and strong accessible impact feedback;
+3. Rain — the same radius-2 preview, exact restoration of existing food/vegetation capacities, truthful saturation/no-effect and constructive accessible feedback;
+4. shared presentation metadata plus accepted-action `applied | no_effect` outcome semantics without introducing a second world model;
+5. World Chronicle preserves the two latest direct interventions alongside representative autonomous history;
+6. headless deterministic Meteor→Rain product gate using real engine commands;
+7. real Chromium pointer gate on canonical seed45 proving destruction and same-footprint recovery in one paused authoritative world.
 
-### Guardrails
-- no v0.3 civilization-depth continuation disguised as “social powers”;
-- no ecology research blocker;
-- no inventory/cooldown/progression system unless play evidence requires one—the sandbox should stay immediate;
-- every selected power needs a visible authoritative consequence or an explicitly truthful no-effect/rejection path.
+Detailed finite backlog: [`docs/backlog/v0.4.md`](backlog/v0.4.md). Release QA: [`docs/demos/v0.4.0.md`](demos/v0.4.0.md).
+
+### Exit gate
+A player can understand exactly where Meteor/Rain will act, apply them through the real browser input path, distinguish applied/no-effect/rejected outcomes, observe truthful authoritative consequences and recover the short intervention sequence from World Chronicle. Duplicate headless runs remain byte-identical.
+
+### Deliberate stop
+v0.4 stops at six powers. No fire propagation, plague/tornado framework, weather/hydrology simulation, ecology balancing, cooldown/inventory/progression, terrain editor, replay/rewind or renewed civilization depth is part of this release.
 
 ---
 
 ## v0.5.0 — World Stories
-**Primary fantasy: “this world has a history I can follow and remember.”**
+**Current target. Primary fantasy: “this world has a history I can follow and remember.”**
 
-Game-first chronicle/event cards, causal drill-down, favorites/bookmarks, ruler/dynasty/settlement/kingdom story views, timeline navigation, replay/rewind prototype if practical, and optional AI summaries strictly derived from recorded facts.
+### Promise
+Turn existing causal history into a stronger game-facing memory layer without allowing narrative presentation or AI to become a second source of truth.
+
+### Capability pool
+- clearer event cards/headlines/details for high-value world changes;
+- causal drill-down from an event to the people, settlements, powers and prior events that explain it;
+- bookmarks/favorites for people, settlements, polities and events worth following;
+- ruler/dynasty/settlement/polity story views built from recorded facts;
+- timeline navigation and useful history filtering/search rather than raw debug logs;
+- compact “what changed?” summaries derived from authoritative events;
+- optional AI summaries only when every factual claim can be traced back to recorded world state/history.
+
+### Guardrails
+- no AI-authored canonical facts, hidden motives or invented causal links;
+- no broad replay/rewind engine unless a small story interaction concretely requires it;
+- no v0.4 power accumulation disguised as story work;
+- no ecology research or v0.8 civilization-depth work as blockers;
+- prefer one excellent causal story path over a broad analytics dashboard.
+
+### Candidate exit gate
+A player can select one meaningful world event from the default showcase, understand what happened and why, navigate to the involved entities/places, preserve it for later and recover a coherent short story without reading raw engine JSON.
 
 ---
 
@@ -128,4 +150,4 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.3 Civilizations Rise is closed on the v0.3.0 release checkpoint. v0.4 God Power Sandbox is the only next product-development stage.** Start by strengthening the existing god-hand loop with the smallest set of powers/effects that creates visible, truthful and memorable intervention consequences. Do not reopen civilization depth, ecology or invisible analysis work as near-term blockers.
+**v0.4 God Power Sandbox is closed on the v0.4.0 release checkpoint. v0.5 World Stories is the only next product-development stage.** Start with the smallest player-visible causal-story path over existing authoritative history. Do not add more v0.4 powers or reopen ecology/civilization breadth as near-term blockers.
