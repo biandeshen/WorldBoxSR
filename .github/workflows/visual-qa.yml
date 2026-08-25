@@ -16,6 +16,8 @@ on:
       - 'tools/capture-focused-story-evidence.mjs'
       - 'tools/capture-bookmark-evidence.mjs'
       - 'tools/capture-chronicle-lenses-evidence.mjs'
+      - 'tools/capture-world-stories-gate.mjs'
+      - 'tools/run-world-stories-gate.sh'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -55,5 +57,6 @@ jobs:
             echo '- v0.5 Focused Story Trail: on a fresh natural seed45 world, real Chronicle/Event Card clicks Follow one explicit entity reference with >=2 retained events, open a trail event, Clear focus, and preserve the serialized authoritative world fingerprint.'
             echo '- v0.5 Watchlist: one real Chrome tab pins an event + entity, browses away and back, reloads the same tab to prove sessionStorage rehydration, then Unpins/Clears while preserving authority on both sides of reload.'
             echo '- v0.5 Chronicle lenses: real clicks establish Focused Story + Watchlist state, traverse Highlights → Recent → Conflict → Rule, open a non-default Event Card, restore the exact original Highlights IDs, and preserve presentation state + authoritative world fingerprint.'
-            echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, God Power evidence, Event Card/Focused Story/Watchlist/Chronicle-lens screenshots, and authoritative JSON evidence.'
+            echo '- v0.5 canonical product gate: one fresh deterministic seed45 tab uses shipped Lightning to create real ruler death → normal succession, freezes a post-causality baseline, then follows Cause → Map → Pin → Focused Story → lens round-trip through player UI and requires exact Highlights restoration plus unchanged read-only authority.'
+            echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, component regressions, canonical World Stories screenshots, and authoritative JSON evidence.'
           } >> "$GITHUB_STEP_SUMMARY"

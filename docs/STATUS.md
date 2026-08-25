@@ -6,15 +6,16 @@ Last updated: 2026-08-25
 
 **v0.4.0 — God Power Sandbox is shipped and closed.** Tag/Release `v0.4.0`, final CI, interactive Chromium, Pages build/deploy, and the public `/play/` verification all passed. Release gate #200 is closed.
 
-The active product stage is **v0.5.0 — World Stories**. Release gate: #208. Finite backlog: `docs/backlog/v0.5.md`.
+The active release is **v0.5.0 — World Stories**. Release gate: #208. Finite backlog: `docs/backlog/v0.5.md`.
 
-Four ordered World Stories implementation slices are complete through branch-level deterministic + real-browser evidence:
+All five World Stories implementation/product gates are now complete through deterministic + real-browser evidence:
 - Causal Event Card — #209 / #211 — merged on `main`;
 - Focused Story Trail — #212 / #213 — merged on `main`;
 - Bookmarks / Watchlist — #214 / #215 — merged on `main`;
-- Chronicle navigation/readability — #216 / #217 — implementation and real Chromium gate complete; ready for documentation-synchronized merge.
+- Chronicle navigation/readability — #216 / #217 — merged on `main`; merged-main CI, Pages, Chromium and public `/play/` all passed;
+- Canonical World Stories gate — #218 / #219 — implementation gate green with one coherent real-player browser path; ready for documentation-synchronized merge.
 
-After #217 merges and merged-main delivery checks pass, the only remaining v0.5 implementation work is **one canonical World Stories product gate** that proves the release promise in one coherent first-time-player browser path. Do not start AI summary, replay, ecology or release-only version work before that gate closes.
+**No v0.5 feature work remains after #219.** Once #219 is merged and merged-main delivery checks pass, freeze implementation and perform only the release handoff: package version, release notes/docs, tag/release and final Pages/public verification. Do not start AI summary, replay, ecology or v0.6 work before `v0.5.0` is verifiably shipped.
 
 ## Current authoritative capability
 
@@ -46,7 +47,7 @@ World Stories is a query/presentation layer over bounded `world.history`. Existi
 - Watchlist stores only stable retained-event or supported entity refs; it never writes world/history/snapshots or consumes RNG;
 - list is capped at 6, Pin↔Unpin is exact/idempotent, and malformed/duplicate/unsupported persisted entries are sanitized;
 - persistence is same-tab session-only through `sessionStorage`; there is no cloud/cross-device canonical memory;
-- each render re-resolves the stable refs through current authoritative history/entity lookup; removed entities and evicted events remain pinned but visibly unavailable;
+- each render re-resolves stable refs through current authoritative history/entity lookup; removed entities and evicted events remain pinned but visibly unavailable;
 - a first real reload test caught a genuine warmup race; runtime now waits for `scene.booting === false` before Watchlist re-resolution;
 - final Chromium pins `event:163` + Eldergate Realm (`polity:1`), browses elsewhere, reopens the pinned event, same-tab reload restores both `2/6` refs, then Unpin/Clear stores `[]`;
 - authoritative world fingerprint remains unchanged on both sides of reload;
@@ -60,10 +61,20 @@ World Stories is a query/presentation layer over bounded `world.history`. Existi
 - every lens is capped at 7 and truthful empty states never backfill unrelated history;
 - rows preserve `data-event-id` and the existing Event Card navigation path; lens state is presentation-only and is not persisted;
 - pure/runtime tests prove exact memberships/default equivalence and snapshot/RNG neutrality;
-- real Chromium seed45 records Highlights `[163,135,134,120,119,117,115]`, traverses Recent `[163,162,159,158,157,156,155]`, Conflict `[134,120,119,117,115,114,111]`, Rule `[163,162,159,158,157,156,155]`, opens Event #163 from a non-default lens, then restores the exact original Highlights IDs;
-- the same browser session establishes `event:163` as Focused Story + Watchlist state before switching lenses and proves both states remain unchanged;
-- serialized authoritative world fingerprint and paused state remain unchanged throughout;
-- branch head `eb56a1741ac94ed3b0b462f2512f2163c107c2f2` passed normal CI and the full real Chromium visual gate; fixed 1440×900 evidence remains compact and map-primary.
+- branch and merged-main Chromium gates traverse all lenses, open a non-default Event Card, restore exact Highlights, preserve Focused Story + Watchlist, and keep authoritative world state unchanged;
+- PR #217 merged at `63e4c483a3dd489a54ec2fe07907cbb0f135c2d9`; merged `main` CI #667, Pages #38 including final public Play URL verification, and visual-qa #177 all passed.
+
+## v0.5 Canonical World Stories gate evidence
+
+- first gate draft intentionally asked natural static seed45 history for one Event Card with retained event cause + current map ref + >=2-event entity trail; Chromium proved that stronger-than-release conjunction does not exist naturally, so the gate was corrected rather than inventing causality;
+- final gate uses ordinary shipped gameplay: real Lightning strikes Lindenvale Dominion ruler #23; authority records `god.lightning` #172 + `human.died` #173 and normal succession Event #178 for Human #29;
+- paused post-succession world is the read-only baseline; all subsequent story/navigation operations must preserve its serialized fingerprint;
+- Event #178 visibly states `Human #29 succeeds Human #23 after death`, with Lindenvale Dominion Subject and Event #173 / Human #29 Causes;
+- browser follows Event #173, maps polity #3 to capital Lindenvale, Pins `event:178` + `polity:3`, then follows polity #3 through `[122,123,124,125,127,128,130,131]` and opens Event #123;
+- same session round-trips Recent / Conflict / Rule and restores exact Highlights `[178,135,134,120,119,117,115]` while preserving the open Event Card, focus and Watchlist;
+- no raw engine JSON is exposed; post-causality authoritative fingerprint + paused state remain unchanged throughout;
+- canonical helper is hard-bounded at 75 seconds so a CDP/browser stall produces a finite failed gate with partial-stage diagnostics;
+- CI #672 and visual-qa #182 are green on branch head `c980062baef19366e55d2027f931cd09bbb48a2c`; manual review of the three 1440×900 canonical screenshots confirms the Event Card, Focused Story, Watchlist and lens tabs are readable while the map remains the primary surface.
 
 ## Binding product decisions
 
@@ -79,10 +90,10 @@ World Stories is a query/presentation layer over bounded `world.history`. Existi
 
 ## Current decision gate
 
-1. require documentation-synchronized #217 CI + full Chromium success;
-2. squash merge #217 and close #216;
+1. require documentation-synchronized #219 normal CI + full Chromium success;
+2. squash merge #219 and close #218;
 3. verify merged `main` CI, Pages, Chromium and public `/play/` deployment;
-4. open exactly one finite **canonical World Stories gate** issue/branch;
-5. prove in one fresh seed45 browser session that a first-time player can choose a meaningful recorded event, understand recorded participants/causes, navigate to a related world object, preserve it and recover/follow a coherent bounded story without raw engine JSON;
-6. only after that gate merges, perform the release-only `v0.5.0` package/docs/tag/Pages handoff;
+4. freeze v0.5 implementation;
+5. create exactly one release-only `v0.5.0` handoff branch/PR: package version + release/demo docs + README/ROADMAP/STATUS/release-gate closure only;
+6. merge release handoff after CI + Chromium success and verify automated tag/Release `v0.5.0`, Pages and public `/play/`;
 7. do not start v0.6 ecology until v0.5.0 is verifiably shipped.

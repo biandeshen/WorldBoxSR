@@ -118,6 +118,14 @@ node tools/capture-bookmark-evidence.mjs "$browser" "$base_url" "$out_dir"
 # representative IDs plus focus/bookmark/world authority to remain unchanged.
 node tools/capture-chronicle-lenses-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.5 release product gate: one fresh deterministic seed45 session uses the
+# shipped Lightning power to create a real death → succession story, freezes a
+# post-causality authority baseline, then stitches Event Card → Cause → Map →
+# Watchlist → Focused Story → Chronicle lenses through player-visible UI only.
+# Bound this final helper so a CDP/browser stall becomes a useful failed gate
+# with partial-stage evidence instead of consuming the entire Actions timeout.
+bash tools/run-world-stories-gate.sh "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -147,7 +155,11 @@ watchlist_authority=watchlist-evidence.json
 chronicle_lenses=story-chronicle-lenses-1440x900.png
 chronicle_lens_event=story-chronicle-lens-event-opened-1440x900.png
 chronicle_lens_authority=chronicle-lenses-evidence.json
-runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 Event Card cause/map + Focused Story + same-session Watchlist reload + Chronicle lens navigation all preserve authoritative world state
+world_stories_canonical_event=world-stories-canonical-event-1440x900.png
+world_stories_canonical_follow=world-stories-canonical-follow-1440x900.png
+world_stories_canonical_recovered=world-stories-canonical-recovered-1440x900.png
+world_stories_canonical_authority=world-stories-gate-evidence.json
+runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 component regressions + canonical one-session World Stories path preserve authoritative world state after real causal setup
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
