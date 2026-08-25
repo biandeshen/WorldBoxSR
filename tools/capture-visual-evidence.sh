@@ -112,6 +112,12 @@ node tools/capture-focused-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 # actions must leave authority unchanged on both sides of the reload boundary.
 node tools/capture-bookmark-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.5 Chronicle readability: on a fresh seed45 world, establish a real focused
+# event + Watchlist pin, click Highlights → Recent → Conflict → Rule, open an
+# Event Card from a non-default lens, return to Highlights, and require exact
+# representative IDs plus focus/bookmark/world authority to remain unchanged.
+node tools/capture-chronicle-lenses-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -138,7 +144,10 @@ focused_story_authority=focused-story-evidence.json
 watchlist_pinned=story-watchlist-pinned-1440x900.png
 watchlist_reloaded=story-watchlist-reloaded-1440x900.png
 watchlist_authority=watchlist-evidence.json
-runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 Event Card cause/map + Focused Story + same-session Watchlist reload persistence all preserve authoritative world state
+chronicle_lenses=story-chronicle-lenses-1440x900.png
+chronicle_lens_event=story-chronicle-lens-event-opened-1440x900.png
+chronicle_lens_authority=chronicle-lenses-evidence.json
+runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 Event Card cause/map + Focused Story + same-session Watchlist reload + Chronicle lens navigation all preserve authoritative world state
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"

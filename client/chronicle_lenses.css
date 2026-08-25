@@ -1,0 +1,42 @@
+html[data-renderer="phaser"] #history-controls {
+  display: none;
+}
+
+#chronicle-lenses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 7px;
+}
+
+#chronicle-lenses button {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border-color: #ffffff14;
+  background: #0d1921cc;
+  color: #819ca5;
+  font: 8px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+#chronicle-lenses button:hover {
+  color: #cfe1e4;
+  background: #172630;
+  border-color: #ffffff24;
+}
+
+#chronicle-lenses button[data-active="true"] {
+  color: #f2df9f;
+  background: #292818;
+  border-color: #e0c46d55;
+  box-shadow: inset 0 0 0 1px #e0c46d12;
+}
+
+@media (max-width: 650px) {
+  #chronicle-lenses button {
+    flex-basis: calc(50% - 4px);
+  }
+}
