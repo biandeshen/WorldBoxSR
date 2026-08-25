@@ -10,6 +10,8 @@ let attachTimer = null;
 
 attachWhenReady();
 
+globalThis.addEventListener?.('worldboxsr:world-replaced', clearSelection);
+
 function attachWhenReady() {
   const game = globalThis.__PHASER_GAME__;
   const candidate = game?.scene?.getScene?.('world');
