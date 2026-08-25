@@ -3,6 +3,7 @@ import {
   appendScenarioSetupAction,
   clearScenarioSetup,
   createScenarioSetupDraft,
+  forkScenarioSetup,
   freezeScenarioSetup,
   renameScenarioSetup,
   scenarioSetupAction,
@@ -11,6 +12,8 @@ import {
 } from './scenario_setup_state.js';
 import { latestHistoryEventId } from './civilization_story.js';
 import { selectedShowcasePreset } from './world_adapter.js';
+
+const WORLD_REPLACED_EVENT = 'worldboxsr:world-replaced';
 
 if (document.documentElement.dataset.renderer === 'phaser') attachWhenReady();
 
@@ -34,12 +37,22 @@ function attachWhenReady() {
     selectedPlacement: 'human',
     draft: null,
     frozen: startupRecipe ? freezeScenarioSetup(startupRecipe) : null,
+    forkSource: null,
     originalUseTool,
     currentRecipe() {
       return state.active ? state.draft : state.frozen;
     },
+    forkSourceRecipe() {
+      return state.forkSource;
+    },
     installPortableRecipe(recipe) {
       return installPortableRecipe(scene, state, ui, recipe);
+    },
+    replayScenario() {
+      return replayScenario(scene, state, ui);
+    },
+    forkScenario() {
+      return forkScenario(scene, state, ui);
     }
   };
   scene.scenarioSetup = state;
@@ -64,6 +77,7 @@ function attachWhenReady() {
   ui.reset.addEventListener('click', () => {
     if (state.active || state.busy) return;
     state.frozen = null;
+    state.forkSource = null;
     renderScenarioSetup(state, ui);
   });
 
@@ -81,7 +95,7 @@ async function enterScenarioSetup(scene, state, ui) {
     seed: ui.seed.value,
     preset: selectedShowcasePreset()
   });
-  await rebuildScenarioWorld(scene, state, ui, draft, 'Preparing Scenario Setup');
+  await rebuildScenarioWorld(scene, state, ui, draft, 'Preparing Scenario Setup', { forkSource: null });
 }
 
 async function clearAndRebuild(scene, state, ui) {
@@ -89,11 +103,12 @@ async function clearAndRebuild(scene, state, ui) {
   await rebuildScenarioWorld(scene, state, ui, clearScenarioSetup(state.draft), 'Clearing Scenario Setup');
 }
 
-async function rebuildScenarioWorld(scene, state, ui, recipe, label) {
+async function rebuildScenarioWorld(scene, state, ui, recipe, label, { forkSource = state.forkSource } = {}) {
   const previousPaused = Boolean(scene.paused);
   const previousWorld = scene.world;
   const previousDraft = state.draft;
   const previousFrozen = state.frozen;
+  const previousForkSource = state.forkSource;
   const previousActive = state.active;
 
   state.busy = true;
@@ -121,19 +136,23 @@ async function rebuildScenarioWorld(scene, state, ui, recipe, label) {
 
     state.draft = recipe;
     state.frozen = null;
+    state.forkSource = forkSource;
     state.active = true;
     state.selectedPlacement = 'human';
     state.busy = false;
     setPaused(scene, ui, true);
     setLocked(ui, true);
+    notifyWorldReplaced();
     if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · Scenario Setup ready';
     scene.showToast?.(`Scenario Setup · ${scenarioSetupActionCountLabel(recipe)}`);
     renderScenarioSetup(state, ui);
+    return recipe;
   } catch (error) {
     scene.world = previousWorld;
     scene.booting = false;
     state.draft = previousDraft;
     state.frozen = previousFrozen;
+    state.forkSource = previousForkSource;
     state.active = previousActive;
     state.busy = false;
     setPaused(scene, ui, previousPaused);
@@ -141,6 +160,7 @@ async function rebuildScenarioWorld(scene, state, ui, recipe, label) {
     renderScenarioSetup(state, ui);
     console.error(error);
     scene.showToast?.(`Scenario Setup failed: ${error?.message || error}`);
+    return null;
   }
 }
 
@@ -154,6 +174,7 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
   const previousBootText = ui.boot?.textContent ?? '';
   const previousDraft = state.draft;
   const previousFrozen = state.frozen;
+  const previousForkSource = state.forkSource;
   const previousActive = state.active;
 
   state.busy = true;
@@ -176,10 +197,12 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
     ui.preset.value = recipe.base.preset;
     state.draft = null;
     state.frozen = recipe;
+    state.forkSource = null;
     state.active = false;
     state.selectedPlacement = 'human';
     state.busy = false;
     setLocked(ui, false);
+    notifyWorldReplaced();
     if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · imported Scenario ready';
     scene.showToast?.(`Imported Scenario · ${recipe.name} · paused start`);
     renderScenarioSetup(state, ui);
@@ -189,6 +212,7 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
     if (ui.boot) ui.boot.textContent = previousBootText;
     state.draft = previousDraft;
     state.frozen = previousFrozen;
+    state.forkSource = previousForkSource;
     state.active = previousActive;
     state.busy = false;
     setPaused(scene, ui, previousPaused);
@@ -196,6 +220,63 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
     renderScenarioSetup(state, ui);
     throw error;
   }
+}
+
+async function replayScenario(scene, state, ui) {
+  if (state.busy || state.active || !state.frozen) throw new Error('Replay requires a frozen Scenario');
+  if (typeof scene.installReadyWorld !== 'function') throw new Error('Scenario world installer is unavailable');
+
+  const recipe = state.frozen;
+  const previousPaused = Boolean(scene.paused);
+  const previousBooting = Boolean(scene.booting);
+  const previousBootText = ui.boot?.textContent ?? '';
+
+  state.busy = true;
+  scene.booting = true;
+  setPaused(scene, ui, true);
+  setLocked(ui, true);
+  if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · replaying Scenario…';
+
+  try {
+    const world = await materializeScenarioRecipe(recipe, {
+      onProgress: ({ year, targetYear }) => {
+        if (ui.boot) ui.boot.textContent = `Phaser 4 · authoritative simulation · replay Scenario ${year.toFixed(0)}/${targetYear}y`;
+      }
+    });
+    scene.worldGeneration += 1;
+    scene.installReadyWorld(world, { paused: true });
+    ui.seed.value = String(recipe.base.seed);
+    ui.preset.value = recipe.base.preset;
+    state.draft = null;
+    state.frozen = recipe;
+    state.active = false;
+    state.selectedPlacement = 'human';
+    state.busy = false;
+    setLocked(ui, false);
+    notifyWorldReplaced();
+    if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · Replay Scenario ready';
+    scene.showToast?.(`Replay · ${recipe.name} · paused start`);
+    renderScenarioSetup(state, ui);
+    return recipe;
+  } catch (error) {
+    scene.booting = previousBooting;
+    state.busy = false;
+    setPaused(scene, ui, previousPaused);
+    setLocked(ui, false);
+    if (ui.boot) ui.boot.textContent = previousBootText;
+    renderScenarioSetup(state, ui);
+    throw error;
+  }
+}
+
+async function forkScenario(scene, state, ui) {
+  if (state.busy || state.active || !state.frozen) throw new Error('Fork requires a frozen Scenario');
+  const source = freezeScenarioSetup(state.frozen);
+  const draft = forkScenarioSetup(source);
+  const installed = await rebuildScenarioWorld(scene, state, ui, draft, 'Preparing Scenario Fork', { forkSource: source });
+  if (!installed) throw new Error('Scenario Fork could not be materialized');
+  scene.showToast?.(`Fork ready · ${source.name} · edit then Run`);
+  return state.draft;
 }
 
 function useScenarioSetupTool(scene, state, ui, x, y, count) {
@@ -249,6 +330,7 @@ function runScenario(scene, state, ui) {
 function renderScenarioSetup(state, ui) {
   const active = state.active;
   document.documentElement.dataset.scenarioSetup = active ? 'true' : 'false';
+  document.documentElement.dataset.scenarioFork = active && state.forkSource ? 'true' : 'false';
   ui.enter.dataset.active = active ? 'true' : 'false';
   ui.enter.setAttribute('aria-pressed', active ? 'true' : 'false');
   ui.enter.disabled = active || state.busy;
@@ -263,13 +345,13 @@ function renderScenarioSetup(state, ui) {
     ui.panel.hidden = false;
     ui.editor.hidden = false;
     ui.running.hidden = true;
-    ui.state.textContent = 'SETUP · PAUSED';
-    ui.heading.textContent = 'Scenario Setup';
+    ui.state.textContent = state.forkSource ? 'FORK · EDITING · PAUSED' : 'SETUP · PAUSED';
+    ui.heading.textContent = state.forkSource ? 'Scenario Fork' : 'Scenario Setup';
     ui.name.value = state.draft.name;
     ui.count.textContent = scenarioSetupActionCountLabel(state.draft);
     ui.recent.innerHTML = recentActionMarkup(state.draft);
     ui.badge.hidden = false;
-    ui.badge.textContent = `SETUP · ${state.draft.setup.length}`;
+    ui.badge.textContent = `${state.forkSource ? 'FORK' : 'SETUP'} · ${state.draft.setup.length}`;
     return;
   }
 
@@ -336,6 +418,10 @@ function setupUi() {
       || !ui.name || !ui.count || !ui.recent || !ui.clear || !ui.run || ui.placements.length !== 3
       || !ui.seed || !ui.preset || !ui.reset || !ui.pause || !ui.speed) return null;
   return ui;
+}
+
+function notifyWorldReplaced() {
+  globalThis.dispatchEvent?.(new Event(WORLD_REPLACED_EVENT));
 }
 
 function setupToast(action) {
