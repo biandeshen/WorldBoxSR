@@ -72,7 +72,7 @@ test('territory survives deterministic save/load continuation exactly', () => {
   assert.deepEqual(snapshotWorld(restored), snapshotWorld(world));
 });
 
-test('behavior-neutral territory does not change human or RNG history', () => {
+test('territory remains neutral to human and RNG behavior while political relation history may respond to borders', () => {
   const make = (radius) => createWorld({
     seed: 42,
     width: 24,
@@ -88,5 +88,18 @@ test('behavior-neutral territory does not change human or RNG history', () => {
   assert.deepEqual(a.rng.snapshot(), b.rng.snapshot());
   assert.deepEqual(a.counters, b.counters);
   assert.deepEqual(a.entities, b.entities);
-  assert.deepEqual(a.history, b.history);
+  assert.deepEqual(nonRelationHistory(a), nonRelationHistory(b));
+  assert.notDeepEqual(
+    relationHistory(a),
+    relationHistory(b),
+    'territory borders are now an intentional input to authoritative polity relations'
+  );
 });
+
+function relationHistory(world) {
+  return world.history.filter((event) => event.type === 'polity.war_started' || event.type === 'polity.peace_made');
+}
+
+function nonRelationHistory(world) {
+  return world.history.filter((event) => event.type !== 'polity.war_started' && event.type !== 'polity.peace_made');
+}
