@@ -12,6 +12,7 @@ import { projectHistoryPulse } from '../client/presentation/world_event_pulse.js
 const YEAR34 = Object.freeze({ year: 34, grazers: 136, vegetation: 0.3431, births: 150 });
 const YEAR40 = Object.freeze({ year: 40, grazers: 116, vegetation: 0.1750, births: 156 });
 const YEAR50 = Object.freeze({ year: 50, grazers: 68, vegetation: 0.3744, births: 160 });
+const CANONICAL_WOLF_SETUP = Object.freeze({ x: 0, y: 8, nearestGrazerDistance: 3 });
 const WOLF_HORIZON_DAYS = 140;
 
 function createCanonicalWorld() {
@@ -47,31 +48,39 @@ function assertFrozenCheckpoint(actual, expected) {
   assert.equal(actual.godCreatureSpawns, 0);
 }
 
-function deterministicWolfSetupTile(world) {
-  const grazers = world.creatures.filter((creature) => creature.alive && creature.species === 'grazer');
-  const occupied = new Set([
-    ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive).map((entity) => `${entity.x},${entity.y}`),
-    ...world.creatures.filter((creature) => creature.alive).map((creature) => `${creature.x},${creature.y}`),
-    ...(world.warbands ?? []).filter((warband) => warband.active).map((warband) => `${warband.x},${warband.y}`)
-  ]);
+function assertCanonicalWolfSetup(world) {
+  const tile = world.tiles[CANONICAL_WOLF_SETUP.y * world.width + CANONICAL_WOLF_SETUP.x];
+  assert.ok(tile?.passable, 'fixed Y50 Wolf setup tile 0,8 must remain passable');
+  const occupied = [
+    ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive),
+    ...world.creatures.filter((creature) => creature.alive),
+    ...(world.warbands ?? []).filter((warband) => warband.active)
+  ].some((entity) => entity.x === CANONICAL_WOLF_SETUP.x && entity.y === CANONICAL_WOLF_SETUP.y);
+  assert.equal(occupied, false, 'fixed Y50 Wolf setup tile 0,8 must remain clear before explicit setup');
 
-  return world.tiles
-    .filter((tile) => tile.passable && !occupied.has(`${tile.x},${tile.y}`))
-    .map((tile) => ({
-      x: tile.x,
-      y: tile.y,
-      nearestGrazerDistance: grazers.reduce(
-        (min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))),
-        Infinity
-      )
-    }))
-    .filter((tile) => tile.nearestGrazerDistance >= 2 && tile.nearestGrazerDistance <= world.config.wolfPreySearchRadius)
-    .sort((a, b) => b.nearestGrazerDistance - a.nearestGrazerDistance || a.y - b.y || a.x - b.x)[0] ?? null;
+  const nearestGrazerDistance = world.creatures
+    .filter((creature) => creature.alive && creature.species === 'grazer')
+    .reduce(
+      (min, grazer) => Math.min(
+        min,
+        Math.max(
+          Math.abs(CANONICAL_WOLF_SETUP.x - grazer.x),
+          Math.abs(CANONICAL_WOLF_SETUP.y - grazer.y)
+        )
+      ),
+      Infinity
+    );
+  assert.equal(
+    nearestGrazerDistance,
+    CANONICAL_WOLF_SETUP.nearestGrazerDistance,
+    'fixed Y50 Wolf setup must retain the measured nearest-Grazer distance'
+  );
+  assert.ok(nearestGrazerDistance <= world.config.wolfPreySearchRadius);
+  return { ...CANONICAL_WOLF_SETUP };
 }
 
 function spawnCanonicalWolf(world) {
-  const tile = deterministicWolfSetupTile(world);
-  assert.ok(tile, 'Y50 canonical world must expose a clear deterministic Wolf setup tile inside prey-search radius');
+  const tile = assertCanonicalWolfSetup(world);
   const spawnsBefore = world.history.filter((event) => event.type === 'god.spawn_creature').length;
   const [wolfId] = applyCommand(world, { type: 'spawn_creature', species: 'wolf', x: tile.x, y: tile.y, count: 1 });
   const wolf = world.creatures.find((creature) => creature.alive && creature.id === wolfId);
