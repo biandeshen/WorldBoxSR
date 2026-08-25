@@ -4,34 +4,37 @@ Last updated: 2026-08-25
 
 ## Management state
 
-The project is in **v0.3.0 — Civilizations Rise release-candidate handoff**. Release gate: #181. Finite backlog: `docs/backlog/v0.3.md`.
+**v0.3.0 — Civilizations Rise is at the release checkpoint.** The implementation backlog is closed; this release branch contains only version/release documentation and the package version that triggers the tag/release workflow when merged.
 
-v0.2.0 — Playable World is closed and tagged. The complete v0.3 civilization implementation is assembled in #198 after the polity, ruler, relations, visible conflict, and political-outcome slices were merged independently.
+The next product-development stage is **v0.4.0 — God Power Sandbox**. No v0.4 gameplay code belongs in the v0.3 release PR.
 
 ## Current authoritative capability
 
 The deterministic engine remains the only world truth: seeded/serializable RNG, fixed ticks, terrain/resources, human lifecycle/ancestry, settlements, polities, rulers, relations, visible warbands/combat, conquest/rebellion, territory/history, typed grazers, save/load, CLI/Simulation Lab and causal events. Phaser projects this state and never becomes a second authoritative world.
 
-The v0.3 story surface is presentation-only over authoritative causal history. It turns founding, succession, war/peace, battle, conquest and rebellion into readable Chronicle entries and high-value pulses without inventing canonical facts. A cursor prevents old warmup events from being replayed as newly occurring events.
+The v0.3 story surface is presentation-only over authoritative causal history. It turns founding, succession, war/peace, battle, conquest and rebellion into readable Chronicle entries and high-value pulses without inventing canonical facts.
 
-## Canonical evidence
+## v0.3 release evidence
 
-- deterministic collision gate uses real engine polity/ruler/relation/warband/conquest systems and passes reproducibly;
-- default seed45 by year 40 independently produces multiple powers with rulers, a war, multiple engagements, conquest and rebellion;
-- Chronicle selection prevents ruler churn from crowding war/battle/outcome history out of the player-visible story;
-- the final code head after removing the temporary seed45 probe passes both CI and Chromium Visual QA;
-- rendered DOM shows player-readable default-showcase entries including rebellion, peace, conquest and army destruction.
+- default seed45 by year 40 independently produces multiple powers with rulers, war, multiple engagements, conquest and rebellion;
+- deterministic collision gate uses real engine systems and passes reproducibly;
+- Chronicle selection keeps war/battle/outcome history visible despite frequent ruler churn;
+- merged v0.3 implementation passed PR CI/Chromium and is being re-verified on `main` before the release PR is merged;
+- release notes and canonical browser QA live in `docs/releases/v0.3.0.md` and `docs/demos/v0.3.0.md`.
 
 ## Binding product decisions
 
 - Visible truthful player results outrank hidden system breadth.
 - Runtime/engine state is the only world truth; Phaser/UI/AI are projections.
 - Natural coherent collapse/extinction is allowed; no hidden survival controller.
+- Civilization depth is paused after v0.3; do not turn WorldBoxSR into a strategy-game feature race.
 - Ecology research remains frozen until v0.6.
-- v0.3 does not expand into trade/economy/religion/technology or sophisticated tactics.
-- Rulers are real humans, not separate decorative NPCs.
-- Civilization depth stops at the v0.3 release gate; do not turn the project into a strategy-game feature race.
+- v0.4 should strengthen the satisfying god-hand loop and its causal consequences, not reopen v0.3 mechanics.
 
 ## Current decision gate
 
-Merge #198, verify the merged `main` player surface, then perform a minimal v0.3 release PR: version/release notes/current-release documentation only. After v0.3 ships, the roadmap moves to **v0.4 God Power Sandbox**, restoring focus to satisfying intervention and its visible causal consequences rather than adding more civilization depth.
+1. require merged-`main` CI, Pages and Chromium success for the v0.3 implementation;
+2. merge the minimal v0.3 release PR;
+3. verify tag/release `v0.3.0` plus final Pages deployment;
+4. close release gate #181;
+5. open a finite v0.4 backlog around the smallest coherent God Power Sandbox slice.
