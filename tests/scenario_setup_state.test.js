@@ -8,6 +8,7 @@ import {
   clearScenarioSetup,
   createScenarioSetupDraft,
   DEFAULT_SCENARIO_NAME,
+  forkScenarioSetup,
   freezeScenarioSetup,
   renameScenarioSetup,
   scenarioSetupAction,
@@ -88,6 +89,32 @@ test('clear keeps base/name, removes all setup actions, and leaves source draft 
     base: { seed: 45, preset: 'sandbox' },
     setup: []
   });
+});
+
+test('fork creates an independent normalized draft whose edits never mutate the source recipe', () => {
+  const source = freezeScenarioSetup(renameScenarioSetup(
+    appendScenarioSetupAction(draft(), scenarioSetupAction('grazer', 1, 8, 1)),
+    'Shared source'
+  ));
+  const sourceCanonical = serializeScenarioRecipe(source);
+  const fork = forkScenarioSetup(source);
+
+  assert.deepEqual(fork, source);
+  assert.notEqual(fork, source);
+  assert.notEqual(fork.base, source.base);
+  assert.notEqual(fork.setup, source.setup);
+  assert.notEqual(fork.setup[0], source.setup[0]);
+  assert.equal(Object.isFrozen(fork), false);
+
+  const edited = appendScenarioSetupAction(
+    renameScenarioSetup(fork, 'Forked source'),
+    scenarioSetupAction('wolf', 2, 8, 1)
+  );
+  assert.equal(edited.name, 'Forked source');
+  assert.equal(edited.setup.length, 2);
+  assert.equal(serializeScenarioRecipe(source), sourceCanonical);
+  assert.equal(source.name, 'Shared source');
+  assert.equal(source.setup.length, 1);
 });
 
 test('freeze creates an independent deeply frozen normalized recipe copy', () => {
