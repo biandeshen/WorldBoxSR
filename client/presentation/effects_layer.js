@@ -7,10 +7,91 @@ export function playToolEffect(scene, effect, tileX, tileY, tileSize) {
   const profile = currentEffectProfile();
   playToolSound(effect);
 
+  if (effect === 'meteor') return playMeteor(scene, x, y, tileSize, profile);
   if (effect === 'lightning') return playLightning(scene, x, y, tileSize, profile);
   if (effect === 'erase') return playErase(scene, x, y, tileSize, profile);
   if (effect === 'spawn_grazer') return playSpawn(scene, x, y, tileSize, 0xf0bf68, 7, profile);
   return playSpawn(scene, x, y, tileSize, 0x8ad6ff, 6, profile);
+}
+
+function playMeteor(scene, x, y, tileSize, profile) {
+  const trail = scene.add.graphics().setDepth(1004);
+  trail.lineStyle(Math.max(3, tileSize * 0.15), 0xffd486, profile.reducedMotion ? 0.38 : 0.82);
+  trail.lineBetween(x - tileSize * 3.2, y - tileSize * 5.4, x, y);
+  trail.lineStyle(Math.max(1.5, tileSize * 0.07), 0xffffff, profile.reducedMotion ? 0.3 : 0.72);
+  trail.lineBetween(x - tileSize * 2.6, y - tileSize * 4.4, x, y);
+
+  const impact = scene.add.circle(
+    x,
+    y,
+    tileSize * 0.82,
+    0xffd28a,
+    Math.min(0.58, profile.flashAlpha * (profile.reducedMotion ? 1.15 : 1.75))
+  ).setDepth(1003);
+  const core = scene.add.circle(x, y, tileSize * 0.28, 0xffffff, profile.reducedMotion ? 0.48 : 0.95).setDepth(1005);
+  const ringA = scene.add.circle(x, y, tileSize * 0.42, 0xffffff, 0.015)
+    .setStrokeStyle(Math.max(2.2, tileSize * 0.1), 0xff9a59, profile.reducedMotion ? 0.55 : 0.96)
+    .setDepth(1002);
+  const ringB = scene.add.circle(x, y, tileSize * 0.68, 0xffffff, 0.01)
+    .setStrokeStyle(Math.max(1.8, tileSize * 0.07), 0xffd37a, profile.reducedMotion ? 0.35 : 0.74)
+    .setDepth(1001);
+  const sparks = createSparks(
+    scene,
+    x,
+    y,
+    tileSize,
+    0xff9858,
+    scaledSparkCount(20, profile),
+    1005
+  );
+
+  if (profile.cameraShake) scene.cameras.main.shake(230, 0.0085);
+
+  scene.tweens.add({
+    targets: trail,
+    alpha: 0,
+    duration: profile.reducedMotion ? 120 : 220,
+    onComplete: () => trail.destroy()
+  });
+  scene.tweens.add({
+    targets: impact,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.35 : 2.6,
+    duration: profile.reducedMotion ? 220 : 470,
+    ease: 'Quad.Out',
+    onComplete: () => impact.destroy()
+  });
+  scene.tweens.add({
+    targets: core,
+    alpha: 0,
+    scale: profile.reducedMotion ? 0.45 : 0.12,
+    duration: profile.reducedMotion ? 150 : 250,
+    onComplete: () => core.destroy()
+  });
+  scene.tweens.add({
+    targets: ringA,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.8 : 4.4,
+    duration: profile.reducedMotion ? 260 : 560,
+    ease: 'Cubic.Out',
+    onComplete: () => ringA.destroy()
+  });
+  scene.tweens.add({
+    targets: ringB,
+    alpha: 0,
+    scale: profile.reducedMotion ? 1.45 : 3.3,
+    duration: profile.reducedMotion ? 280 : 620,
+    ease: 'Cubic.Out',
+    onComplete: () => ringB.destroy()
+  });
+  animateSparks(
+    scene,
+    sparks,
+    x,
+    y,
+    tileSize * (profile.reducedMotion ? 0.9 : 2.15),
+    profile.reducedMotion ? 240 : 520
+  );
 }
 
 function playLightning(scene, x, y, tileSize, profile) {
