@@ -8,26 +8,26 @@ Last updated: 2026-08-25
 
 The active product stage is **v0.5.0 — World Stories**. Release gate: #208. Finite backlog: `docs/backlog/v0.5.md`.
 
-The current and only implementation slice is **Causal Event Card — #209 / #211**: turn one selected retained Chronicle event into a readable causal card whose explicit authoritative references can be followed to retained events or current world objects.
+The first implementation slice **Causal Event Card — #209 / #211** is complete pending merge. The only next implementation slice after merged-main verification is **Focused story trail**.
 
 ## Current authoritative capability
 
 The deterministic engine remains the only world truth: seeded/serializable RNG, fixed ticks, terrain/resources, human lifecycle/ancestry, settlements, polities, rulers, relations, visible warbands/combat, conquest/rebellion, territory/history, typed grazers, save/load, CLI/Simulation Lab and causal events.
 
-God powers act only through authoritative commands. v0.4 intentionally stops at six visible powers: Human, Grazer, Erase, Lightning, Meteor and Rain.
+World Stories remains a query/presentation layer over bounded `world.history`. Existing event `subject` / `causes` / stable IDs are authoritative; unresolved refs are normal under bounded history and remain visible rather than guessed.
 
-World Stories must remain a query/presentation layer over bounded `world.history`. Existing event `subject` / `causes` / stable IDs are authoritative; unresolved refs are normal under bounded history and must remain visible rather than guessed.
+## v0.5 Causal Event Card evidence
 
-## v0.5 first-slice state
-
-- existing history query layer already supported exact retained-event lookup plus current human/creature/settlement/lineage/parental-union reference resolution;
-- #211 extends that resolver only for authoritative `polity` and `warband` refs already emitted by v0.3 systems;
-- pure Event Card projection derives headline/detail/provenance and ordered Subject/Causes from one retained event plus reference resolution;
+- retained-reference resolution now covers current polity and warband refs already emitted by authoritative history;
+- one selected retained event projects into a readable card with headline/detail/provenance plus ordered Subject and Causes;
 - retained event refs can open another Event Card;
-- map-capable current refs can center the Phaser camera and identify the exact referenced object in inspector; polity refs use the current capital when available;
+- current human/creature/settlement/warband refs can navigate to their current map tile; polity refs use the current capital when available;
 - command refs and expired entity/event refs remain explicitly unavailable with truthful reasons;
-- story navigation is presentation-only and deterministic tests require snapshot/RNG neutrality;
-- real Chromium gate is being upgraded to select a visible seed45 Chronicle event with both a retained event cause and a map-capable ref, follow both, and require the serialized authoritative world fingerprint to remain unchanged.
+- navigation is presentation-only; deterministic tests require exact snapshot/RNG neutrality;
+- real Chromium on seed45 uses real Lightning pointer input to kill a ruler with a deterministic successor, lets normal simulation record succession with the ruler-death event as an explicit cause, then opens the visible succession Event Card;
+- Chromium follows the retained death-event cause and a current map-capable reference with real mouse input and verifies the serialized authoritative world fingerprint is unchanged by story navigation;
+- manual screenshot review confirms the succession card, unavailable dead-ruler subject, retained death/Lightning causal chain and map-reference navigation are player-readable;
+- the first slice no longer changes Chronicle representative-event selection policy; broader Chronicle strategy remains deferred to its own later slice.
 
 ## Binding product decisions
 
@@ -42,7 +42,8 @@ World Stories must remain a query/presentation layer over bounded `world.history
 
 ## Current decision gate
 
-1. finish #211 deterministic + real Chromium Event Card evidence;
-2. merge #211 only when CI and World Stories navigation gate are green;
-3. move next to the smallest focused-story-trail slice from `docs/backlog/v0.5.md`;
-4. do not start bookmarks, AI summary, replay or broader Chronicle redesign before the current slice closes.
+1. require the documentation-synchronized #211 head to remain CI + Chromium green;
+2. squash merge #211 and close #209;
+3. verify merged `main` CI, Pages and Chromium;
+4. open a finite **Focused story trail** issue/branch and implement only explicit-reference story focus;
+5. do not start bookmarks, AI summary, replay or broader Chronicle redesign before the focused-trail slice closes.
