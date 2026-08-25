@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { applyCommand } from '../engine/core/commands.js';
 import { historyForCreature, resolveEventReferences } from '../engine/analysis/history_query.js';
 import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createGrazer } from '../engine/model/grazer.js';
 import { createWolf } from '../engine/model/wolf.js';
 import { updateWolves } from '../engine/systems/wolves.js';
+import { initializeValidatedNaturalGrazers, NATURAL_GRAZER_CONFIG } from '../engine/world/natural_fauna.js';
 
 function flatWorld(seed = 45) {
   const world = createWorld({ seed, width: 8, height: 8, population: 0 });
@@ -169,3 +171,83 @@ test('save-load continuation with an active hungry Wolf matches uninterrupted si
   assert.deepEqual(snapshotWorld(restored), snapshotWorld(uninterrupted));
   assert.ok(uninterrupted.history.some((event) => event.type === 'creature.predated'));
 });
+
+test('supported seed45 Living Ecology produces one explicit-Wolf movement and real predation without hidden god reseeding', () => {
+  const world = createWorld({
+    seed: 45,
+    width: 24,
+    height: 24,
+    population: 30,
+    config: NATURAL_GRAZER_CONFIG
+  });
+  initializeValidatedNaturalGrazers(world);
+  tickWorld(world, 40 * world.config.daysPerYear);
+
+  const spawnTile = farthestClearTileFromLivingGrazers(world);
+  assert.ok(spawnTile, 'seed45 Y40 must expose a clear passable Wolf setup tile');
+  assert.ok(spawnTile.nearestGrazerDistance >= 2, `Wolf setup should require movement, got nearest distance ${spawnTile.nearestGrazerDistance}`);
+  assert.ok(spawnTile.nearestGrazerDistance <= world.config.wolfPreySearchRadius);
+
+  const godSpawnEventsBefore = world.history.filter((event) => event.type === 'god.spawn_creature').length;
+  const [wolfId] = applyCommand(world, {
+    type: 'spawn_creature',
+    species: 'wolf',
+    x: spawnTile.x,
+    y: spawnTile.y,
+    count: 1
+  });
+  const wolf = creature(world, wolfId);
+  assert.ok(wolf);
+  const origin = { x: wolf.x, y: wolf.y };
+  let moved = false;
+  let predation = null;
+  let death = null;
+
+  for (let day = 0; day < 140; day += 1) {
+    const previous = { x: wolf.x, y: wolf.y };
+    const firstNewEventId = world.nextEventId;
+    tickWorld(world, 1);
+    const currentWolf = creature(world, wolfId);
+    assert.ok(currentWolf, 'supported seed45 Wolf should find prey before starvation');
+    if (currentWolf.x !== previous.x || currentWolf.y !== previous.y) moved = true;
+    predation = world.history.find((event) => event.id >= firstNewEventId && event.type === 'creature.predated' && event.predatorCreatureId === wolfId) ?? null;
+    if (predation) {
+      death = world.history.find((event) => event.id > predation.id && event.type === 'creature.died' && event.creatureId === predation.preyCreatureId) ?? null;
+      break;
+    }
+  }
+
+  assert.equal(moved, true, `Wolf #${wolfId} should visibly leave ${origin.x},${origin.y} before/while hunting`);
+  assert.ok(predation, 'supported seed45 Wolf should produce a bounded authoritative predation event');
+  assert.ok(death, 'predation must have a matching shared creature death event');
+  assert.equal(death.cause, 'predation');
+  assert.equal(creature(world, predation.preyCreatureId), null);
+  assert.ok(predation.predatorHungerAfter < predation.predatorHungerBefore);
+  assert.equal(
+    world.history.filter((event) => event.type === 'god.spawn_creature').length,
+    godSpawnEventsBefore + 1,
+    'only the explicit QA Wolf spawn may be a god creature spawn'
+  );
+});
+
+function farthestClearTileFromLivingGrazers(world) {
+  const grazers = world.creatures.filter((creature) => creature.alive && creature.species === 'grazer');
+  const occupied = new Set([
+    ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive).map((entity) => `${entity.x},${entity.y}`),
+    ...world.creatures.filter((creature) => creature.alive).map((creature) => `${creature.x},${creature.y}`),
+    ...(world.warbands ?? []).filter((warband) => warband.active).map((warband) => `${warband.x},${warband.y}`)
+  ]);
+
+  return world.tiles
+    .filter((tile) => tile.passable && !occupied.has(`${tile.x},${tile.y}`))
+    .map((tile) => ({
+      x: tile.x,
+      y: tile.y,
+      nearestGrazerDistance: grazers.reduce(
+        (min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))),
+        Infinity
+      )
+    }))
+    .filter((tile) => tile.nearestGrazerDistance <= world.config.wolfPreySearchRadius)
+    .sort((a, b) => b.nearestGrazerDistance - a.nearestGrazerDistance || a.y - b.y || a.x - b.x)[0] ?? null;
+}
