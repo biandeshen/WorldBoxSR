@@ -154,12 +154,14 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
 
   const recipe = freezeScenarioSetup(recipeInput);
   const previousPaused = Boolean(scene.paused);
+  const previousBooting = Boolean(scene.booting);
   const previousDraft = state.draft;
   const previousFrozen = state.frozen;
   const previousActive = state.active;
 
   state.busy = true;
   state.active = false;
+  scene.booting = true;
   setPaused(scene, ui, true);
   setLocked(ui, true);
   if (ui.boot) ui.boot.textContent = 'Phaser 4 · authoritative simulation · importing Scenario…';
@@ -186,6 +188,7 @@ async function installPortableRecipe(scene, state, ui, recipeInput) {
     renderScenarioSetup(state, ui);
     return recipe;
   } catch (error) {
+    scene.booting = previousBooting;
     state.draft = previousDraft;
     state.frozen = previousFrozen;
     state.active = previousActive;
