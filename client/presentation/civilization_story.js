@@ -44,7 +44,12 @@ const PRIORITY = Object.freeze({
   'warband.disbanded': 24
 });
 
+// Two intervention slots are intentional. v0.4's core player story is often a
+// short sequence such as Meteor → Rain. The second slot is consumed only when
+// a second distinct intervention exists; otherwise the loop naturally falls
+// through to the remaining representative world-story groups.
 const REPRESENTATIVE_GROUPS = Object.freeze([
+  'intervention',
   'intervention',
   'outcome',
   'diplomacy',
