@@ -1,4 +1,4 @@
-import { creatureBehaviorLabel, livingEcologyVegetationHud } from './ecology_readability.js';
+import { creatureInspectorText, livingEcologyVegetationHud } from './ecology_readability.js';
 import { showcasePresetForWorld, worldSummary } from './world_adapter.js';
 
 if (document.documentElement.dataset.renderer === 'phaser') attachWhenReady();
@@ -12,29 +12,29 @@ function attachWhenReady() {
     return;
   }
 
-  const inspectorObserver = new MutationObserver(() => renderInspectorBehavior(scene, inspector));
+  const inspectorObserver = new MutationObserver(() => renderCurrentCreatureInspector(scene, inspector));
   inspectorObserver.observe(inspector, { childList: true, characterData: true, subtree: true });
-  const statsObserver = new MutationObserver(() => renderVegetationHud(scene, stats));
+  const statsObserver = new MutationObserver(() => {
+    renderCurrentCreatureInspector(scene, inspector);
+    renderVegetationHud(scene, stats);
+  });
   statsObserver.observe(stats, { childList: true, characterData: true, subtree: true });
 
-  renderInspectorBehavior(scene, inspector);
+  renderCurrentCreatureInspector(scene, inspector);
   renderVegetationHud(scene, stats);
 }
 
-function renderInspectorBehavior(scene, inspector) {
+function renderCurrentCreatureInspector(scene, inspector) {
   const current = inspector.textContent ?? '';
-  const lines = current.split('\n').filter((line) => !line.startsWith('behavior '));
-  const match = /^(Grazer|Wolf) #(\d+)$/.exec(lines[0] ?? '');
+  const match = /^(Grazer|Wolf) #(\d+)$/.exec(current.split('\n')[0] ?? '');
   if (!match) return;
 
   const creatureId = Number(match[2]);
   const creature = scene.world?.creatures?.find((candidate) => candidate.alive && candidate.id === creatureId);
-  if (!creature) return;
-  const behavior = creatureBehaviorLabel(creature, scene.world.config);
-  if (!behavior) return;
-
-  const desired = [lines[0], `behavior ${behavior}`, ...lines.slice(1)].join('\n');
-  if (desired !== current) inspector.textContent = desired;
+  const desired = creature
+    ? creatureInspectorText(creature, scene.world.config)
+    : `${match[1]} #${creatureId}\nnot currently present`;
+  if (desired && desired !== current) inspector.textContent = desired;
 }
 
 function renderVegetationHud(scene, stats) {
