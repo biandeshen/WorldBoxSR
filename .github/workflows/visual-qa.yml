@@ -22,6 +22,7 @@ on:
       - 'tools/capture-multi-species-evidence.mjs'
       - 'tools/capture-wolf-predation-evidence.mjs'
       - 'tools/capture-ecology-readability-evidence.mjs'
+      - 'tools/capture-canonical-ecology-evidence.mjs'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -62,5 +63,6 @@ jobs:
             echo '- v0.6 multi-species surface: on a paused Living Ecology world, one Wolf is explicitly spawned through the authoritative hidden QA creature-spawn path; Grazer and Wolf must have distinct EntityLayer visual signatures, species-aware inspectors and a compact Wolf HUD count, while post-spawn inspection remains read-only.'
             echo '- v0.6 Wolf predation: on a fresh Living Ecology world, one explicit QA Wolf is advanced through the ordinary one-day Time control; real simulation must visibly move it, record causal `creature.predated` → `creature.died(predation)`, remove the prey, reduce Wolf hunger and preserve post-kill paused inspection authority.'
             echo '- v0.6 ecology readability: the authoritative hunt must project into one live Wolf→Grazer Pulse, a readable Recent Chronicle row and Causal Event Card, while a current Wolf inspector shows derived behavior and Living Ecology HUD `🌿 N%` exactly matches authoritative vegetation utilization; all read-only navigation preserves the paused world fingerprint.'
-            echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, prior release regressions, Living Ecology natural-fauna, mixed-species, Wolf predation and ecology-readability evidence.'
+            echo '- v0.6 canonical gate: paused seed45 Living Ecology must expose the frozen Y40 trough, reach the frozen Y50 recovery through the ordinary 1-year Time control, then use the one fixed QA Wolf setup to prove real movement→predation and readable Pulse/Recent/Event Card/current Wolf through player surfaces with unchanged paused authority.'
+            echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, prior release regressions, component ecology evidence and canonical trough/recovery/predation screenshots + JSON.'
           } >> "$GITHUB_STEP_SUMMARY"
