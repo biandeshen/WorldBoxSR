@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSettlement } from '../engine/model/settlement.js';
 import { updatePolities } from '../engine/systems/polities.js';
-import { createWorld, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, SNAPSHOT_VERSION, snapshotWorld, tickWorld, worldFromSnapshot } from '../engine/core/world.js';
 
 function firstPassable(world) {
   return world.tiles.find((tile) => tile.passable);
@@ -48,7 +48,7 @@ test('a polity dissolves when it has no active member settlement', () => {
   assert.ok(world.history.some((event) => event.type === 'polity.dissolved' && event.polityId === world.polities[0].id));
 });
 
-test('snapshot v12 preserves polity identity and v11 snapshots migrate safely', () => {
+test('current snapshots preserve polity identity and v11 snapshots migrate safely', () => {
   const world = createWorld({ seed: 91, width: 8, height: 8, population: 0 });
   const tile = firstPassable(world);
   createSettlement(world, { x: tile.x, y: tile.y });
@@ -64,11 +64,13 @@ test('snapshot v12 preserves polity identity and v11 snapshots migrate safely', 
   legacy.snapshotVersion = 11;
   delete legacy.nextPolityId;
   delete legacy.polities;
+  delete legacy.relations;
   for (const settlement of legacy.settlements) delete settlement.polityId;
   const migrated = worldFromSnapshot(legacy);
-  assert.equal(migrated.snapshotVersion, 12);
+  assert.equal(migrated.snapshotVersion, SNAPSHOT_VERSION);
   assert.equal(migrated.nextPolityId, 1);
   assert.deepEqual(migrated.polities, []);
+  assert.deepEqual(migrated.relations, []);
   assert.equal(migrated.settlements[0].polityId, null);
 
   tickWorld(migrated, 1);
