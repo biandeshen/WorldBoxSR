@@ -9,6 +9,8 @@ if (!browser || !baseUrl || !outDir) {
   process.exit(2);
 }
 
+const CANONICAL_READY_DAY = 40 * 360;
+
 mkdirSync(outDir, { recursive: true });
 const userDataDir = mkdtempSync(join(tmpdir(), 'worldboxsr-watchlist-'));
 const logFd = openSync(join(outDir, 'watchlist-chrome-runtime.log'), 'w');
@@ -28,9 +30,15 @@ try {
   cdp = await createCdpClient(target.webSocketDebuggerUrl);
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
-  await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
+
+  // Pause during warmup rather than after `showcase ready`. Otherwise the
+  // default product clock can advance a few post-ready ticks before CDP polls,
+  // making the first and reloaded bounded histories differ even for seed45.
+  await waitForSceneWorld(cdp, 5_000);
   await freezeChronicle(cdp);
-  console.log('[watchlist] first world ready and paused');
+  await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
+  await assertCanonicalReadyDay(cdp, 'first world');
+  console.log('[watchlist] first world ready and paused at exact Y40');
 
   const setup = await evaluate(cdp, `(() => {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
@@ -77,10 +85,12 @@ try {
 
   await cdp.send('Page.reload', { ignoreCache: false }, 8_000);
   console.log('[watchlist] Page.reload acknowledged');
-  await delay(500);
-  await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
+  await delay(250);
+  await waitForSceneWorld(cdp, 5_000);
   await freezeChronicle(cdp);
-  console.log('[watchlist] reloaded world ready and paused');
+  await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
+  await assertCanonicalReadyDay(cdp, 'reloaded world');
+  console.log('[watchlist] reloaded world ready and paused at exact Y40');
 
   const reloadStart = await stateEvidence(cdp);
   await waitForExpression(cdp, `document.querySelector('#story-watchlist')?.dataset?.watchlistCount === '2' && document.querySelector('#story-watchlist')?.hidden === false`, 5_000);
@@ -114,6 +124,7 @@ try {
     sourceEventId: chosen.eventId,
     eventBookmarkKey: eventKey,
     entityBookmark: { kind: chosen.entityKind, id: chosen.entityId, key: entityKey },
+    canonicalReadyDay: CANONICAL_READY_DAY,
     pinnedBeforeReload: pinned.keys,
     persistedStorageBeforeReload: JSON.parse(beforeReload.storage),
     rehydratedAfterReload: rehydrated.keys,
@@ -121,7 +132,7 @@ try {
     authorityUnchangedBeforeReload: true,
     authorityUnchangedAfterReload: true
   }, null, 2)}\n`);
-  console.log(`Watchlist evidence: pinned ${eventKey} + ${entityKey}; browsed; reopened; reload restored 2/2; Unpin/Clear authority unchanged`);
+  console.log(`Watchlist evidence: exact-Y40 ${eventKey} + ${entityKey}; browsed; reopened; reload restored and reopened 2/2; Unpin/Clear authority unchanged`);
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
@@ -144,6 +155,23 @@ async function chooseBookmarkableCard(cdpClient, visibleEventIds) {
     if (candidate?.entityKind && Number.isInteger(candidate.entityId)) return { eventId, ...candidate };
   }
   return null;
+}
+
+async function waitForSceneWorld(cdpClient, timeoutMs) {
+  await waitForExpression(cdpClient, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    return Boolean(scene?.world && document.querySelector('#pause') && document.querySelector('#timeline'));
+  })()`, timeoutMs);
+}
+
+async function assertCanonicalReadyDay(cdpClient, label) {
+  const state = await evaluate(cdpClient, `(() => ({
+    day: globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day ?? -1,
+    paused: document.querySelector('#pause')?.dataset?.active === 'true'
+  }))()`);
+  if (state.day !== CANONICAL_READY_DAY || !state.paused) {
+    throw new Error(`${label} did not settle at exact paused Y40: ${JSON.stringify(state)}`);
+  }
 }
 
 async function freezeChronicle(cdpClient) {
