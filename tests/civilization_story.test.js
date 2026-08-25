@@ -65,6 +65,31 @@ test('chronicle keeps civilization transitions visible and gracefully humanizes 
   assert.equal(chronicleEntryForEvent(world, world.history[2]).headline, 'Human Born');
 });
 
+test('repeated ruler churn cannot crowd war, battle, and conquest out of the civilization chronicle', () => {
+  const world = {
+    config: { daysPerYear: 360 },
+    polities: [{ id: 1, name: 'Amber Reach' }, { id: 2, name: 'Blue March' }],
+    settlements: [{ id: 7, name: 'Stoneford' }],
+    history: [
+      { id: 1, day: 100, type: 'polity.founded', polityId: 1, name: 'Amber Reach', capitalSettlementId: 7 },
+      { id: 2, day: 200, type: 'polity.war_started', relationKey: '1:2', polityAId: 1, polityBId: 2, score: -70 },
+      { id: 3, day: 230, type: 'warband.engaged', relationKey: '1:2', polityAId: 1, polityBId: 2, x: 4, y: 4, lossA: 2, lossB: 3, strengthA: 8, strengthB: 1 },
+      { id: 4, day: 260, type: 'settlement.conquered', settlementId: 7, settlementName: 'Stoneford', previousPolityId: 2, newPolityId: 1, conquestCount: 1 },
+      { id: 5, day: 300, type: 'polity.ruler_succeeded', polityId: 1, name: 'Amber Reach', rulerId: 11, previousRulerId: 10 },
+      { id: 6, day: 320, type: 'polity.ruler_succeeded', polityId: 1, name: 'Amber Reach', rulerId: 12, previousRulerId: 11 },
+      { id: 7, day: 340, type: 'polity.ruler_succeeded', polityId: 1, name: 'Amber Reach', rulerId: 13, previousRulerId: 12 },
+      { id: 8, day: 350, type: 'polity.ruler_succeeded', polityId: 2, name: 'Blue March', rulerId: 21, previousRulerId: 20 }
+    ]
+  };
+
+  const rows = civilizationChronicle(world, { limit: 6 });
+  const types = rows.map((entry) => entry.eventType);
+  assert.ok(types.includes('settlement.conquered'));
+  assert.ok(types.includes('polity.war_started'));
+  assert.ok(types.includes('warband.engaged'));
+  assert.equal(types.filter((type) => type === 'polity.ruler_succeeded').length, 2, 'only the latest ruler change per polity should remain representative');
+});
+
 test('pulse cursor ignores old history and chooses the highest-value new political transition', () => {
   const world = {
     config: { daysPerYear: 360 },
