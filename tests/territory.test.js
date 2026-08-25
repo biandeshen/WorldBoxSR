@@ -101,7 +101,16 @@ function relationHistory(world) {
 }
 
 function nonRelationHistory(world) {
-  return world.history
-    .filter((event) => event.type !== 'polity.war_started' && event.type !== 'polity.peace_made')
-    .map(({ id, ...event }) => event);
+  const events = world.history.filter((event) => event.type !== 'polity.war_started' && event.type !== 'polity.peace_made');
+  const canonicalIds = new Map(events.map((event, index) => [event.id, index + 1]));
+  return events.map(({ id, ...event }) => normalizeEventRefs(event, canonicalIds));
+}
+
+function normalizeEventRefs(value, canonicalIds) {
+  if (Array.isArray(value)) return value.map((item) => normalizeEventRefs(item, canonicalIds));
+  if (!value || typeof value !== 'object') return value;
+  if (value.kind === 'event' && Number.isInteger(value.id)) {
+    return { ...value, id: canonicalIds.get(value.id) ?? `external:${value.id}` };
+  }
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeEventRefs(item, canonicalIds)]));
 }
