@@ -87,8 +87,9 @@ try {
   if ((await evaluate(cdp, `document.querySelector('#scenario-setup-count')?.textContent`)) !== '3/32 actions') throw new Error('impassable Setup click changed action count');
 
   // Rename through the real input and its standard bubbling change contract.
-  // CDP text insertion does not reliably synthesize blur/change in headless
-  // Chromium, so dispatch the same DOM event a real committed edit produces.
+  // Establish the text selection in-page (not via flaky Ctrl+A synthesis), then
+  // let CDP type the replacement. The product's change handler still owns the
+  // actual immutable draft rename.
   await replaceInputText(cdp, '#scenario-name', SCENARIO_NAME);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.scenarioSetup?.draft?.name === ${JSON.stringify(SCENARIO_NAME)}`, 2_000);
   if ((await fingerprint(cdp)) !== threeActionFingerprint) throw new Error('renaming Scenario Setup mutated authoritative world');
@@ -357,10 +358,14 @@ async function fixedTilePoint(cdpClient, x, y) {
 }
 
 async function replaceInputText(cdpClient, selector, value) {
-  const point = await elementCenter(cdpClient, selector);
-  await clickPoint(cdpClient, point, 0);
-  await cdpClient.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 2 });
-  await cdpClient.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 2 });
+  const prepared = await evaluate(cdpClient, `(() => {
+    const input = document.querySelector(${JSON.stringify(selector)});
+    if (!(input instanceof HTMLInputElement)) return false;
+    input.focus();
+    input.select();
+    return document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length;
+  })()`);
+  if (!prepared) throw new Error(`Scenario input could not be focused/selected: ${selector}`);
   await cdpClient.send('Input.insertText', { text: value });
   const changed = await evaluate(cdpClient, `(() => {
     const input = document.querySelector(${JSON.stringify(selector)});
