@@ -105,38 +105,52 @@ No AI-authored canonical facts, required AI summary, replay/rewind, graph/databa
 **Status: shipped. Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”**
 
 ### Shipped scope
-1. **Supported Living Ecology preset** — canonical 24×24 world, exact 10-founder deterministic natural Grazer initializer, natural reproduction + gradual old age, no hidden reseed;
-2. **Grazer + Wolf creature surface** — exactly two shipped creature identities, shared selection/inspection/reference path and distinct visuals;
-3. **authoritative Wolf predation** — deterministic hunger, bounded prey search, one-tile chase, one-prey hunt/feeding, starvation and explicit causal history;
-4. **ecology readability** — current behavior Inspector, compact authoritative `🌿 N%`, readable predation Pulse/Recent/Event Card and truthful dead-prey/current-Wolf navigation;
-5. **canonical Living Ecology gate** — fixed seed45 pressure→recovery checkpoints, fixed Wolf continuation, byte-repeatability, Y40 save→load continuation and one full production Chromium release path.
+1. Supported Living Ecology preset — canonical 24×24 world, exact 10-founder deterministic natural Grazer initializer, natural reproduction + gradual old age, no hidden reseed;
+2. Grazer + Wolf creature surface — exactly two shipped creature identities, shared selection/inspection/reference path and distinct visuals;
+3. authoritative Wolf predation — deterministic hunger, bounded prey search, one-tile chase, one-prey hunt/feeding, starvation and explicit causal history;
+4. ecology readability — current behavior Inspector, compact authoritative `🌿 N%`, readable predation Pulse/Recent/Event Card and truthful dead-prey/current-Wolf navigation;
+5. canonical Living Ecology gate — fixed seed45 pressure→recovery checkpoints, fixed Wolf continuation, byte-repeatability, Y40 save→load continuation and one full production Chromium release path.
 
 Detailed backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md). Release QA: [`docs/demos/v0.6.0.md`](demos/v0.6.0.md). Release notes: [`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
 
-### Canonical release evidence
-- Y34: `136 Grazers · 34.31% vegetation · 150 natural births`;
-- Y40 trough: `116 · 17.50% · 156`;
-- Y50 recovery: `68 · 37.44% · 160`;
-- fixed QA Wolf #171 at `(0,8)` first moves to `(1,9)` and predates Grazer #110;
-- uninterrupted, duplicate and Y40 snapshot→restore complete paths finish with byte-identical authority;
-- production Chromium reproduces Y40→Y50 through ordinary Time controls and exposes the hunt through Pulse, Recent, Event Card and current Wolf Inspector while paused presentation remains read-only.
-
 ### Release identity
-- implementation freeze: `ac94bd0bfa59790f959c02c261c3506c378fb26d`;
-- release commit: `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
-- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb` points exactly to the release commit;
-- GitHub Release `WorldBoxSR v0.6.0` is published from checked-in release notes;
-- release workflow #10, release-commit CI #748, Pages #50 with final public `/play/`, and full visual-qa #247 are green.
+- implementation freeze `ac94bd0bfa59790f959c02c261c3506c378fb26d`;
+- release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
+- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb` targets exactly the release commit;
+- GitHub Release, release workflow #10, CI #748, Pages #50/public `/play/` and visual-qa #247 verified;
+- post-release closeout #239 merged without moving release identity; CI #750, Pages #51 and visual-qa #248 green.
 
 ### Deliberate stop
-No universal 16×16–48×48 initializer, equilibrium/minimum-population controller, hidden rescue/reseed, natural Wolf-founder policy, Wolf reproduction/packs, additional species/generic food web, disease, seasons/climate, genetics/evolution, plant-species model, ecology dashboard/heatmap, new God Power or renewed civilization/economy/religion/technology breadth.
+No universal fauna initializer, equilibrium controller, hidden rescue/reseed, Wolf reproduction/natural founders, additional species/generic food web, disease/climate/genetics, ecology dashboard, new God Power or renewed civilization/economy breadth.
 
 ---
 
-## v0.7.0 — World Builder & Scenarios
-**Status: next planning direction.**
+## v0.7.0 — Scenario Builder & Sharing
+**Status: planning gate active. Release gate #240.**
 
-Potential capability pool: world-generation UI, terrain/biome/life/civilization brushes, named scenarios/rules, save/import/export/share metadata, capture helpers and community-scenario groundwork. The exact v0.7 scope must now be converted into a finite release gate before implementation starts; do not inherit this entire pool as a mega-sprint.
+**Primary fantasy: “I can assemble a world setup, send it to someone else, and we both start from exactly the same world before running or forking different histories.”**
+
+v0.7 deliberately starts with a **Scenario Recipe**, not a full map painter. It turns the shipped deterministic startup/command architecture into a portable player workflow before adding authoritative terrain mutation or community infrastructure.
+
+### Planned finite scope
+1. **Versioned Scenario Recipe** — compact validated `seed + preset + ordered Human/Grazer/Wolf placement actions + name`; current 24×24/40y Sandbox/Living Ecology startup semantics are reused exactly;
+2. **Scenario Setup workspace** — explicit paused setup mode, three placement identities, compact recipe summary, Run and deterministic rebuild boundaries;
+3. **Portable share/import/export** — canonical JSON + `scenario=` share URL, fresh-tab exact reconstruction, no snapshot/cloud state;
+4. **Replay + Fork** — Replay rematerializes exact recipe start; Fork creates an editable copy without changing imported/shared recipe identity;
+5. **canonical Scenario Builder gate** — create → share/import → exact same start → Run → Replay exact start → Fork expected deterministic difference in headless + production Chromium;
+6. release-only `v0.7.0` handoff after merged-main delivery verification.
+
+Detailed finite backlog: [`docs/backlog/v0.7.md`](backlog/v0.7.md).
+
+### Architecture boundary
+- recipe is versioned startup input, never a live-world snapshot or second simulation;
+- materialization reuses current world creation + authoritative commands;
+- current v0.6 startup remains byte-compatible when no recipe is present;
+- recipe metadata/URL codec owns no RNG/world history/snapshot state;
+- Phaser is the v0.7 product surface; Legacy remains comparison-only.
+
+### Deliberate stop
+No terrain/elevation/moisture/biome/water painter, arbitrary tile/resource editing, live save-game UI, rules DSL/scripting, objectives/scoring, cloud/workshop/backend, AI-generated authority, custom map sizes or new simulation mechanics. A later builder stage may add terrain editing only after an authoritative mutation contract exists.
 
 ---
 
@@ -155,4 +169,7 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.6.0 is shipped and its feature breadth is frozen.** The next legal product work is finite v0.7 planning: define one coherent World Builder & Scenarios player promise, an ordered backlog, explicit non-goals and a canonical product gate before implementation begins.
+1. merge the v0.7 planning-only backlog/ROADMAP/STATUS PR after normal CI;
+2. only then open capability 1: **Versioned Scenario Recipe contract + deterministic materializer**;
+3. do not start Scenario Setup, URL/share, terrain editing or other builder breadth in parallel;
+4. no implementation is accepted unless it advances the finite loop `compose → share/import → exact same start → Run → Replay/Fork`.
