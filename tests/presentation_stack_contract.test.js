@@ -10,6 +10,7 @@ const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const bootstrap = readFileSync(join(root, 'client', 'bootstrap.js'), 'utf8');
 const indexHtml = readFileSync(join(root, 'client', 'index.html'), 'utf8');
 const adapter = readFileSync(join(root, 'client', 'presentation', 'world_adapter.js'), 'utf8');
+const warbandLayer = readFileSync(join(root, 'client', 'presentation', 'warband_layer.js'), 'utf8');
 const viteConfig = readFileSync(join(root, 'vite.config.js'), 'utf8');
 
 test('v0.2 pins the accepted Phaser and Vite spike versions', () => {
@@ -42,6 +43,13 @@ test('presentation adapter uses authoritative engine commands without importing 
   assert.doesNotMatch(adapter, /from ['"]phaser['"]/);
 });
 
+test('warband presentation consumes authority without creating a second simulation', () => {
+  assert.match(adapter, /world\.warbands/);
+  assert.match(warbandLayer, /view\.warbands/);
+  assert.match(warbandLayer, /polityColor/);
+  assert.doesNotMatch(warbandLayer, /engine\/systems\/warbands|tickWorld|applyCommand/);
+});
+
 test('authoritative engine remains presentation-framework independent', () => {
   for (const path of walk(join(root, 'engine'))) {
     if (!path.endsWith('.js')) continue;
@@ -59,6 +67,7 @@ test('new presentation modules are syntax-valid before browser bundling', () => 
     'client/presentation/terrain_layer.js',
     'client/presentation/entity_layer.js',
     'client/presentation/settlement_layer.js',
+    'client/presentation/warband_layer.js',
     'client/presentation/effects_layer.js',
     'vite.config.js'
   ];

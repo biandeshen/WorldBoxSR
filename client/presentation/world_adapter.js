@@ -51,6 +51,43 @@ export function worldView(world) {
   const settlementById = new Map(world.settlements.map((settlement) => [settlement.id, settlement]));
   const polityById = new Map(world.polities.map((polity) => [polity.id, polity]));
   const relations = (world.relations ?? []).filter((relation) => relation.active).map((relation) => ({ ...relation }));
+  const activeWarbands = (world.warbands ?? []).filter((warband) => warband.active).sort((a, b) => a.id - b.id);
+  const warbands = activeWarbands.map((warband) => {
+    const polity = polityById.get(warband.polityId);
+    const opponent = polityById.get(warband.opponentPolityId);
+    const origin = settlementById.get(warband.originSettlementId);
+    const target = settlementById.get(warband.targetSettlementId);
+    const opposingBand = activeWarbands.find((candidate) => candidate.relationKey === warband.relationKey
+      && candidate.warStartedDay === warband.warStartedDay
+      && candidate.polityId === warband.opponentPolityId);
+    const engaged = Boolean(opposingBand && manhattan(warband.x, warband.y, opposingBand.x, opposingBand.y) <= 1);
+    const atOrigin = Boolean(origin && warband.x === origin.x && warband.y === origin.y);
+    return {
+      id: warband.id,
+      x: warband.x,
+      y: warband.y,
+      strength: warband.strength,
+      initialStrength: warband.initialStrength,
+      sourceAdultPopulation: warband.sourceAdultPopulation,
+      polityId: warband.polityId,
+      polityName: polity?.name ?? `Polity #${warband.polityId}`,
+      polityColorIndex: polity?.colorIndex ?? 0,
+      opponentPolityId: warband.opponentPolityId,
+      opponentPolityName: opponent?.name ?? `Polity #${warband.opponentPolityId}`,
+      relationKey: warband.relationKey,
+      warStartedDay: warband.warStartedDay,
+      originSettlementId: warband.originSettlementId,
+      originSettlementName: origin?.name ?? null,
+      targetSettlementId: warband.targetSettlementId,
+      targetSettlementName: target?.name ?? null,
+      formedDay: warband.formedDay,
+      lastMovedDay: warband.lastMovedDay,
+      lastEngagedDay: warband.lastEngagedDay,
+      engagements: warband.engagements,
+      engaged,
+      movementState: engaged ? 'engaged' : (atOrigin && warband.engagements === 0 ? 'mobilized' : 'marching')
+    };
+  });
   return {
     width: world.width,
     height: world.height,
@@ -84,13 +121,16 @@ export function worldView(world) {
       };
     }),
     polities: world.polities.map((polity) => ({ id: polity.id, name: polity.name, capitalSettlementId: polity.capitalSettlementId, settlementIds: [...polity.settlementIds], foundedDay: polity.foundedDay, active: polity.active, dissolvedDay: polity.dissolvedDay, colorIndex: polity.colorIndex, bannerStyle: polity.bannerStyle, rulerId: polity.rulerId ?? null, rulerSinceDay: polity.rulerSinceDay ?? null, rulerSequence: polity.rulerSequence ?? 0 })),
-    relations
+    relations,
+    warbands
   };
 }
 
 export function worldSummary(world) { return summarizeWorld(world); }
 
 export function selectionAt(world, x, y) {
+  const warband = (world.warbands ?? []).filter((candidate) => candidate.active && candidate.x === x && candidate.y === y).sort((a, b) => a.id - b.id)[0];
+  if (warband) return { kind: 'warband', value: warband };
   const human = world.entities.filter((entity) => entity.kind === 'human' && entity.x === x && entity.y === y).sort((a, b) => a.id - b.id)[0];
   if (human) return { kind: 'human', value: human };
   const grazer = world.creatures.filter((creature) => creature.alive && creature.x === x && creature.y === y).sort((a, b) => a.id - b.id)[0];
@@ -105,4 +145,8 @@ function relevantRelation(relations, polityId) {
   return relations
     .filter((relation) => relation.polityAId === polityId || relation.polityBId === polityId)
     .sort((a, b) => Number(b.atWar) - Number(a.atWar) || a.score - b.score || a.key.localeCompare(b.key))[0] ?? null;
+}
+
+function manhattan(ax, ay, bx, by) {
+  return Math.abs(ax - bx) + Math.abs(ay - by);
 }
