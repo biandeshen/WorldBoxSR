@@ -1,20 +1,68 @@
 import { applyCommand } from '../../engine/core/commands.js';
 import { summarizeWorld } from '../../engine/core/metrics.js';
 import { createWorld, tickWorld } from '../../engine/core/world.js';
+import {
+  initializeValidatedNaturalGrazers,
+  NATURAL_GRAZER_CONFIG
+} from '../../engine/world/natural_fauna.js';
 import { acceptedGodAction } from './god_action_outcome.js';
 
 export const SHOWCASE = Object.freeze({ width: 24, height: 24, population: 30, warmupYears: 40, warmupChunkYears: 2, defaultSeed: 45, grazerCount: 8 });
+export const SHOWCASE_PRESETS = Object.freeze([
+  Object.freeze({ id: 'sandbox', label: 'Sandbox' }),
+  Object.freeze({ id: 'living_ecology', label: 'Living Ecology' })
+]);
+export const DEFAULT_SHOWCASE_PRESET = 'sandbox';
+
+const showcasePresetByWorld = new WeakMap();
 
 export function normalizeSeed(seedToken) {
   const value = String(seedToken ?? '').trim() || String(SHOWCASE.defaultSeed);
   return /^[-+]?\d+$/.test(value) ? Number(value) : value;
 }
 
-export function createShowcaseWorld(seedToken = SHOWCASE.defaultSeed) {
-  return createWorld({ seed: normalizeSeed(seedToken), width: SHOWCASE.width, height: SHOWCASE.height, population: SHOWCASE.population });
+export function normalizeShowcasePreset(presetToken = DEFAULT_SHOWCASE_PRESET) {
+  const value = String(presetToken ?? '').trim() || DEFAULT_SHOWCASE_PRESET;
+  if (!SHOWCASE_PRESETS.some((preset) => preset.id === value)) throw new RangeError(`unsupported showcase preset: ${value}`);
+  return value;
 }
 
-export async function evolveShowcaseWorld(world, { years = SHOWCASE.warmupYears, chunkYears = SHOWCASE.warmupChunkYears, onProgress = null } = {}) {
+export function selectedShowcasePreset() {
+  const value = globalThis.document?.querySelector?.('#world-preset')?.value;
+  return normalizeShowcasePreset(value || DEFAULT_SHOWCASE_PRESET);
+}
+
+export function showcasePresetLabel(presetToken) {
+  const preset = normalizeShowcasePreset(presetToken);
+  return SHOWCASE_PRESETS.find((candidate) => candidate.id === preset)?.label ?? preset;
+}
+
+export function createShowcaseWorld(seedToken = SHOWCASE.defaultSeed, presetToken = selectedShowcasePreset()) {
+  const preset = normalizeShowcasePreset(presetToken);
+  const world = createWorld({
+    seed: normalizeSeed(seedToken),
+    width: SHOWCASE.width,
+    height: SHOWCASE.height,
+    population: SHOWCASE.population,
+    config: preset === 'living_ecology' ? NATURAL_GRAZER_CONFIG : {}
+  });
+  if (preset === 'living_ecology') initializeValidatedNaturalGrazers(world);
+  showcasePresetByWorld.set(world, preset);
+  return world;
+}
+
+export function showcasePresetForWorld(world) {
+  return showcasePresetByWorld.get(world) ?? DEFAULT_SHOWCASE_PRESET;
+}
+
+export async function evolveShowcaseWorld(world, options = {}) {
+  const {
+    years = SHOWCASE.warmupYears,
+    chunkYears = SHOWCASE.warmupChunkYears,
+    onProgress = null,
+    preset = showcasePresetForWorld(world)
+  } = options;
+  const presetId = normalizeShowcasePreset(preset);
   if (!Number.isFinite(years) || years < 0) throw new RangeError('showcase years must be non-negative');
   if (!Number.isFinite(chunkYears) || chunkYears <= 0) throw new RangeError('showcase chunkYears must be positive');
   const targetDays = Math.round(years * world.config.daysPerYear);
@@ -25,7 +73,7 @@ export async function evolveShowcaseWorld(world, { years = SHOWCASE.warmupYears,
     onProgress?.({ day: world.day, year: world.day / world.config.daysPerYear, targetYear: years });
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
-  seedShowcaseGrazers(world);
+  if (presetId === 'sandbox') seedShowcaseGrazers(world);
   return world;
 }
 

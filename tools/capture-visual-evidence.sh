@@ -126,6 +126,13 @@ node tools/capture-chronicle-lenses-evidence.mjs "$browser" "$base_url" "$out_di
 # with partial-stage evidence instead of consuming the entire Actions timeout.
 bash tools/run-world-stories-gate.sh "$browser" "$base_url" "$out_dir"
 
+# v0.6 capability 1: in a fresh browser, Sandbox must remain default and retain
+# its exact post-warmup 8-grazer behavior. Then the visible Mode selector resets
+# into Living Ecology, which must use natural reproduction/old-age config, avoid
+# god-spawn founder history, retain at least one natural birth, and allow a real
+# Alt-click grazer inspection without mutating paused authority.
+node tools/capture-natural-fauna-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -159,7 +166,9 @@ world_stories_canonical_event=world-stories-canonical-event-1440x900.png
 world_stories_canonical_follow=world-stories-canonical-follow-1440x900.png
 world_stories_canonical_recovered=world-stories-canonical-recovered-1440x900.png
 world_stories_canonical_authority=world-stories-gate-evidence.json
-runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4 damage/recovery + v0.5 component regressions + canonical one-session World Stories path preserve authoritative world state after real causal setup
+natural_fauna=living-ecology-natural-fauna-1440x900.png
+natural_fauna_authority=natural-fauna-evidence.json
+runtime_probe=${ready_marker}; Renderer failed marker absent; v0.4/v0.5 regressions plus v0.6 Sandbox→Living Ecology natural-fauna selector/reset/inspection gate preserve declared authority boundaries
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"

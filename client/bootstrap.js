@@ -3,6 +3,11 @@ const renderer = params.get('renderer') === 'legacy' ? 'legacy' : 'phaser';
 
 document.documentElement.dataset.renderer = renderer;
 
+if (renderer === 'legacy') {
+  const presetField = document.querySelector('#world-preset')?.closest('.compact-field');
+  if (presetField) presetField.hidden = true;
+}
+
 const startup = renderer === 'legacy'
   ? import('./main.js')
   : import('./phaser_main.js');
