@@ -97,7 +97,7 @@ v0.4 stops at six powers. No fire propagation, plague/tornado framework, weather
 ---
 
 ## v0.5.0 — World Stories
-**Status: implementation complete; release handoff in progress. Primary fantasy: “this world has a history I can follow and remember.”**
+**Status: shipped. Primary fantasy: “this world has a history I can follow and remember.”**
 
 ### Promise
 Turn existing causal history into a stronger game-facing memory layer without allowing narrative presentation or AI to become a second source of truth.
@@ -109,7 +109,9 @@ Turn existing causal history into a stronger game-facing memory layer without al
 4. **Chronicle lenses** — exactly `Highlights · Recent · Conflict · Rule`, fixed 7-row limit, unchanged representative Highlights policy and explicit deterministic membership for the other lenses;
 5. **Canonical World Stories gate** — one deterministic real-Chromium session stitches ordinary gameplay causality → Event Card → retained cause → map navigation → Watchlist → Focused Story → Chronicle lens round-trip while story navigation remains read-only against the post-causality world fingerprint.
 
-Detailed finite backlog: [`docs/backlog/v0.5.md`](backlog/v0.5.md). Release QA: [`docs/demos/v0.5.0.md`](demos/v0.5.0.md).
+Detailed finite backlog: [`docs/backlog/v0.5.md`](backlog/v0.5.md). Release QA: [`docs/demos/v0.5.0.md`](demos/v0.5.0.md). Release notes: [`docs/releases/v0.5.0.md`](releases/v0.5.0.md).
+
+Release identity: tag `v0.5.0` points at commit `104dc7520b2e5ad39ec1d3c98c1cea94a11922b4`. Release workflow #9, CI #677, full Chromium visual-qa #187 and Pages #40 including the final public `/play/` check all passed.
 
 ### Exit gate
 On deterministic seed45, ordinary Lightning produces a real ruler-death → normal-succession story. From the paused post-succession baseline a player can understand the recorded transition and cause, navigate to the involved polity, preserve the event + polity, follow an explicit bounded polity story, open a trail event, browse Recent/Conflict/Rule and restore exact Highlights without raw engine JSON or any read-only story action mutating authoritative world state.
@@ -120,11 +122,27 @@ v0.5 does not add AI-authored canonical facts, a required AI summary, replay/rew
 ---
 
 ## v0.6.0 — Living Ecology
-**Next target after v0.5.0 release verification. Primary fantasy: “the environment and animal life form a visible system around civilizations.”**
+**Status: current target; planning gate next. Primary fantasy: “the environment and animal life form a visible system around civilizations.”**
 
-Return to preserved grazer evidence only after the v0.5 tag/release/public deployment is verified. Candidate scope: supported natural-fauna presets, multiple species, biome affinity/migration, predation/food-web foundations, deterministic initialization and ecology observability. Coherent extinction remains allowed; no hidden survival controller.
+v0.5 delivery is complete, so the next bounded product stage may now begin. It must start with a finite backlog and supported showcase/preset rather than open-ended ecology research.
 
-This stage must receive its own finite backlog and explicit product gate before implementation begins; the v0.5 release handoff is not permission to start unbounded ecology work.
+### Candidate problem space
+- supported natural-fauna initialization that remains deterministic;
+- multiple distinct species beyond the current single grazer abstraction;
+- biome affinity / migration that is visible on the map;
+- predation / food-web foundations that create understandable world consequences;
+- ecology observability suitable for player-facing inspection and deterministic regression gates.
+
+### Required planning constraints
+- define one visible player promise before implementation;
+- select supported seed/preset/scenario scope rather than promising universal equilibrium;
+- coherent extinction/collapse remains acceptable when causally truthful;
+- no hidden survival controller merely to force species persistence;
+- preserve deterministic initialization/save-load/world authority;
+- no economy/religion/technology or renewed civilization-depth expansion inside ecology scope;
+- no v0.5 World Stories reopening unless a concrete regression blocks the ecology product gate.
+
+The first v0.6 task is therefore **scope + finite backlog + canonical ecology gate design**, not feature coding by accumulation.
 
 ---
 
@@ -148,4 +166,4 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.5 World Stories feature implementation is frozen.** Complete only the `v0.5.0` release handoff, automated tag/Release creation, Pages/public verification and release-gate closure. **v0.6 Living Ecology is next only after that delivery is verifiably complete.** Do not reopen v0.5 story breadth or start ecology/civilization work inside the release branch.
+**v0.5.0 World Stories is closed and shipped. v0.6 Living Ecology is now the current target, but implementation must not begin until its finite product backlog and canonical visible-player gate are defined.** Preserve v0.5 release identity and avoid reopening closed story breadth without a concrete regression reason.
