@@ -112,11 +112,12 @@ storyWatchlist?.addEventListener('click', (event) => {
 
 resetButton?.addEventListener('click', () => {
   clearStoryFocus();
-  queueMicrotask(renderWatchlist);
+  if (storyWatchlist) storyWatchlist.hidden = true;
+  waitForWorldThenRenderWatchlist();
 });
 
 renderWatchlist();
-if (bookmarks.length > 0 && !worldScene()?.world) waitForWorldThenRenderWatchlist();
+if (bookmarks.length > 0 && !worldReady()) waitForWorldThenRenderWatchlist();
 
 export function renderEventCard(eventId) {
   const scene = worldScene();
@@ -125,11 +126,13 @@ export function renderEventCard(eventId) {
   if (!selectedEvent) {
     historyDetail.textContent = `Event #${eventId}\nnot retained in bounded world history`;
     delete historyDetail.dataset.eventCardId;
+    renderWatchlist();
     return false;
   }
   const card = eventCardForEvent(scene.world, selectedEvent);
   historyDetail.innerHTML = eventCardHtml(card);
   historyDetail.dataset.eventCardId = String(card.eventId);
+  renderWatchlist();
   return true;
 }
 
@@ -180,7 +183,7 @@ function persistBookmarks() {
 function renderWatchlist() {
   const scene = worldScene();
   if (!storyWatchlist) return false;
-  if (!scene?.world) {
+  if (!scene?.world || scene.booting !== false) {
     storyWatchlist.hidden = true;
     return false;
   }
@@ -193,12 +196,17 @@ function renderWatchlist() {
 }
 
 function waitForWorldThenRenderWatchlist(attempt = 0) {
-  if (worldScene()?.world) {
+  if (worldReady()) {
     renderWatchlist();
     return;
   }
   if (attempt >= 300) return;
   globalThis.setTimeout?.(() => waitForWorldThenRenderWatchlist(attempt + 1), 100);
+}
+
+function worldReady() {
+  const scene = worldScene();
+  return Boolean(scene?.world && scene.booting === false);
 }
 
 function refreshCurrentEventCard() {
