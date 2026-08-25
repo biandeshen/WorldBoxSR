@@ -131,8 +131,27 @@ try {
   const postVegetation = await assertVegetationHudMatchesAuthority(cdp);
   const frozenFingerprint = await fingerprint(cdp);
 
+  // Chronicle is intentionally collapsed by default. Exercise the same visible
+  // interaction a player needs before using its lens tabs rather than clicking
+  // a hidden control through CDP coordinates.
+  const timelineOpen = await evaluate(cdp, `document.querySelector('#timeline')?.open === true`);
+  if (!timelineOpen) {
+    await clickSelector(cdp, '#timeline > summary');
+    await waitForExpression(cdp, `document.querySelector('#timeline')?.open === true`, 1_500);
+  }
+
   await clickSelector(cdp, '[data-chronicle-lens="recent"]');
-  await waitForExpression(cdp, `document.querySelector('#history-list button[data-event-id="${predation.eventId}"]') !== null`, 2_000);
+  await waitForExpression(cdp, `document.querySelector('[data-chronicle-lens="recent"]')?.dataset?.active === 'true'`, 1_500);
+  try {
+    await waitForExpression(cdp, `document.querySelector('#history-list button[data-event-id="${predation.eventId}"]') !== null`, 2_000);
+  } catch (error) {
+    const diagnostics = await evaluate(cdp, `(() => ({
+      timelineOpen: document.querySelector('#timeline')?.open === true,
+      activeLens: document.querySelector('[data-chronicle-lens][data-active="true"]')?.dataset?.chronicleLens ?? null,
+      rows: [...document.querySelectorAll('#history-list button[data-event-id]')].map((node) => ({ id: node.dataset.eventId, text: node.textContent }))
+    }))()`);
+    throw new Error(`Recent did not expose predation Event #${predation.eventId}: ${JSON.stringify(diagnostics)}`, { cause: error });
+  }
   const recentRow = await evaluate(cdp, `document.querySelector('#history-list button[data-event-id="${predation.eventId}"]')?.textContent ?? ''`);
   if (!recentRow.includes(`Wolf #${spawned.wolfId} hunted Grazer #${predation.preyCreatureId}`)) {
     throw new Error(`Recent predation row is not readable: ${recentRow}`);
@@ -268,7 +287,10 @@ async function creatureScreenPoint(cdpClient, creatureId) {
   })()`);
 }
 
-async function pauseWorld(cdpClient) { if (!(await clickPauseTo(cdpClient, true))) throw new Error('failed to pause readability world'); }
+async function pauseWorld(cdpClient) {
+  if (!(await clickPauseTo(cdpClient, true))) throw new Error('failed to pause readability world');
+}
+
 async function clickPauseTo(cdpClient, paused) {
   const current = await evaluate(cdpClient, `document.querySelector('#pause')?.dataset?.active === 'true'`);
   if (Boolean(current) !== paused) await clickSelector(cdpClient, '#pause');
@@ -276,47 +298,156 @@ async function clickPauseTo(cdpClient, paused) {
   await delay(80);
   return (await evaluate(cdpClient, `document.querySelector('#pause')?.dataset?.active === 'true'`)) === paused;
 }
-async function fingerprint(cdpClient) { return evaluate(cdpClient, `JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world)`); }
 
-async function clickSelector(cdpClient, selector) { const point = await elementCenter(cdpClient, selector); await clickPoint(cdpClient, point, 0); await delay(80); }
-async function altClickPoint(cdpClient, point) { await clickPoint(cdpClient, point, 1); await delay(100); }
+async function fingerprint(cdpClient) {
+  return evaluate(cdpClient, `JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world)`);
+}
+
+async function clickSelector(cdpClient, selector) {
+  const point = await elementCenter(cdpClient, selector);
+  await clickPoint(cdpClient, point, 0);
+  await delay(80);
+}
+
+async function altClickPoint(cdpClient, point) {
+  await clickPoint(cdpClient, point, 1);
+  await delay(100);
+}
+
 async function clickPoint(cdpClient, point, modifiers) {
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, modifiers });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers });
 }
+
 async function elementCenter(cdpClient, selector) {
-  const point = await evaluate(cdpClient, `(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) return null; element.scrollIntoView({ block: 'center', inline: 'nearest' }); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; })()`);
-  if (!point) throw new Error(`element not found: ${selector}`); return point;
+  const point = await evaluate(cdpClient, `(() => {
+    const element = document.querySelector(${JSON.stringify(selector)});
+    if (!element) return null;
+    element.scrollIntoView({ block: 'center', inline: 'nearest' });
+    const rect = element.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  })()`);
+  if (!point) throw new Error(`element not found: ${selector}`);
+  return point;
 }
 
 async function waitForDevToolsPort(dataDir, child) {
-  const marker = join(dataDir, 'DevToolsActivePort'); const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) { ensureAlive(child); if (existsSync(marker)) { const [port] = readFileSync(marker, 'utf8').trim().split(/\r?\n/); if (/^\d+$/.test(port)) return Number(port); } await delay(50); }
+  const marker = join(dataDir, 'DevToolsActivePort');
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    ensureAlive(child);
+    if (existsSync(marker)) {
+      const [port] = readFileSync(marker, 'utf8').trim().split(/\r?\n/);
+      if (/^\d+$/.test(port)) return Number(port);
+    }
+    await delay(50);
+  }
   throw new Error('Chrome DevTools port did not become ready');
 }
+
 async function waitForPageTarget(port, url, child) {
   const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) { ensureAlive(child); try { const response = await fetch(`http://127.0.0.1:${port}/json/list`); if (response.ok) { const targets = await response.json(); const target = targets.find((candidate) => candidate.type === 'page' && candidate.url.startsWith(url)); if (target?.webSocketDebuggerUrl) return target; } } catch {} await delay(80); }
+  while (Date.now() < deadline) {
+    ensureAlive(child);
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/list`);
+      if (response.ok) {
+        const targets = await response.json();
+        const target = targets.find((candidate) => candidate.type === 'page' && candidate.url.startsWith(url));
+        if (target?.webSocketDebuggerUrl) return target;
+      }
+    } catch {}
+    await delay(80);
+  }
   throw new Error('Chrome page target did not become ready');
 }
+
 async function createCdpClient(url) {
   const socket = new WebSocket(url);
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('CDP websocket open timed out')), 10_000); socket.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true }); socket.addEventListener('error', () => { clearTimeout(timer); reject(new Error('CDP websocket failed')); }, { once: true }); });
-  let nextId = 1; const pending = new Map();
-  socket.addEventListener('message', (event) => { const message = JSON.parse(event.data); if (!message.id) return; const waiter = pending.get(message.id); if (!waiter) return; pending.delete(message.id); if (message.error) waiter.reject(new Error(`${message.error.message} (${message.error.code})`)); else waiter.resolve(message.result ?? {}); });
-  socket.addEventListener('close', () => { for (const waiter of pending.values()) waiter.reject(new Error('CDP websocket closed')); pending.clear(); });
-  return { send(method, params = {}) { const id = nextId++; return new Promise((resolve, reject) => { pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params })); }); }, close() { socket.close(); } };
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('CDP websocket open timed out')), 10_000);
+    socket.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true });
+    socket.addEventListener('error', () => { clearTimeout(timer); reject(new Error('CDP websocket failed')); }, { once: true });
+  });
+  let nextId = 1;
+  const pending = new Map();
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(event.data);
+    if (!message.id) return;
+    const waiter = pending.get(message.id);
+    if (!waiter) return;
+    pending.delete(message.id);
+    if (message.error) waiter.reject(new Error(`${message.error.message} (${message.error.code})`));
+    else waiter.resolve(message.result ?? {});
+  });
+  socket.addEventListener('close', () => {
+    for (const waiter of pending.values()) waiter.reject(new Error('CDP websocket closed'));
+    pending.clear();
+  });
+  return {
+    send(method, params = {}) {
+      const id = nextId++;
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        socket.send(JSON.stringify({ id, method, params }));
+      });
+    },
+    close() { socket.close(); }
+  };
 }
+
 async function evaluate(cdpClient, expression) {
   const result = await cdpClient.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: true });
-  if (result.exceptionDetails) { const message = result.exceptionDetails.exception?.description ?? result.exceptionDetails.text ?? 'Runtime.evaluate failed'; throw new Error(message); }
+  if (result.exceptionDetails) {
+    const message = result.exceptionDetails.exception?.description ?? result.exceptionDetails.text ?? 'Runtime.evaluate failed';
+    throw new Error(message);
+  }
   return result.result?.value;
 }
-async function waitForExpression(cdpClient, expression, timeoutMs) { const deadline = Date.now() + timeoutMs; while (Date.now() < deadline) { if (await evaluate(cdpClient, expression)) return; await delay(100); } throw new Error(`Timed out waiting for expression: ${expression}`); }
-async function captureScreenshot(cdpClient, path) { const result = await cdpClient.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false }); if (!result.data) throw new Error(`No screenshot bytes returned for ${path}`); writeFileSync(path, Buffer.from(result.data, 'base64')); }
-async function stopChrome(child) { if (child.exitCode !== null) return; child.kill('SIGTERM'); if (await waitForExit(child, 2_000)) return; child.kill('SIGKILL'); await waitForExit(child, 2_000); }
-async function waitForExit(child, timeoutMs) { if (child.exitCode !== null) return true; return Promise.race([new Promise((resolve) => child.once('exit', () => resolve(true))), delay(timeoutMs).then(() => false)]); }
-function ensureAlive(child) { if (child.exitCode !== null) throw new Error(`Chrome exited early with code ${child.exitCode}`); }
-function fnv1a(value) { let hash = 0x811c9dc5; for (let index = 0; index < value.length; index += 1) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 0x01000193) >>> 0; } return hash.toString(16).padStart(8, '0'); }
+
+async function waitForExpression(cdpClient, expression, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await evaluate(cdpClient, expression)) return;
+    await delay(100);
+  }
+  throw new Error(`Timed out waiting for expression: ${expression}`);
+}
+
+async function captureScreenshot(cdpClient, path) {
+  const result = await cdpClient.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false });
+  if (!result.data) throw new Error(`No screenshot bytes returned for ${path}`);
+  writeFileSync(path, Buffer.from(result.data, 'base64'));
+}
+
+async function stopChrome(child) {
+  if (child.exitCode !== null) return;
+  child.kill('SIGTERM');
+  if (await waitForExit(child, 2_000)) return;
+  child.kill('SIGKILL');
+  await waitForExit(child, 2_000);
+}
+
+async function waitForExit(child, timeoutMs) {
+  if (child.exitCode !== null) return true;
+  return Promise.race([
+    new Promise((resolve) => child.once('exit', () => resolve(true))),
+    delay(timeoutMs).then(() => false)
+  ]);
+}
+
+function ensureAlive(child) {
+  if (child.exitCode !== null) throw new Error(`Chrome exited early with code ${child.exitCode}`);
+}
+
+function fnv1a(value) {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
