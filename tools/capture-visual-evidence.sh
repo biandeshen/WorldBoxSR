@@ -77,11 +77,16 @@ bash tools/run-world-stories-gate.sh "$browser" "$base_url" "$out_dir"
 node tools/capture-natural-fauna-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 # v0.6 capability 2: keep the natural Living Ecology grazer world, pause it,
-# explicitly spawn one inert Wolf through the same authoritative creature-spawn
-# command path (hidden QA tool; no product dock button), then real Alt-click both
-# species. Visuals/inspector/HUD must distinguish them while all post-spawn
-# read-only actions preserve the exact paused world fingerprint.
+# explicitly spawn one Wolf through the authoritative hidden QA creature-spawn
+# path, then prove the two species are visually/inspectably distinct while the
+# paused read-only presentation path remains authority-neutral.
 node tools/capture-multi-species-evidence.mjs "$browser" "$base_url" "$out_dir"
+
+# v0.6 capability 3: in a fresh Living Ecology world, explicitly create one
+# Wolf through that same hidden QA setup path, set the ordinary Time control to
+# one day, real-click Play, and require actual daily simulation to move the Wolf
+# and produce a causal Wolf→Grazer predation + death + feeding consequence.
+node tools/capture-wolf-predation-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
@@ -120,7 +125,9 @@ natural_fauna=living-ecology-natural-fauna-1440x900.png
 natural_fauna_authority=natural-fauna-evidence.json
 multi_species=living-ecology-grazer-wolf-1440x900.png
 multi_species_authority=multi-species-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus v0.6 natural-fauna and Grazer/Wolf identity/inspection gates preserve declared authority boundaries
+wolf_predation=living-ecology-wolf-predation-1440x900.png
+wolf_predation_authority=wolf-predation-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5 regressions plus v0.6 natural-fauna, Grazer/Wolf identity and real Wolf predation gates preserve declared authority boundaries
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
