@@ -2,6 +2,7 @@ import { entityRef, pushEvent } from '../model/events.js';
 import { keyedChance, keyedIndex } from '../core/keyed_random.js';
 import { passableNeighbors8, tileAt } from '../core/world.js';
 import { createGrazer } from '../model/grazer.js';
+import { killCreature } from '../model/creature_lifecycle.js';
 
 const HUNGRY_MOVE_SALT = 0x4a7e21c3;
 const PASSIVE_MOVE_CHANCE_SALT = 0x6d13f8a1;
@@ -44,7 +45,7 @@ export function updateGrazerOldAgeMortality(world) {
     const dailyProbability = 1 - ((1 - annualProbability) ** (1 / world.config.daysPerYear));
     if (!keyedChance(world.seed, grazer.id, world.day, OLD_AGE_SALT, dailyProbability)) continue;
 
-    killGrazer(world, grazer, 'old_age');
+    killCreature(world, grazer, { cause: 'old_age' });
     deaths += 1;
   }
 
@@ -175,7 +176,7 @@ function updateGrazerHealth(world, grazer) {
     grazer.health = Math.min(1, grazer.health + world.config.grazerRecoveryPerDay);
   }
 
-  if (grazer.health <= 0) killGrazer(world, grazer, 'starvation');
+  if (grazer.health <= 0) killCreature(world, grazer, { cause: 'starvation' });
 }
 
 function isReproductionEligible(world, grazer) {
@@ -206,20 +207,6 @@ function pairIdentity(a, b) {
   const low = Math.min(a, b) >>> 0;
   const high = Math.max(a, b) >>> 0;
   return (Math.imul(low + 0x9e3779b9, 0x85ebca6b) ^ Math.imul(high + 0x165667b1, 0xc2b2ae35)) >>> 0;
-}
-
-function killGrazer(world, grazer, cause) {
-  grazer.alive = false;
-  grazer.causeOfDeath = cause;
-  world.counters.creatureDeaths += 1;
-  pushEvent(world, {
-    type: 'creature.died',
-    subject: entityRef('creature', grazer.id),
-    creatureId: grazer.id,
-    species: grazer.species,
-    cause,
-    ageDays: grazer.ageDays
-  });
 }
 
 function clamp01(value) {
