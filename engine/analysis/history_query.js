@@ -60,6 +60,56 @@ export function historyForCreature(world, creatureId, options = {}) {
   });
 }
 
+export function historyForPolity(world, polityId, options = {}) {
+  positiveInteger(polityId, 'polityId');
+  return queryHistory(world, {
+    ...options,
+    predicate: (event) => eventExplicitlyReferencesPolity(event, polityId)
+  });
+}
+
+export function historyForWarband(world, warbandId, options = {}) {
+  positiveInteger(warbandId, 'warbandId');
+  return queryHistory(world, {
+    ...options,
+    predicate: (event) => eventExplicitlyReferencesWarband(event, warbandId)
+  });
+}
+
+/**
+ * Return the retained event itself plus retained events that explicitly name it
+ * as an `event` cause. This is intentionally one hop only: callers must not
+ * turn focused story presentation into an inferred recursive causal graph.
+ */
+export function historyForEventFocus(world, eventId, options = {}) {
+  positiveInteger(eventId, 'eventId');
+  return queryHistory(world, {
+    ...options,
+    predicate: (event) => event.id === eventId || eventExplicitlyCausedByEvent(event, eventId)
+  });
+}
+
+/**
+ * Exact generic history lookup for the stable reference kinds supported by the
+ * focused-story surface. It dispatches only to explicit reference predicates;
+ * no current-state membership or proximity is consulted.
+ */
+export function historyForReference(world, reference, options = {}) {
+  validateHistoryWorld(world);
+  if (!reference || typeof reference !== 'object') throw new TypeError('history reference must be an object');
+  if (reference.kind === 'event') return historyForEventFocus(world, reference.id, options);
+  if (reference.kind !== 'entity') throw new RangeError('focused history reference must be an event or supported entity');
+
+  switch (reference.entityKind) {
+    case 'human': return historyForHuman(world, reference.id, options);
+    case 'creature': return historyForCreature(world, reference.id, options);
+    case 'settlement': return historyForSettlement(world, reference.id, options);
+    case 'polity': return historyForPolity(world, reference.id, options);
+    case 'warband': return historyForWarband(world, reference.id, options);
+    default: throw new RangeError(`unsupported focused entity kind: ${reference.entityKind}`);
+  }
+}
+
 export function eventHasSubject(event, entityKind, id) {
   nonEmptyString(entityKind, 'entityKind');
   positiveInteger(id, 'entity id');
@@ -72,6 +122,9 @@ export function eventExplicitlyReferencesSettlement(event, settlementId) {
   positiveInteger(settlementId, 'settlementId');
   return eventHasSubject(event, 'settlement', settlementId) ||
     event?.settlementId === settlementId ||
+    event?.originSettlementId === settlementId ||
+    event?.targetSettlementId === settlementId ||
+    event?.capitalSettlementId === settlementId ||
     explicitEntityCause(event, 'settlement', settlementId);
 }
 
@@ -82,6 +135,7 @@ export function eventExplicitlyReferencesHuman(event, humanId) {
   if (event?.entityId === humanId) return true;
   if (Array.isArray(event?.entityIds) && event.entityIds.includes(humanId)) return true;
   if (event?.motherId === humanId || event?.fatherId === humanId) return true;
+  if (event?.rulerId === humanId || event?.previousRulerId === humanId) return true;
   return false;
 }
 
@@ -91,7 +145,37 @@ export function eventExplicitlyReferencesCreature(event, creatureId) {
   if (explicitEntityCause(event, 'creature', creatureId)) return true;
   if (event?.creatureId === creatureId) return true;
   if (Array.isArray(event?.creatureIds) && event.creatureIds.includes(creatureId)) return true;
+  if (Array.isArray(event?.parentCreatureIds) && event.parentCreatureIds.includes(creatureId)) return true;
   return false;
+}
+
+export function eventExplicitlyReferencesPolity(event, polityId) {
+  positiveInteger(polityId, 'polityId');
+  if (eventHasSubject(event, 'polity', polityId)) return true;
+  if (explicitEntityCause(event, 'polity', polityId)) return true;
+  return event?.polityId === polityId ||
+    event?.opponentPolityId === polityId ||
+    event?.polityAId === polityId ||
+    event?.polityBId === polityId ||
+    event?.previousPolityId === polityId ||
+    event?.newPolityId === polityId ||
+    event?.previousOwnerPolityId === polityId;
+}
+
+export function eventExplicitlyReferencesWarband(event, warbandId) {
+  positiveInteger(warbandId, 'warbandId');
+  if (eventHasSubject(event, 'warband', warbandId)) return true;
+  if (explicitEntityCause(event, 'warband', warbandId)) return true;
+  return event?.warbandId === warbandId ||
+    event?.warbandAId === warbandId ||
+    event?.warbandBId === warbandId ||
+    event?.opponentWarbandId === warbandId ||
+    event?.lastConqueringWarbandId === warbandId;
+}
+
+export function eventExplicitlyCausedByEvent(event, eventId) {
+  positiveInteger(eventId, 'eventId');
+  return Array.isArray(event?.causes) && event.causes.some((cause) => cause?.kind === 'event' && cause.id === eventId);
 }
 
 /**
@@ -202,12 +286,10 @@ function validateOrder(order) {
 
 function positiveInteger(value, name) {
   if (!Number.isInteger(value) || value < 1) throw new RangeError(`${name} must be a positive integer`);
-  return value;
 }
 
 function nonNegativeInteger(value, name) {
   if (!Number.isInteger(value) || value < 0) throw new RangeError(`${name} must be a non-negative integer`);
-  return value;
 }
 
 function nonEmptyString(value, name) {
