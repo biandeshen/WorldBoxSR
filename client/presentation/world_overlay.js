@@ -1,26 +1,18 @@
-const TOOL_STYLES = Object.freeze({
-  spawn_human: { color: 0x8ad6ff, fillAlpha: 0.11, label: 'Create human' },
-  spawn_grazer: { color: 0xf0bf68, fillAlpha: 0.11, label: 'Create grazer' },
-  erase: { color: 0xff6f6f, fillAlpha: 0.09, label: 'Erase humans' },
-  lightning: { color: 0xffdf68, fillAlpha: 0.13, label: 'Lightning' },
-  meteor: { color: 0xff8b55, fillAlpha: 0.14, label: 'Meteor · radius 2' },
-  rain: { color: 0x6ed4ff, fillAlpha: 0.13, label: 'Rain · radius 2' }
-});
+import { godPowerMeta, godPowerTargetRadius } from './god_power_catalog.js';
 
 export function targetStyle(tool, tile) {
-  const base = TOOL_STYLES[tool] || TOOL_STYLES.spawn_human;
-  const spawnTool = tool === 'spawn_human' || tool === 'spawn_grazer';
-  const invalid = Boolean(spawnTool && tile && tile.passable === false);
+  const meta = godPowerMeta(tool);
+  const invalid = Boolean(meta.requiresPassable && tile && tile.passable === false);
   return {
-    ...base,
-    invalid,
-    color: invalid ? 0xff6f6f : base.color,
-    label: invalid ? `${base.label} · needs land` : base.label
+    color: invalid ? 0xff6f6f : meta.targetColor,
+    fillAlpha: meta.targetFillAlpha,
+    label: invalid ? `${meta.label} · needs land` : meta.label,
+    invalid
   };
 }
 
 export function toolTargetRadius(tool) {
-  return tool === 'meteor' || tool === 'rain' ? 2 : 0;
+  return godPowerTargetRadius(tool);
 }
 
 export function targetFootprint(tool, centerX, centerY, width, height) {
