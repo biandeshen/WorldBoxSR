@@ -116,7 +116,7 @@ try {
     }
   }
 
-  const nonDefaultEventId = evidence.conflict.ids[0] ?? evidence.rule.ids[0] ?? evidence.recent.ids[0];
+  const nonDefaultEventId = evidence.rule.ids[0] ?? evidence.conflict.ids[0] ?? evidence.recent.ids[0];
   await clickSelector(cdp, `#history-list button[data-event-id="${nonDefaultEventId}"]`);
   await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${nonDefaultEventId}'`, 3_000);
   assertPresentationUnchanged(await presentationState(cdp), presentationBefore, 'after opening a non-default Event Card');
