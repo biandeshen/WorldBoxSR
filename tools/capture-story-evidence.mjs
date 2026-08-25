@@ -46,84 +46,129 @@ try {
     const pause = document.querySelector('#pause');
     if (!pause) throw new Error('missing #pause');
     if (pause.dataset.active !== 'true') pause.click();
-    const timeline = document.querySelector('#timeline');
-    if (timeline) timeline.open = true;
-    return pause.dataset.active === 'true' && timeline?.open === true;
+    return pause.dataset.active === 'true';
   })()`);
-  if (!paused) throw new Error('failed to pause world and open Chronicle');
-  await delay(120);
+  if (!paused) throw new Error('failed to pause canonical world');
 
-  const candidates = await evaluate(cdp, `(() => {
+  const successionTarget = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const world = scene?.world;
-    if (!world) throw new Error('world unavailable');
-    const current = (ref) => {
-      if (ref?.kind !== 'entity') return null;
-      if (ref.entityKind === 'human') return world.entities.find((value) => value.kind === 'human' && value.id === ref.id) ?? null;
-      if (ref.entityKind === 'creature') return world.creatures.find((value) => value.id === ref.id) ?? null;
-      if (ref.entityKind === 'settlement') return world.settlements.find((value) => value.id === ref.id) ?? null;
-      if (ref.entityKind === 'warband') return world.warbands.find((value) => value.id === ref.id) ?? null;
-      if (ref.entityKind === 'polity') {
-        const polity = world.polities.find((value) => value.id === ref.id) ?? null;
-        if (!polity) return null;
-        const capital = world.settlements.find((value) => value.id === polity.capitalSettlementId) ?? null;
-        return capital ? { ...polity, x: capital.x, y: capital.y } : null;
-      }
-      return null;
-    };
-    const rows = [...document.querySelectorAll('#history-list button[data-event-id]')].map((button) => {
-      const eventId = Number(button.dataset.eventId);
-      const historyEvent = world.history.find((value) => value.id === eventId);
-      const rect = button.getBoundingClientRect();
-      const retainedEventCause = historyEvent?.causes?.find((ref) => ref.kind === 'event' && world.history.some((value) => value.id === ref.id)) ?? null;
-      const refs = historyEvent ? [historyEvent.subject, ...(historyEvent.causes ?? [])].filter(Boolean) : [];
-      const mapRef = refs.find((ref) => current(ref)) ?? null;
-      return historyEvent ? {
-        eventId,
-        eventType: historyEvent.type,
-        retainedEventCause,
-        mapRef,
-        button: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
-        text: button.textContent ?? ''
-      } : null;
-    }).filter(Boolean);
+    const camera = scene?.cameras?.main;
+    if (!world || !camera) throw new Error('world scene unavailable');
+    const adultAgeDays = world.config.adultAgeYears * world.config.daysPerYear;
+    const tileSize = 28;
+    const candidates = [];
+    for (const polity of world.polities.filter((value) => value.active).sort((a, b) => a.id - b.id)) {
+      if (!Number.isInteger(polity.rulerId)) continue;
+      const memberSettlements = new Set(world.settlements
+        .filter((settlement) => settlement.active && settlement.polityId === polity.id)
+        .map((settlement) => settlement.id));
+      const adults = world.entities
+        .filter((human) => human.kind === 'human' && human.alive && human.ageDays >= adultAgeDays && memberSettlements.has(human.settlementId))
+        .sort((a, b) => b.ageDays - a.ageDays || a.id - b.id);
+      const ruler = adults.find((human) => human.id === polity.rulerId);
+      if (!ruler || adults.length < 2) continue;
+      const worldX = (ruler.x + 0.5) * tileSize;
+      const worldY = (ruler.y + 0.5) * tileSize;
+      const screenX = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+      const screenY = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+      if (screenX < 40 || screenX > 1110 || screenY < 85 || screenY > 785) continue;
+      candidates.push({
+        polityId: polity.id,
+        polityName: polity.name,
+        rulerId: ruler.id,
+        x: ruler.x,
+        y: ruler.y,
+        screenX,
+        screenY,
+        eligibleAdults: adults.length,
+        day: world.day
+      });
+    }
+    return candidates.sort((a, b) => b.eligibleAdults - a.eligibleAdults || a.polityId - b.polityId)[0] ?? null;
+  })()`);
+  if (!successionTarget) throw new Error('no visible polity had a ruler plus deterministic successor candidate');
+
+  await selectTool(cdp, 'lightning');
+  await clickPoint(cdp, { x: successionTarget.screenX, y: successionTarget.screenY });
+  await delay(120);
+
+  const death = await evaluate(cdp, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    if (!world) return null;
+    const death = world.history.findLast((event) => event.type === 'human.died' && event.entityId === ${successionTarget.rulerId} && event.cause === 'lightning') ?? null;
+    const strike = world.history.findLast((event) => event.type === 'god.lightning' && event.x === ${successionTarget.x} && event.y === ${successionTarget.y}) ?? null;
+    return { death, strike, rulerStillPresent: world.entities.some((human) => human.kind === 'human' && human.id === ${successionTarget.rulerId}) };
+  })()`);
+  if (!death?.death || !death?.strike) throw new Error('real Lightning pointer action did not create ruler death + god.lightning authority');
+  if (death.rulerStillPresent) throw new Error('Lightning evidence ruler remained in authoritative entities');
+
+  const resumed = await evaluate(cdp, `(() => {
+    const speed = document.querySelector('#speed');
+    if (speed) {
+      speed.value = '1';
+      speed.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    const pause = document.querySelector('#pause');
+    if (!pause) throw new Error('missing #pause');
+    if (pause.dataset.active === 'true') pause.click();
+    return pause.dataset.active !== 'true';
+  })()`);
+  if (!resumed) throw new Error('failed to resume world for succession tick');
+
+  const deathEventId = death.death.id;
+  await waitForExpression(cdp, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    return world?.history?.some((event) => event.type === 'polity.ruler_succeeded'
+      && event.polityId === ${successionTarget.polityId}
+      && event.causes?.some((cause) => cause.kind === 'event' && cause.id === ${deathEventId})) === true;
+  })()`, 5_000);
+
+  const storySetup = await evaluate(cdp, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    const world = scene?.world;
+    const pause = document.querySelector('#pause');
+    if (pause?.dataset.active !== 'true') pause?.click();
+    const timeline = document.querySelector('#timeline');
+    if (timeline) timeline.open = true;
+    const succession = world.history.findLast((event) => event.type === 'polity.ruler_succeeded'
+      && event.polityId === ${successionTarget.polityId}
+      && event.causes?.some((cause) => cause.kind === 'event' && cause.id === ${deathEventId})) ?? null;
+    if (!succession) return null;
+    const button = [...document.querySelectorAll('#history-list button[data-event-id]')]
+      .find((candidate) => Number(candidate.dataset.eventId) === succession.id) ?? null;
+    const rect = button?.getBoundingClientRect?.();
     return {
-      rows,
-      eventCandidate: rows.find((row) => row.retainedEventCause) ?? null,
-      mapCandidate: rows.find((row) => row.mapRef) ?? null,
-      worldFingerprint: JSON.stringify(world)
+      succession,
+      button: rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null,
+      visibleChronicle: [...document.querySelectorAll('#history-list button[data-event-id]')].map((candidate) => ({ id: Number(candidate.dataset.eventId), text: candidate.textContent ?? '' })),
+      worldFingerprint: JSON.stringify(world),
+      paused: pause?.dataset.active === 'true'
     };
   })()`);
+  if (!storySetup?.succession) throw new Error('succession event disappeared after detection');
+  if (!storySetup.button) throw new Error(`fresh causal succession was not visible in Chronicle: ${JSON.stringify(storySetup.visibleChronicle)}`);
+  if (!storySetup.paused) throw new Error('world was not paused before story navigation');
+  await delay(120);
 
-  if (!candidates.eventCandidate) {
-    throw new Error(`no visible Chronicle event had a retained event cause; visible=${JSON.stringify(candidates.rows)}`);
-  }
-  if (!candidates.mapCandidate) {
-    throw new Error(`no visible Chronicle event had a current map-capable authoritative ref; visible=${JSON.stringify(candidates.rows)}`);
-  }
-
-  const eventCandidate = candidates.eventCandidate;
-  await clickPoint(cdp, eventCandidate.button);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventCandidate.eventId}'`, 3_000);
-  const eventCard = await cardEvidence(cdp);
-  if (eventCard.eventButtons < 1) throw new Error('Causal Event Card did not expose retained event cause navigation');
-  if (!eventCard.text.includes('Causes')) throw new Error('Causal Event Card is missing Causes section');
+  await clickPoint(cdp, storySetup.button);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${storySetup.succession.id}'`, 3_000);
+  const successionCard = await cardEvidence(cdp);
+  if (successionCard.eventButtons < 1) throw new Error('succession Event Card did not expose retained death-event cause');
+  if (successionCard.mapButtons < 1) throw new Error('succession Event Card did not expose current polity/successor map navigation');
+  if (!successionCard.text.includes('Subject') || !successionCard.text.includes('Causes')) throw new Error('succession Event Card is missing Subject/Causes sections');
   await captureScreenshot(cdp, join(outDir, 'story-causal-event-card-1440x900.png'));
 
-  const eventCauseId = eventCandidate.retainedEventCause.id;
-  const eventCausePoint = await elementCenter(cdp, '#history-detail button[data-event-card-nav="event"]');
+  const eventCausePoint = await elementCenter(cdp, `#history-detail button[data-event-card-nav="event"][data-event-id="${deathEventId}"]`);
   await clickPoint(cdp, eventCausePoint);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventCauseId}'`, 3_000);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${deathEventId}'`, 3_000);
   const causeCard = await cardEvidence(cdp);
-  if (causeCard.eventId !== eventCauseId) throw new Error('event-cause navigation opened the wrong retained event');
+  if (causeCard.eventId !== deathEventId) throw new Error('event-cause navigation opened the wrong retained death event');
+  if (causeCard.unavailableRows < 1) throw new Error('death Event Card did not truthfully expose the removed ruler as unavailable');
   await captureScreenshot(cdp, join(outDir, 'story-event-cause-opened-1440x900.png'));
 
-  const mapCandidate = candidates.mapCandidate;
-  await clickPoint(cdp, mapCandidate.button);
-  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${mapCandidate.eventId}'`, 3_000);
-  const mapCard = await cardEvidence(cdp);
-  if (mapCard.mapButtons < 1) throw new Error('map-capable Chronicle event did not expose a map navigation button');
-
+  await clickPoint(cdp, storySetup.button);
+  await waitForExpression(cdp, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${storySetup.succession.id}'`, 3_000);
   const mapTarget = await evaluate(cdp, `(() => {
     const button = document.querySelector('#history-detail button[data-event-card-nav="map"]');
     if (!button) return null;
@@ -137,7 +182,7 @@ try {
       tileY: Number(button.dataset.y)
     };
   })()`);
-  if (!mapTarget) throw new Error('map navigation target disappeared from Event Card');
+  if (!mapTarget) throw new Error('map navigation target disappeared from succession Event Card');
   await clickPoint(cdp, mapTarget);
   await delay(160);
 
@@ -153,32 +198,31 @@ try {
     else if (refKind === 'settlement') expected = world.settlements.find((value) => value.id === refId)?.name ?? ('Settlement #' + refId);
     else if (refKind === 'warband') expected = 'Warband #' + refId;
     else if (refKind === 'polity') expected = world.polities.find((value) => value.id === refId)?.name ?? ('Polity #' + refId);
-    return { inspector, expected, worldFingerprint: JSON.stringify(world) };
+    return { inspector, expected, worldFingerprint: JSON.stringify(world), paused: document.querySelector('#pause')?.dataset?.active === 'true' };
   })()`);
   if (!mapEvidence.expected || !mapEvidence.inspector.includes(mapEvidence.expected)) {
     throw new Error(`map navigation inspector did not identify referenced object: expected ${mapEvidence.expected}; got ${mapEvidence.inspector}`);
   }
-  if (mapEvidence.worldFingerprint !== candidates.worldFingerprint) throw new Error('story navigation mutated authoritative world state');
+  if (!mapEvidence.paused) throw new Error('world resumed during Event Card navigation');
+  if (mapEvidence.worldFingerprint !== storySetup.worldFingerprint) throw new Error('story navigation mutated authoritative world state');
   await captureScreenshot(cdp, join(outDir, 'story-map-reference-navigation-1440x900.png'));
 
   writeFileSync(join(outDir, 'story-evidence.json'), `${JSON.stringify({
-    eventNavigation: {
-      selectedEvent: { id: eventCandidate.eventId, type: eventCandidate.eventType, label: eventCandidate.text },
-      retainedCauseEventId: eventCauseId,
-      card: eventCard,
-      causeCard
-    },
-    mapNavigation: {
-      selectedEvent: { id: mapCandidate.eventId, type: mapCandidate.eventType, label: mapCandidate.text },
-      target: { entityKind: mapTarget.entityKind, entityId: mapTarget.entityId, x: mapTarget.tileX, y: mapTarget.tileY },
-      card: mapCard,
-      inspector: mapEvidence.inspector
-    }
+    setup: successionTarget,
+    lightningEventId: death.strike.id,
+    deathEventId,
+    successionEventId: storySetup.succession.id,
+    successorId: storySetup.succession.rulerId,
+    successionCard,
+    causeCard,
+    mapTarget: { entityKind: mapTarget.entityKind, entityId: mapTarget.entityId, x: mapTarget.tileX, y: mapTarget.tileY },
+    inspector: mapEvidence.inspector
   }, null, 2)}\n`);
 
   console.log(
-    `World Stories evidence: event #${eventCandidate.eventId} ${eventCandidate.eventType} → event #${eventCauseId}; `
-    + `map event #${mapCandidate.eventId} ${mapCandidate.eventType} → ${mapTarget.entityKind} #${mapTarget.entityId}`
+    `World Stories evidence: Lightning killed ruler #${successionTarget.rulerId} of ${successionTarget.polityName}; `
+    + `succession event #${storySetup.succession.id} → death event #${deathEventId}; `
+    + `map ${mapTarget.entityKind} #${mapTarget.entityId}; authoritative navigation fingerprint unchanged`
   );
 } finally {
   try { cdp?.close(); } catch {}
@@ -189,6 +233,20 @@ try {
   } catch (error) {
     console.warn(`Could not fully remove temporary Chrome profile ${userDataDir}: ${error?.message || error}`);
   }
+}
+
+async function selectTool(cdpClient, toolName) {
+  const selected = await evaluate(cdpClient, `(() => {
+    const tool = document.querySelector('#tool');
+    if (!tool) throw new Error('missing #tool');
+    tool.value = ${JSON.stringify(toolName)};
+    tool.dispatchEvent(new Event('change', { bubbles: true }));
+    return {
+      value: tool.value,
+      active: document.querySelector('[data-tool-button="${toolName}"]')?.dataset?.active === 'true'
+    };
+  })()`);
+  if (selected?.value !== toolName || !selected?.active) throw new Error(`${toolName} did not become active: ${JSON.stringify(selected)}`);
 }
 
 async function cardEvidence(cdpClient) {
