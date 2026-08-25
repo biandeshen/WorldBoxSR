@@ -26,6 +26,7 @@ on:
       - 'tools/capture-scenario-setup-evidence.mjs'
       - 'tools/capture-scenario-portability-evidence.mjs'
       - 'tools/capture-scenario-replay-fork-evidence.mjs'
+      - 'tools/capture-canonical-scenario-builder-evidence.mjs'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -66,5 +67,6 @@ jobs:
             echo '- v0.7 Scenario Setup: the real existing Phaser pointer path must enter a paused exact Sandbox base, place Human/Grazer/Wolf in ordered Recipe v1 authority, reject one impassable click without identity/world mutation, rename without authority change, Clear by exact rematerialization, rebuild the same start, Run without changing it, then allow ordinary Play to change the world while the frozen recipe stays unchanged.'
             echo '- v0.7 portable Scenario: one authored Recipe must produce canonical Copy Link + downloaded JSON, then fresh shared-link and visible JSON-import Chrome profiles must reproduce the exact same paused authoritative start; one impassable import must fail atomically without changing world, recipe, URL or boot status.'
             echo '- v0.7 Replay/Fork: a fresh shared Scenario must diverge through ordinary Time + Meteor, Replay exact source authority while clearing stale story/selection presentation and retaining bookmark storage, then Fork into the existing Setup workspace, add one real fixed Human action without mutating the source Recipe, and Replay the frozen fork back to its exact start.'
-            echo '- Artifact `visual-evidence` preserves prior release regressions plus Scenario Setup/portable/Replay-Fork screenshots, JSON authority evidence and the downloaded canonical Recipe file.'
+            echo '- v0.7 canonical Scenario Builder: ordinary visible Setup must author Portable trio, Copy Link it into a fresh browser, diverge + Replay the exact source, Fork one fixed Human, diverge again and Replay the exact fork while source identity remains immutable.'
+            echo '- Artifact `visual-evidence` preserves all prior release/slice regressions plus the canonical Scenario Builder screenshots and JSON authority evidence.'
           } >> "$GITHUB_STEP_SUMMARY"
