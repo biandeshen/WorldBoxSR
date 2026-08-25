@@ -1,16 +1,9 @@
+import { godPowerForShortcut, godPowerMeta } from './god_power_catalog.js';
+
 const toolSelect = document.querySelector('#tool');
 const powerButtons = [...document.querySelectorAll('[data-tool-button]')];
 const toolReadout = document.querySelector('#tool-readout');
 const rendererLink = document.querySelector('#renderer-link');
-
-const toolLabels = {
-  spawn_human: 'Create humans',
-  spawn_grazer: 'Create grazers',
-  erase: 'Erase humans',
-  lightning: 'Lightning',
-  meteor: 'Meteor · radius 2',
-  rain: 'Rain · radius 2'
-};
 
 for (const button of powerButtons) {
   button.addEventListener('click', () => selectTool(button.dataset.toolButton));
@@ -22,16 +15,7 @@ window.addEventListener('keydown', (event) => {
   if (event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
 
-  const shortcuts = {
-    '1': 'spawn_human',
-    '2': 'spawn_grazer',
-    '3': 'erase',
-    '4': 'lightning',
-    '5': 'meteor',
-    '6': 'rain'
-  };
-
-  const tool = shortcuts[event.key];
+  const tool = godPowerForShortcut(event.key);
   if (!tool) return;
   event.preventDefault();
   selectTool(tool);
@@ -50,7 +34,9 @@ if (rendererLink) {
 syncPowerButtons();
 
 function selectTool(tool) {
-  if (!toolSelect || !toolLabels[tool]) return;
+  if (!toolSelect) return;
+  const meta = godPowerMeta(tool);
+  if (meta.id !== tool) return;
   toolSelect.value = tool;
   toolSelect.dispatchEvent(new Event('change', { bubbles: true }));
   syncPowerButtons();
@@ -63,5 +49,5 @@ function syncPowerButtons() {
     button.dataset.active = active ? 'true' : 'false';
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
   }
-  if (toolReadout) toolReadout.textContent = toolLabels[selected] || selected;
+  if (toolReadout) toolReadout.textContent = godPowerMeta(selected).label;
 }
