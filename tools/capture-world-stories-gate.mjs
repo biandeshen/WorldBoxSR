@@ -28,30 +28,46 @@ try {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
-  await freezeChronicle(cdp);
 
-  const setup = await evaluate(cdp, `(() => ({
-    fingerprint: JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world),
-    paused: document.querySelector('#pause')?.dataset?.active === 'true',
-    activeLens: document.querySelector('#chronicle-lenses button[data-active="true"]')?.dataset?.chronicleLens ?? '',
-    highlights: [...document.querySelectorAll('#history-list button[data-event-id]')].map((button) => Number(button.dataset.eventId)),
-    watchlistCount: Number(document.querySelector('#story-watchlist')?.dataset?.watchlistCount ?? 0),
-    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks')
-  }))()`);
-  if (!setup.paused || setup.activeLens !== 'highlights') throw new Error(`canonical Chronicle did not start paused on Highlights: ${JSON.stringify(setup)}`);
-  if (!setup.highlights.length) throw new Error('canonical Highlights is empty');
-  if (setup.watchlistCount !== 0 || (setup.storage && setup.storage !== '[]')) throw new Error(`fresh profile Watchlist was not empty: ${JSON.stringify(setup)}`);
-
-  const candidate = await findCanonicalStory(cdp);
-  if (!candidate) {
-    throw new Error('no player-visible retained seed45 event exposed a retained event cause, current map reference, and explicit entity story with >=2 retained events');
+  const fresh = await freshPresentationState(cdp);
+  if (fresh.watchlistCount !== 0 || (fresh.storage && fresh.storage !== '[]')) {
+    throw new Error(`fresh profile Watchlist was not empty: ${JSON.stringify(fresh)}`);
   }
-  await clearFocusIfPresent(cdp);
-  await assertAuthority(cdp, setup.fingerprint, 'candidate discovery');
 
-  await selectLens(cdp, candidate.lens);
-  await openChronicleEvent(cdp, candidate.sourceEventId);
+  // Use real shipped gameplay rather than a test-only fixture. A player strikes
+  // one current ruler with Lightning and the deterministic simulation records
+  // the death -> succession chain. From the paused post-succession baseline on,
+  // every World Stories interaction below must be strictly read-only.
+  const causalSetup = await createCausalSuccession(cdp);
+  const setup = await canonicalStoryBaseline(cdp, causalSetup.successionEventId);
+  if (!setup.paused || setup.activeLens !== 'highlights') {
+    throw new Error(`canonical Chronicle did not settle paused on Highlights: ${JSON.stringify(setup)}`);
+  }
+  if (!setup.highlights.includes(causalSetup.successionEventId)) {
+    throw new Error(`fresh causal succession #${causalSetup.successionEventId} is not player-visible in Highlights: ${setup.highlights.join(',')}`);
+  }
+
+  await openChronicleEvent(cdp, causalSetup.successionEventId);
+  const discoveredCard = await cardEvidence(cdp);
+  assertReadableCard(discoveredCard, causalSetup.successionEventId);
+  if (!discoveredCard.eventIds.includes(causalSetup.deathEventId)) {
+    throw new Error(`succession Event Card lost retained death-event cause #${causalSetup.deathEventId}`);
+  }
+  if (!discoveredCard.mapRefs.length) throw new Error('succession Event Card has no current map-capable reference');
+
+  const focusRef = await chooseFocusedEntity(cdp, discoveredCard.followRefs);
+  if (!focusRef) throw new Error('succession Event Card exposes no explicit entity reference with a >=2-event retained story trail');
+  await clearFocusIfPresent(cdp);
+  await openChronicleEvent(cdp, causalSetup.successionEventId);
   const sourceCard = await cardEvidence(cdp);
+  const mapRef = sourceCard.mapRefs.find((ref) => sameEntityRef(ref, focusRef)) ?? sourceCard.mapRefs[0];
+  const candidate = {
+    sourceEventId: causalSetup.successionEventId,
+    causeEventId: causalSetup.deathEventId,
+    mapRef,
+    focusRef
+  };
+
   assertReadableCard(sourceCard, candidate.sourceEventId);
   if (!sourceCard.text.includes('Subject') || !sourceCard.text.includes('Causes')) throw new Error('canonical source Event Card is missing Subject/Causes');
   if (!sourceCard.eventIds.includes(candidate.causeEventId)) throw new Error(`retained cause #${candidate.causeEventId} disappeared from source Event Card`);
@@ -66,7 +82,6 @@ try {
   assertReadableCard(causeCard, candidate.causeEventId);
   await assertAuthority(cdp, setup.fingerprint, 'following retained event cause');
 
-  await selectLens(cdp, candidate.lens);
   await openChronicleEvent(cdp, candidate.sourceEventId);
   await clickSelector(cdp, mapSelector(candidate.mapRef));
   await delay(150);
@@ -140,12 +155,22 @@ try {
     rawCodeSurface: Boolean(document.querySelector('#history-detail pre, #history-detail code, #story-trail pre, #story-trail code, #story-watchlist pre, #story-watchlist code'))
   }))()`);
   if (finalState.rawCodeSurface) throw new Error('canonical World Stories path exposed a raw code/JSON surface');
-  if (!finalState.paused || finalState.fingerprint !== setup.fingerprint) throw new Error('canonical World Stories gate changed authoritative world state');
+  if (!finalState.paused || finalState.fingerprint !== setup.fingerprint) throw new Error('canonical World Stories gate changed authoritative world state after causal setup');
 
   writeFileSync(join(outDir, 'world-stories-gate-evidence.json'), `${JSON.stringify({
+    causalSetup: {
+      polityId: causalSetup.polityId,
+      polityName: causalSetup.polityName,
+      struckRulerId: causalSetup.rulerId,
+      lightningEventId: causalSetup.lightningEventId,
+      deathEventId: causalSetup.deathEventId,
+      successionEventId: causalSetup.successionEventId,
+      successorId: causalSetup.successorId
+    },
+    authorityBaseline: 'after real player Lightning + normal deterministic succession',
     defaultHighlightsEventIds: setup.highlights,
     source: {
-      lens: candidate.lens,
+      lens: 'highlights',
       eventId: candidate.sourceEventId,
       text: sourceCard.text
     },
@@ -162,13 +187,14 @@ try {
     focusPreservedThroughLenses: true,
     watchlistPreservedThroughLenses: true,
     rawEngineJsonExposed: false,
-    authorityUnchanged: true
+    readOnlyStoryAuthorityUnchanged: true
   }, null, 2)}\n`);
 
   console.log(
-    `Canonical World Stories gate: ${candidate.lens} event #${candidate.sourceEventId} → cause #${candidate.causeEventId}; `
-    + `map ${candidate.mapRef.entityKind}:${candidate.mapRef.entityId}; pin ${eventKey} + ${entityKey}; `
-    + `focus ${trail.eventIds.join(',')}; open #${trailEventId}; lenses Recent/Conflict/Rule → exact Highlights restored; authority unchanged`
+    `Canonical World Stories gate: real Lightning killed ruler #${causalSetup.rulerId} of ${causalSetup.polityName}; `
+    + `succession #${candidate.sourceEventId} → retained death #${candidate.causeEventId}; map ${candidate.mapRef.entityKind}:${candidate.mapRef.entityId}; `
+    + `pin ${eventKey} + ${entityKey}; focus ${trail.eventIds.join(',')}; open #${trailEventId}; `
+    + `Recent/Conflict/Rule → exact Highlights restored; post-causality story navigation authority unchanged`
   );
 } finally {
   try { cdp?.close(); } catch {}
@@ -181,34 +207,159 @@ try {
   }
 }
 
-async function findCanonicalStory(cdpClient) {
-  for (const lens of ['highlights', 'conflict', 'rule', 'recent']) {
-    await selectLens(cdpClient, lens);
-    const eventIds = await evaluate(cdpClient, `[...document.querySelectorAll('#history-list button[data-event-id]')].map((button) => Number(button.dataset.eventId))`);
-    for (const sourceEventId of eventIds) {
-      await openChronicleEvent(cdpClient, sourceEventId);
-      const card = await cardEvidence(cdpClient);
-      if (!card.eventIds.length || !card.mapRefs.length || !card.followRefs.length) continue;
+async function freshPresentationState(cdpClient) {
+  return evaluate(cdpClient, `(() => ({
+    watchlistCount: Number(document.querySelector('#story-watchlist')?.dataset?.watchlistCount ?? 0),
+    storage: sessionStorage.getItem('worldboxsr.v0.5.bookmarks')
+  }))()`);
+}
 
-      for (const focusRef of card.followRefs) {
-        const followSelector = entityFollowSelector(focusRef);
-        if (!(await elementCenter(cdpClient, followSelector, false))) continue;
-        await clickSelector(cdpClient, followSelector);
-        const trail = await focusedTrailEvidence(cdpClient);
-        if (trail.visible && trail.eventIds.length >= 2) {
-          return {
-            lens,
-            sourceEventId,
-            causeEventId: card.eventIds[0],
-            mapRef: card.mapRefs[0],
-            focusRef
-          };
-        }
-        await clearFocusIfPresent(cdpClient);
-      }
+async function createCausalSuccession(cdpClient) {
+  const paused = await evaluate(cdpClient, `(() => {
+    const pause = document.querySelector('#pause');
+    if (!pause) return false;
+    if (pause.dataset.active !== 'true') pause.click();
+    return pause.dataset.active === 'true';
+  })()`);
+  if (!paused) throw new Error('failed to pause canonical seed45 world before causal setup');
+
+  const target = await evaluate(cdpClient, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    const world = scene?.world;
+    const camera = scene?.cameras?.main;
+    if (!world || !camera) return null;
+    const adultAgeDays = world.config.adultAgeYears * world.config.daysPerYear;
+    const tileSize = 28;
+    const candidates = [];
+    for (const polity of world.polities.filter((value) => value.active).sort((a, b) => a.id - b.id)) {
+      if (!Number.isInteger(polity.rulerId)) continue;
+      const memberSettlements = new Set(world.settlements
+        .filter((settlement) => settlement.active && settlement.polityId === polity.id)
+        .map((settlement) => settlement.id));
+      const adults = world.entities
+        .filter((human) => human.kind === 'human' && human.alive && human.ageDays >= adultAgeDays && memberSettlements.has(human.settlementId))
+        .sort((a, b) => b.ageDays - a.ageDays || a.id - b.id);
+      const ruler = adults.find((human) => human.id === polity.rulerId);
+      if (!ruler || adults.length < 2) continue;
+      const worldX = (ruler.x + 0.5) * tileSize;
+      const worldY = (ruler.y + 0.5) * tileSize;
+      const screenX = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+      const screenY = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+      if (screenX < 40 || screenX > 1110 || screenY < 85 || screenY > 785) continue;
+      candidates.push({
+        polityId: polity.id,
+        polityName: polity.name,
+        rulerId: ruler.id,
+        x: ruler.x,
+        y: ruler.y,
+        screenX,
+        screenY,
+        eligibleAdults: adults.length
+      });
     }
+    return candidates.sort((a, b) => b.eligibleAdults - a.eligibleAdults || a.polityId - b.polityId)[0] ?? null;
+  })()`);
+  if (!target) throw new Error('canonical seed45 has no visible polity ruler with a deterministic successor candidate');
+
+  await selectTool(cdpClient, 'lightning');
+  await clickPoint(cdpClient, { x: target.screenX, y: target.screenY });
+  await delay(120);
+
+  const death = await evaluate(cdpClient, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    if (!world) return null;
+    const death = world.history.findLast((event) => event.type === 'human.died' && event.entityId === ${target.rulerId} && event.cause === 'lightning') ?? null;
+    const strike = world.history.findLast((event) => event.type === 'god.lightning' && event.x === ${target.x} && event.y === ${target.y}) ?? null;
+    return { death, strike, rulerStillPresent: world.entities.some((human) => human.kind === 'human' && human.id === ${target.rulerId}) };
+  })()`);
+  if (!death?.death || !death?.strike) throw new Error('real Lightning pointer input did not create ruler death + god.lightning events');
+  if (death.rulerStillPresent) throw new Error('Lightning-struck ruler remained in authoritative entities');
+
+  const resumed = await evaluate(cdpClient, `(() => {
+    const speed = document.querySelector('#speed');
+    if (speed) {
+      speed.value = '1';
+      speed.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    const pause = document.querySelector('#pause');
+    if (!pause) return false;
+    if (pause.dataset.active === 'true') pause.click();
+    return pause.dataset.active !== 'true';
+  })()`);
+  if (!resumed) throw new Error('failed to resume canonical world for normal succession tick');
+
+  const deathEventId = death.death.id;
+  await waitForExpression(cdpClient, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    return world?.history?.some((event) => event.type === 'polity.ruler_succeeded'
+      && event.polityId === ${target.polityId}
+      && event.causes?.some((cause) => cause.kind === 'event' && cause.id === ${deathEventId})) === true;
+  })()`, 5_000);
+
+  const result = await evaluate(cdpClient, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    const pause = document.querySelector('#pause');
+    if (pause?.dataset.active !== 'true') pause?.click();
+    const timeline = document.querySelector('#timeline');
+    if (timeline) timeline.open = true;
+    const succession = world?.history?.findLast((event) => event.type === 'polity.ruler_succeeded'
+      && event.polityId === ${target.polityId}
+      && event.causes?.some((cause) => cause.kind === 'event' && cause.id === ${deathEventId})) ?? null;
+    return succession ? {
+      successionEventId: succession.id,
+      successorId: succession.rulerId,
+      paused: pause?.dataset.active === 'true'
+    } : null;
+  })()`);
+  if (!result?.paused || !Number.isInteger(result.successionEventId)) throw new Error(`normal succession did not settle into paused Chronicle state: ${JSON.stringify(result)}`);
+
+  await waitForExpression(cdpClient, `document.querySelector('#history-list button[data-event-id="${result.successionEventId}"]') !== null`, 3_000);
+  return {
+    ...target,
+    lightningEventId: death.strike.id,
+    deathEventId,
+    successionEventId: result.successionEventId,
+    successorId: result.successorId
+  };
+}
+
+async function canonicalStoryBaseline(cdpClient, successionEventId) {
+  await waitForExpression(cdpClient, `document.querySelector('#history-list')?.dataset?.chronicleLens === 'highlights'`, 2_000);
+  const state = await evaluate(cdpClient, `(() => ({
+    fingerprint: JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world),
+    paused: document.querySelector('#pause')?.dataset?.active === 'true',
+    activeLens: document.querySelector('#chronicle-lenses button[data-active="true"]')?.dataset?.chronicleLens ?? '',
+    highlights: [...document.querySelectorAll('#history-list button[data-event-id]')].map((button) => Number(button.dataset.eventId)),
+    eventVisible: document.querySelector('#history-list button[data-event-id="${successionEventId}"]') !== null
+  }))()`);
+  if (!state.eventVisible) throw new Error(`succession #${successionEventId} not visible at read-only baseline`);
+  return state;
+}
+
+async function chooseFocusedEntity(cdpClient, followRefs) {
+  for (const ref of followRefs) {
+    const selector = entityFollowSelector(ref);
+    if (!(await elementCenter(cdpClient, selector, false))) continue;
+    await clickSelector(cdpClient, selector);
+    const trail = await focusedTrailEvidence(cdpClient);
+    if (trail.visible && trail.eventIds.length >= 2) return ref;
+    await clearFocusIfPresent(cdpClient);
   }
   return null;
+}
+
+async function selectTool(cdpClient, toolName) {
+  const selected = await evaluate(cdpClient, `(() => {
+    const tool = document.querySelector('#tool');
+    if (!tool) return null;
+    tool.value = ${JSON.stringify(toolName)};
+    tool.dispatchEvent(new Event('change', { bubbles: true }));
+    return {
+      value: tool.value,
+      active: document.querySelector('[data-tool-button="${toolName}"]')?.dataset?.active === 'true'
+    };
+  })()`);
+  if (selected?.value !== toolName || !selected?.active) throw new Error(`${toolName} did not become active: ${JSON.stringify(selected)}`);
 }
 
 function assertReadableCard(card, expectedEventId) {
@@ -300,19 +451,6 @@ async function mapEvidence(cdpClient, mapRef) {
   })()`);
 }
 
-async function freezeChronicle(cdpClient) {
-  const result = await evaluate(cdpClient, `(() => {
-    const pause = document.querySelector('#pause');
-    const timeline = document.querySelector('#timeline');
-    if (!pause || !timeline) return null;
-    if (pause.dataset.active !== 'true') pause.click();
-    timeline.open = true;
-    return { paused: pause.dataset.active === 'true', open: timeline.open };
-  })()`);
-  if (!result?.paused || !result.open) throw new Error(`failed to pause/open Chronicle: ${JSON.stringify(result)}`);
-  await delay(100);
-}
-
 async function selectLens(cdpClient, lens) {
   const active = await evaluate(cdpClient, `document.querySelector('#history-list')?.dataset?.chronicleLens ?? ''`);
   if (active !== lens) await clickSelector(cdpClient, `#chronicle-lenses button[data-chronicle-lens="${lens}"]`);
@@ -355,6 +493,10 @@ function entityFollowSelector(ref) {
 
 function sameMapRef(a, b) {
   return a.entityKind === b.entityKind && a.entityId === b.entityId && a.x === b.x && a.y === b.y;
+}
+
+function sameEntityRef(a, b) {
+  return a.entityKind === b.entityKind && a.entityId === b.entityId;
 }
 
 function assertKeys(actual, expected, label) {
