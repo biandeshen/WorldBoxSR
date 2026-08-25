@@ -4,37 +4,50 @@ Last updated: 2026-08-25
 
 ## Management state
 
-**v0.3.0 — Civilizations Rise is at the release checkpoint.** The implementation backlog is closed; this release branch contains only version/release documentation and the package version that triggers the tag/release workflow when merged.
+The project is in **v0.4.0 — God Power Sandbox release-candidate handoff**. Release gate: #200. Finite backlog: `docs/backlog/v0.4.md`.
 
-The next product-development stage is **v0.4.0 — God Power Sandbox**. No v0.4 gameplay code belongs in the v0.3 release PR.
+v0.3.0 — Civilizations Rise is shipped. v0.4 gameplay implementation now consists of two deliberately bounded vertical slices plus one final product-gate consolidation:
+
+- Meteor — destructive radius-2 intervention with authoritative cross-kind mortality, vegetation removal, truthful no-effect, strong accessible feedback and World Chronicle memory;
+- Rain — constructive radius-2 restoration of existing food/vegetation capacities with truthful saturation/no-effect, accessible feedback and World Chronicle memory;
+- God Power product gate — shared presentation metadata/outcome contract plus deterministic headless Meteor→Rain verification and real browser interaction evidence.
+
+No seventh power belongs in the v0.4 implementation scope.
 
 ## Current authoritative capability
 
-The deterministic engine remains the only world truth: seeded/serializable RNG, fixed ticks, terrain/resources, human lifecycle/ancestry, settlements, polities, rulers, relations, visible warbands/combat, conquest/rebellion, territory/history, typed grazers, save/load, CLI/Simulation Lab and causal events. Phaser projects this state and never becomes a second authoritative world.
+The deterministic engine remains the only world truth: seeded/serializable RNG, fixed ticks, terrain/resources, human lifecycle/ancestry, settlements, polities, rulers, relations, visible warbands/combat, conquest/rebellion, territory/history, typed grazers, save/load, CLI/Simulation Lab and causal events.
 
-The v0.3 story surface is presentation-only over authoritative causal history. It turns founding, succession, war/peace, battle, conquest and rebellion into readable Chronicle entries and high-value pulses without inventing canonical facts.
+God powers act only through authoritative commands. Presentation owns target previews, generated FX/SFX, outcome wording and Chronicle projection; it does not maintain a second world model.
 
-## v0.3 release evidence
+Meteor and Rain share a radius-2 targeting contract while keeping opposite semantic effects:
+- Meteor clears vegetation and kills in-footprint humans/grazers through lifecycle authority;
+- Rain restores existing food/vegetation capacity without changing climate, terrain, capacities, identity or politics and without resurrecting life.
 
-- default seed45 by year 40 independently produces multiple powers with rulers, war, multiple engagements, conquest and rebellion;
-- deterministic collision gate uses real engine systems and passes reproducibly;
-- Chronicle selection keeps war/battle/outcome history visible despite frequent ruler churn;
-- merged v0.3 implementation passed PR CI/Chromium and is being re-verified on `main` before the release PR is merged;
-- release notes and canonical browser QA live in `docs/releases/v0.3.0.md` and `docs/demos/v0.3.0.md`.
+## v0.4 evidence
+
+- Meteor #202 and Rain #204 both merged after normal CI + real Chromium interaction review;
+- merged Rain `main` passes CI, Pages and interactive Chromium;
+- canonical interactive seed45 gate pauses year 40, uses real browser pointer input to strike tile 15,13 with Meteor, then restore the same footprint with Rain;
+- evidence verifies vegetation 189.077 → 0 → 189.077/189.077 and food 163.212 → 165.464/165.464 across all 25 passable tiles;
+- final Chronicle keeps `Rain renews 15,13` followed by `Meteor devastates 15,13`;
+- headless product gate in #206 uses real engine commands and requires deterministic damage→recovery, non-resurrection, stable terrain/capacities/RNG and causal event order.
 
 ## Binding product decisions
 
 - Visible truthful player results outrank hidden system breadth.
 - Runtime/engine state is the only world truth; Phaser/UI/AI are projections.
-- Natural coherent collapse/extinction is allowed; no hidden survival controller.
-- Civilization depth is paused after v0.3; do not turn WorldBoxSR into a strategy-game feature race.
-- Ecology research remains frozen until v0.6.
-- v0.4 should strengthen the satisfying god-hand loop and its causal consequences, not reopen v0.3 mechanics.
+- Natural coherent collapse/extinction remains allowed; no hidden survival controller.
+- Civilization depth remains paused after v0.3.
+- Ecology research remains deferred until v0.6.
+- v0.4 stops at six visible powers; do not turn release handoff into feature accumulation.
+- No generic power/disaster framework unless a later shipped capability proves it necessary.
 
 ## Current decision gate
 
-1. require merged-`main` CI, Pages and Chromium success for the v0.3 implementation;
-2. merge the minimal v0.3 release PR;
-3. verify tag/release `v0.3.0` plus final Pages deployment;
-4. close release gate #181;
-5. open a finite v0.4 backlog around the smallest coherent God Power Sandbox slice.
+1. finish #206 CI + Chromium and merge the final implementation gate;
+2. verify merged `main` CI, Pages and Chromium;
+3. open a **release-only** v0.4 PR: package 0.4.0, release notes, canonical demo/QA, README/ROADMAP/STATUS version handoff;
+4. verify tag/release `v0.4.0` plus final public Pages deployment;
+5. close #200;
+6. only then begin v0.5 World Stories planning.
