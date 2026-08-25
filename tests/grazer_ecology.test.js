@@ -144,10 +144,11 @@ test('invalid creature spawns reject before command ID allocation', () => {
   assert.ok(water);
 
   // Species validation precedes passability, so this case should not depend on
-  // the high-water test world containing any land at all.
+  // the high-water test world containing any land at all. Grazer + Wolf are the
+  // only explicit spawnable species in the v0.6 two-species surface.
   assert.throws(
-    () => applyCommand(world, { type: 'spawn_creature', species: 'wolf', x: 0, y: 0 }),
-    /species must be grazer/
+    () => applyCommand(world, { type: 'spawn_creature', species: 'bear', x: 0, y: 0 }),
+    /species must be one of: grazer, wolf/
   );
   assert.equal(world.nextCommandId, 1);
   assert.throws(
