@@ -15,7 +15,17 @@ export function createSettlement(world, { x, y }) {
     abandonedDay: null,
     population: 0,
     memberIds: [],
-    polityId: null
+    polityId: null,
+    conquestCount: 0,
+    previousPolityId: null,
+    lastConqueredDay: null,
+    lastConqueredByPolityId: null,
+    lastConqueringWarbandId: null,
+    occupationStartedDay: null,
+    rebellionEligibleDay: null,
+    rebellionCount: 0,
+    lastRebelledDay: null,
+    lastRebelledFromPolityId: null
   };
   world.settlements.push(settlement);
   return settlement;
