@@ -20,11 +20,11 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Current release candidate: v0.6.0 — Living Ecology
+## Current release: v0.6.0 — Living Ecology
 
 v0.6 turns the existing creature/resource simulation into one supported player-visible ecology experience: **natural Grazer populations visibly pressure vegetation, the landscape later recovers as that pressure falls, and a Wolf can hunt a Grazer through ordinary authoritative simulation.**
 
-The supported release scope is deliberately finite:
+The shipped scope is deliberately finite:
 
 - **Living Ecology preset** — 24×24 canonical world with exactly 10 deterministic natural Grazer founders; natural births and old-age deaths come from ordinary simulation, with no later rescue/reseed/population target;
 - **Grazer + Wolf** — exactly two shipped creature identities, visually distinct and inspectable through one shared authoritative creature path;
@@ -37,16 +37,20 @@ Frozen canonical evidence:
 - Y40: `116 · 17.50% · 156`;
 - Y50: `68 · 37.44% · 160`;
 - canonical Wolf #171: `(0,8) → (1,9)` then predates Grazer #110;
-- the browser reproduces Y40→Y50 through the ordinary **1 year** Time control and the hunt through **1 day** Time + Play;
+- production Chromium reproduces Y40→Y50 through ordinary **1 year** Time and the hunt through **1 day** Time + Play;
 - Pulse, Recent, Event Card and current Wolf Inspector explain the result while paused read-only interaction preserves exact authoritative state.
 
 This is an observed supported ecology phase, **not** a claim of equilibrium, carrying capacity or guaranteed coexistence. v0.6 does not ship Wolf reproduction/natural Wolf founders, additional species, a universal map-size initializer, hidden survival controls, an ecology dashboard, disease/seasons/climate/genetics or a generic food web.
 
+Release identity is immutable:
+- release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
+- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb` points exactly to that commit;
+- GitHub Release `WorldBoxSR v0.6.0` is published from checked-in release notes;
+- release workflow #10, merged-main CI #748, Pages #50 including final public `/play/`, and full visual-qa #247 are green.
+
 - [v0.6 canonical browser demo / QA](docs/demos/v0.6.0.md)
 - [v0.6.0 release notes](docs/releases/v0.6.0.md)
 - [v0.6 finite backlog](docs/backlog/v0.6.md)
-
-Publication of tag/Release `v0.6.0` is completed by the repository release workflow after the release PR merges. Until that publication check is green, v0.7 feature work remains blocked.
 
 ## Previous release: v0.5.0 — World Stories
 
@@ -57,9 +61,9 @@ v0.5 turned bounded authoritative history into Causal Event Cards, exact Focused
 
 The six-power God Power Sandbox from v0.4 and civilization/ruler/war foundations from v0.3 remain release regressions.
 
-## Next planning stage after v0.6 publication: v0.7 — World Builder & Scenarios
+## Next planning stage: v0.7 — World Builder & Scenarios
 
-The roadmap currently reserves v0.7 for creation/scenario tooling, but its exact finite scope must be planned **after** v0.6 tag/Release/Pages/Chromium publication is verified. No v0.7 work belongs in the v0.6 release handoff.
+v0.6 publication is complete, so finite v0.7 planning may now begin. The roadmap reserves v0.7 for creation/scenario tooling, but the exact bounded scope still has to be chosen from shipped-product evidence before implementation starts.
 
 ## Public playable demo
 
