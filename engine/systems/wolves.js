@@ -66,6 +66,8 @@ function moveTowardPrey(world, wolf, prey) {
 }
 
 function huntGrazer(world, wolf, prey) {
+  const hungerBefore = wolf.hunger;
+  const hungerAfter = clamp01(hungerBefore - world.config.wolfFeedAmount);
   const predationEvent = pushEvent(world, {
     type: 'creature.predated',
     subject: entityRef('creature', prey.id),
@@ -74,6 +76,8 @@ function huntGrazer(world, wolf, prey) {
     predatorSpecies: wolf.species,
     preyCreatureId: prey.id,
     preySpecies: prey.species,
+    predatorHungerBefore: hungerBefore,
+    predatorHungerAfter: hungerAfter,
     x: prey.x,
     y: prey.y
   });
@@ -82,7 +86,8 @@ function huntGrazer(world, wolf, prey) {
     cause: 'predation',
     causes: [eventRef(predationEvent.id)]
   });
-  wolf.hunger = clamp01(wolf.hunger - world.config.wolfFeedAmount);
+  wolf.hunger = hungerAfter;
+  world.counters.creatureMeals += 1;
   return predationEvent;
 }
 
