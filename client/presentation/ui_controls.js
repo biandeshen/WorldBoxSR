@@ -12,6 +12,7 @@ for (const button of powerButtons) {
 toolSelect?.addEventListener('change', syncPowerButtons);
 
 window.addEventListener('keydown', (event) => {
+  if (scenarioSetupActive()) return;
   if (event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
 
@@ -34,7 +35,7 @@ if (rendererLink) {
 syncPowerButtons();
 
 function selectTool(tool) {
-  if (!toolSelect) return;
+  if (scenarioSetupActive() || !toolSelect) return;
   const meta = godPowerMeta(tool);
   if (meta.id !== tool) return;
   toolSelect.value = tool;
@@ -45,9 +46,13 @@ function selectTool(tool) {
 function syncPowerButtons() {
   const selected = toolSelect?.value || 'spawn_human';
   for (const button of powerButtons) {
-    const active = button.dataset.toolButton === selected;
+    const active = toolSelect && !scenarioSetupActive() && button.dataset.toolButton === selected;
     button.dataset.active = active ? 'true' : 'false';
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
   }
-  if (toolReadout) toolReadout.textContent = godPowerMeta(selected).label;
+  if (toolReadout) toolReadout.textContent = scenarioSetupActive() ? 'Scenario Setup owns map input' : godPowerMeta(selected).label;
+}
+
+function scenarioSetupActive() {
+  return document.documentElement.dataset.scenarioSetup === 'true';
 }

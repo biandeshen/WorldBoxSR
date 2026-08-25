@@ -23,6 +23,7 @@ on:
       - 'tools/capture-wolf-predation-evidence.mjs'
       - 'tools/capture-ecology-readability-evidence.mjs'
       - 'tools/capture-canonical-ecology-evidence.mjs'
+      - 'tools/capture-scenario-setup-evidence.mjs'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -59,10 +60,7 @@ jobs:
             echo '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.'
             echo '- v0.4 Meteor→Rain real-pointer damage/recovery regression remains required.'
             echo '- v0.5 Event Card / Focused Story / Watchlist / Chronicle-lens / canonical one-session story regressions remain required.'
-            echo '- v0.6 natural fauna: Sandbox remains default/exact; Living Ecology is selected through the visible Mode control, uses validated 24×24 natural grazers, retains natural birth, has zero god founder spawns and supports authority-neutral Grazer inspection.'
-            echo '- v0.6 multi-species surface: on a paused Living Ecology world, one Wolf is explicitly spawned through the authoritative hidden QA creature-spawn path; Grazer and Wolf must have distinct EntityLayer visual signatures, species-aware inspectors and a compact Wolf HUD count, while post-spawn inspection remains read-only.'
-            echo '- v0.6 Wolf predation: on a fresh Living Ecology world, one explicit QA Wolf is advanced through the ordinary one-day Time control; real simulation must visibly move it, record causal `creature.predated` → `creature.died(predation)`, remove the prey, reduce Wolf hunger and preserve post-kill paused inspection authority.'
-            echo '- v0.6 ecology readability: the authoritative hunt must project into one live Wolf→Grazer Pulse, a readable Recent Chronicle row and Causal Event Card, while a current Wolf inspector shows derived behavior and Living Ecology HUD `🌿 N%` exactly matches authoritative vegetation utilization; all read-only navigation preserves the paused world fingerprint.'
-            echo '- v0.6 canonical gate: paused seed45 Living Ecology must expose the frozen Y40 trough, reach the frozen Y50 recovery through the ordinary 1-year Time control, then use the one fixed QA Wolf setup to prove real movement→predation and readable Pulse/Recent/Event Card/current Wolf through player surfaces with unchanged paused authority.'
-            echo '- Artifact `visual-evidence` preserves fixed Phaser/legacy screenshots, prior release regressions, component ecology evidence and canonical trough/recovery/predation screenshots + JSON.'
+            echo '- v0.6 natural fauna, multi-species, Wolf predation, ecology readability and canonical trough→recovery→predation gates remain required.'
+            echo '- v0.7 Scenario Setup: the real existing Phaser pointer path must enter a paused exact Sandbox base, place Human/Grazer/Wolf in ordered Recipe v1 authority, reject one impassable click without identity/world mutation, rename without authority change, Clear by exact rematerialization, rebuild the same start, Run without changing it, then allow ordinary Play to change the world while the frozen recipe stays unchanged.'
+            echo '- Artifact `visual-evidence` preserves prior release regressions plus Scenario Setup and running-start screenshots + JSON authority evidence.'
           } >> "$GITHUB_STEP_SUMMARY"

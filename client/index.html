@@ -36,6 +36,8 @@
         <input id="seed" value="45" size="7" aria-label="seed" />
       </label>
       <button id="reset" type="button" title="Create the showcase world from this seed">↻ World</button>
+      <button id="scenario-setup-enter" type="button" title="Build a deterministic Human, Grazer and Wolf starting setup">＋ Scenario</button>
+      <span id="scenario-state-badge" hidden>SETUP</span>
       <button id="pause" type="button">Ⅱ Pause</button>
       <button id="reset-camera" type="button" title="Fit the world in view">⌂ View</button>
       <label class="compact-field" title="Simulation speed">
@@ -73,6 +75,45 @@
   </aside>
 
   <div id="world-event-pulse" role="log" aria-live="polite" aria-label="recent world events"></div>
+
+  <section id="scenario-setup-panel" hidden aria-label="Scenario Setup workspace">
+    <div class="scenario-setup-header">
+      <div>
+        <small id="scenario-setup-state">SETUP · PAUSED</small>
+        <strong id="scenario-setup-heading">Scenario Setup</strong>
+      </div>
+      <span id="scenario-setup-count">0/32 actions</span>
+    </div>
+
+    <div id="scenario-setup-editor">
+      <label class="scenario-name-field">
+        <span>Name</span>
+        <input id="scenario-name" value="Untitled scenario" maxlength="64" aria-label="scenario name" />
+      </label>
+
+      <div id="scenario-setup-buttons" role="toolbar" aria-label="scenario setup placements">
+        <button type="button" data-scenario-setup-tool="human" data-active="true" aria-pressed="true" title="Place Human · Shift-click places 10">
+          <span>✦</span><strong>Human</strong>
+        </button>
+        <button type="button" data-scenario-setup-tool="grazer" aria-pressed="false" title="Place Grazer · Shift-click places 10">
+          <span>🐾</span><strong>Grazer</strong>
+        </button>
+        <button type="button" data-scenario-setup-tool="wolf" aria-pressed="false" title="Place Wolf · Shift-click places 10">
+          <span>🐺</span><strong>Wolf</strong>
+        </button>
+      </div>
+
+      <div id="scenario-setup-recent" aria-live="polite">Base world only · click passable land to place setup actors.</div>
+
+      <div class="scenario-setup-actions">
+        <button id="scenario-setup-clear" type="button">Clear Setup</button>
+        <button id="scenario-setup-run" type="button">▶ Run Scenario</button>
+      </div>
+      <small class="scenario-setup-hint">Click land: place · Shift-click: ×10 · Alt-click: inspect · Drag/Wheel: navigate</small>
+    </div>
+
+    <div id="scenario-running-summary" hidden>Scenario ready for ordinary gameplay.</div>
+  </section>
 
   <footer id="power-dock">
     <div class="power-dock-title">
@@ -119,6 +160,7 @@
 
   <script type="module" src="./presentation/ui_controls.js"></script>
   <script type="module" src="./bootstrap.js"></script>
+  <script type="module" src="./presentation/scenario_setup_runtime.js"></script>
   <script type="module" src="./presentation/camera_runtime.js"></script>
   <script type="module" src="./presentation/world_overlay_runtime.js"></script>
   <script type="module" src="./presentation/selection_highlight_runtime.js"></script>

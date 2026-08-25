@@ -57,11 +57,15 @@ try {
   if (!y40.hud.includes('🐾 116') || !y40.hud.includes('🌿 18%')) throw new Error(`Y40 HUD did not expose trough state: ${y40.hud}`);
   await captureScreenshot(cdp, join(outDir, 'living-ecology-canonical-trough-y40-1440x900.png'));
 
-  // Advance through the real product Time control in exact one-year steps.
+  // Advance through the real product 1-year Time control. CDP polling can be
+  // slower than the Phaser frame cadence under CI load, so arm a same-page
+  // requestAnimationFrame watcher that clicks the existing Pause control on the
+  // exact Y50 frame. This changes no world state directly and keeps the frozen
+  // canonical checkpoint strict instead of accepting an overshot year.
   await setSpeed(cdp, '360');
+  await armProductPauseAtDay(cdp, 50 * 360);
   await clickPauseTo(cdp, false);
-  await waitForExactDay(cdp, 50 * 360, 5_000);
-  await clickPauseTo(cdp, true);
+  await waitForProductPauseAtDay(cdp, 50 * 360, 5_000);
   const y50 = await checkpoint(cdp, 50);
   assertCheckpoint(y50, Y50, 'Y50 recovery');
   if (y50.vegetation - y40.vegetation < 0.19 || y50.grazers >= y40.grazers) {
@@ -202,7 +206,7 @@ try {
 }
 
 async function checkpoint(cdpClient, expectedYear) {
-  await waitForHudConvergence(cdpClient, 2_000);
+  await waitForHudConvergence(cdpClient, expectedYear, 2_000);
   return evaluate(cdpClient, `(() => {
     const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     if (!world) return null;
@@ -289,26 +293,68 @@ async function setSpeed(cdpClient, value) {
   if (actual !== value) throw new Error(`failed to set ordinary Time control to ${value}`);
 }
 
-async function waitForExactDay(cdpClient, targetDay, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const day = await evaluate(cdpClient, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day ?? -1`);
-    if (day === targetDay) return;
-    if (day > targetDay) throw new Error(`product Time control overshot canonical day ${targetDay}: ${day}`);
-    await delay(10);
-  }
-  throw new Error(`timed out before canonical day ${targetDay}`);
+async function armProductPauseAtDay(cdpClient, targetDay) {
+  const armed = await evaluate(cdpClient, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    const pause = document.querySelector('#pause');
+    if (!scene?.world || !pause || !Number.isInteger(${targetDay})) return false;
+    const key = '__WORLDBOXSR_QA_PAUSE_WATCH__';
+    globalThis[key]?.cancel?.();
+    let cancelled = false;
+    const state = {
+      targetDay: ${targetDay},
+      done: false,
+      observedDay: scene.world.day,
+      cancel() { cancelled = true; }
+    };
+    globalThis[key] = state;
+    const watch = () => {
+      if (cancelled) return;
+      const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+      if (!world) return;
+      state.observedDay = world.day;
+      if (world.day >= state.targetDay) {
+        if (pause.dataset.active !== 'true') pause.click();
+        state.done = true;
+        return;
+      }
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    return true;
+  })()`);
+  if (!armed) throw new Error(`failed to arm product Pause watcher for canonical day ${targetDay}`);
 }
 
-async function waitForHudConvergence(cdpClient, timeoutMs) {
+async function waitForProductPauseAtDay(cdpClient, targetDay, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const state = await evaluate(cdpClient, `(() => ({
+      day: globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day ?? -1,
+      paused: document.querySelector('#pause')?.dataset?.active === 'true',
+      watch: globalThis.__WORLDBOXSR_QA_PAUSE_WATCH__ ? {
+        done: globalThis.__WORLDBOXSR_QA_PAUSE_WATCH__.done,
+        observedDay: globalThis.__WORLDBOXSR_QA_PAUSE_WATCH__.observedDay
+      } : null
+    }))()`);
+    if (state.day === targetDay && state.paused && state.watch?.done) return;
+    if (state.day > targetDay) throw new Error(`product Time control overshot canonical day ${targetDay}: ${JSON.stringify(state)}`);
+    await delay(20);
+  }
+  throw new Error(`timed out waiting for product Pause at canonical day ${targetDay}`);
+}
+
+async function waitForHudConvergence(cdpClient, expectedYear, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   let previous = null;
+  const expectedPrefix = `Year ${Number(expectedYear).toFixed(1)}`;
   while (Date.now() < deadline) {
     const current = await evaluate(cdpClient, `document.querySelector('#stats')?.textContent ?? ''`);
-    if (current && current === previous && current.includes('🌿')) return;
+    if (current && current === previous && current.includes(expectedPrefix) && current.includes('🌿')) return;
     previous = current;
     await delay(80);
   }
+  throw new Error(`HUD did not converge to ${expectedPrefix}: ${previous ?? ''}`);
 }
 
 async function clickPauseTo(cdpClient, paused) {
