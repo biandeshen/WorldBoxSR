@@ -124,6 +124,10 @@ canvas.addEventListener('wheel', (event) => {
 }, { passive: false });
 
 function applyToolAt(x, y, shiftKey) {
+  if (toolSelect.value === 'meteor') {
+    meteorAt(x, y);
+    return;
+  }
   if (toolSelect.value === 'erase') {
     eraseAt(x, y);
     return;
@@ -164,6 +168,11 @@ function eraseAt(x, y) {
 
 function lightningAt(x, y) {
   applyCommand(world, { type: 'lightning', x, y });
+  refreshHud();
+}
+
+function meteorAt(x, y) {
+  applyCommand(world, { type: 'meteor', x, y });
   refreshHud();
 }
 
