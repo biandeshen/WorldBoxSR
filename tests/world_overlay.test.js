@@ -55,29 +55,35 @@ test('territory boundaries compare polity ownership rather than settlement ids',
   assert.notEqual(territorySignature(view), territorySignature(changed));
 });
 
-test('spawn targeting reports ocean as invalid while destructive powers remain valid', () => {
+test('spawn targeting reports ocean as invalid while direct world powers remain valid', () => {
   const ocean = { passable: false };
   assert.equal(targetStyle('spawn_human', ocean).invalid, true);
   assert.equal(targetStyle('spawn_grazer', ocean).invalid, true);
   assert.equal(targetStyle('lightning', ocean).invalid, false);
   assert.equal(targetStyle('erase', ocean).invalid, false);
   assert.equal(targetStyle('meteor', ocean).invalid, false);
+  assert.equal(targetStyle('rain', ocean).invalid, false);
   assert.equal(targetStyle('spawn_human', { passable: true }).invalid, false);
 });
 
-test('meteor preview exposes the exact clipped Chebyshev radius-2 footprint while ordinary powers remain single-tile', () => {
+test('Meteor and Rain share the exact clipped Chebyshev radius-2 footprint while ordinary powers remain single-tile', () => {
   assert.equal(toolTargetRadius('meteor'), 2);
+  assert.equal(toolTargetRadius('rain'), 2);
   assert.equal(toolTargetRadius('lightning'), 0);
-  const center = targetFootprint('meteor', 4, 4, 9, 9);
-  assert.equal(center.length, 25);
-  assert.equal(center.filter((cell) => cell.center).length, 1);
-  assert.ok(center.some((cell) => cell.x === 2 && cell.y === 2));
-  assert.ok(center.some((cell) => cell.x === 6 && cell.y === 6));
-  assert.equal(center.some((cell) => cell.x === 7 && cell.y === 4), false);
+  const meteorCenter = targetFootprint('meteor', 4, 4, 9, 9);
+  const rainCenter = targetFootprint('rain', 4, 4, 9, 9);
+  assert.equal(meteorCenter.length, 25);
+  assert.deepEqual(rainCenter, meteorCenter);
+  assert.equal(meteorCenter.filter((cell) => cell.center).length, 1);
+  assert.ok(meteorCenter.some((cell) => cell.x === 2 && cell.y === 2));
+  assert.ok(meteorCenter.some((cell) => cell.x === 6 && cell.y === 6));
+  assert.equal(meteorCenter.some((cell) => cell.x === 7 && cell.y === 4), false);
 
-  const corner = targetFootprint('meteor', 0, 0, 9, 9);
-  assert.equal(corner.length, 9);
-  assert.deepEqual(corner.at(-1), { x: 2, y: 2, center: false });
+  const meteorCorner = targetFootprint('meteor', 0, 0, 9, 9);
+  const rainCorner = targetFootprint('rain', 0, 0, 9, 9);
+  assert.equal(meteorCorner.length, 9);
+  assert.deepEqual(rainCorner, meteorCorner);
+  assert.deepEqual(meteorCorner.at(-1), { x: 2, y: 2, center: false });
   assert.deepEqual(targetFootprint('lightning', 4, 4, 9, 9), [{ x: 4, y: 4, center: true }]);
 });
 
