@@ -58,7 +58,7 @@ Shipped coherent terrain/units/settlements, direct god powers with SFX/targeting
 5. conquest/settlement transfer, polity dissolution and bounded rebellion;
 6. civilization event/history integration and a canonical “two powers rise and collide” scenario.
 
-Detailed finite backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release QA: [`docs/demos/v0.3.0.md`](demos/v0.3.0.md).
+Detailed backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release QA: [`docs/demos/v0.3.0.md`](demos/v0.3.0.md).
 
 ### Deliberate stop
 No economy/trade/religion/technology, sophisticated tactics, naval warfare, ecology research, editor/replay or broad art rewrite.
@@ -102,12 +102,9 @@ No AI-authored canonical facts, required AI summary, replay/rewind, graph/databa
 ---
 
 ## v0.6.0 — Living Ecology
-**Status: implementation complete; release candidate packaging/publication in progress under #237. Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”**
+**Status: shipped. Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”**
 
-### Promise
-Turn authoritative Grazer/resource mechanics into one supported visible ecology experience and add exactly one predator relationship without introducing a second renderer-side ecology model or hidden survival controller.
-
-### Shipped implementation scope
+### Shipped scope
 1. **Supported Living Ecology preset** — canonical 24×24 world, exact 10-founder deterministic natural Grazer initializer, natural reproduction + gradual old age, no hidden reseed;
 2. **Grazer + Wolf creature surface** — exactly two shipped creature identities, shared selection/inspection/reference path and distinct visuals;
 3. **authoritative Wolf predation** — deterministic hunger, bounded prey search, one-tile chase, one-prey hunt/feeding, starvation and explicit causal history;
@@ -117,27 +114,29 @@ Turn authoritative Grazer/resource mechanics into one supported visible ecology 
 Detailed backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md). Release QA: [`docs/demos/v0.6.0.md`](demos/v0.6.0.md). Release notes: [`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
 
 ### Canonical release evidence
-Frozen natural trajectory:
 - Y34: `136 Grazers · 34.31% vegetation · 150 natural births`;
 - Y40 trough: `116 · 17.50% · 156`;
-- Y50 recovery: `68 · 37.44% · 160`.
+- Y50 recovery: `68 · 37.44% · 160`;
+- fixed QA Wolf #171 at `(0,8)` first moves to `(1,9)` and predates Grazer #110;
+- uninterrupted, duplicate and Y40 snapshot→restore complete paths finish with byte-identical authority;
+- production Chromium reproduces Y40→Y50 through ordinary Time controls and exposes the hunt through Pulse, Recent, Event Card and current Wolf Inspector while paused presentation remains read-only.
 
-The permanent headless gate runs uninterrupted, duplicate and Y40 snapshot→restore paths and requires byte-identical final authority. After Y50, fixed QA Wolf #171 at `(0,8)` first moves to `(1,9)` and predates Grazer #110. Production Chromium reproduces Y40→Y50 through ordinary Time controls and exposes the hunt through Pulse, Recent, Event Card and current Wolf Inspector while paused presentation remains read-only.
-
-Implementation freeze commit: `ac94bd0bfa59790f959c02c261c3506c378fb26d`; merged-main CI #740, Pages #47/public `/play/` and full visual-qa #239 are green.
+### Release identity
+- implementation freeze: `ac94bd0bfa59790f959c02c261c3506c378fb26d`;
+- release commit: `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
+- annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb` points exactly to the release commit;
+- GitHub Release `WorldBoxSR v0.6.0` is published from checked-in release notes;
+- release workflow #10, release-commit CI #748, Pages #50 with final public `/play/`, and full visual-qa #247 are green.
 
 ### Deliberate stop
 No universal 16×16–48×48 initializer, equilibrium/minimum-population controller, hidden rescue/reseed, natural Wolf-founder policy, Wolf reproduction/packs, additional species/generic food web, disease, seasons/climate, genetics/evolution, plant-species model, ecology dashboard/heatmap, new God Power or renewed civilization/economy/religion/technology breadth.
 
-### Publication gate
-v0.6 feature behavior is frozen. The release-only handoff may change package/docs only. It must verify final release-PR CI + full Chromium, then after merge verify release workflow/tag/GitHub Release, merged-main CI, full Chromium, Pages deploy and final public `/play/` before #223 is closed.
-
 ---
 
 ## v0.7.0 — World Builder & Scenarios
-**Status: reserved next planning direction; blocked until v0.6.0 publication is verified.**
+**Status: next planning direction.**
 
-Potential capability pool: world-generation UI, terrain/biome/life/civilization brushes, named scenarios/rules, save/import/export/share metadata, capture helpers and community-scenario groundwork. Exact scope must be planned as a finite release gate after v0.6 closes rather than inherited as a mega-sprint.
+Potential capability pool: world-generation UI, terrain/biome/life/civilization brushes, named scenarios/rules, save/import/export/share metadata, capture helpers and community-scenario groundwork. The exact v0.7 scope must now be converted into a finite release gate before implementation starts; do not inherit this entire pool as a mega-sprint.
 
 ---
 
@@ -156,4 +155,4 @@ v1.0 means a stable product/compatibility contract, not every possible feature: 
 
 ## Current decision
 
-**v0.6 implementation is frozen. Release-only handoff #237 / PR #238 is the sole active queue.** No v0.7 feature/planning work begins until package `0.6.0`, annotated tag, GitHub Release, merged-main CI, full Chromium, Pages deploy and final public `/play/` are verified and #223 closes.
+**v0.6.0 is shipped and its feature breadth is frozen.** The next legal product work is finite v0.7 planning: define one coherent World Builder & Scenarios player promise, an ordered backlog, explicit non-goals and a canonical product gate before implementation begins.
