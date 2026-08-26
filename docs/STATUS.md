@@ -21,7 +21,9 @@ Last updated: 2026-08-26
 
 Planning #256 merged as `cd97a4b739b3a1858e0ca86684c60c037b4de73f`; merged-main CI #821, Pages #60/public `/play/`, full visual-qa #314 green.
 
-Capability 1 — **Genealogical succession resolver + trajectory audit** — #257/#258 is at branch closeout. It intentionally changes **no ruler behavior**.
+Capability 1 — **Genealogical succession resolver + trajectory audit** — #257/#258 is delivered on main as `88ab84b626b30a1635e23c702b5dba30824d3bb7`; merged-main CI #827, Pages #61/public `/play/`, full visual-qa #320 green.
+
+Capability 2 — **Authoritative ruling-line succession** — #259/#260 has completed its implementation/browser gate. Current task: documentation-synchronized final-head CI + full Visual QA → squash merge → merged-main delivery. Capability 3 remains locked until then.
 
 ## v0.8 player promise
 
@@ -36,75 +38,78 @@ Capability 1 — **Genealogical succession resolver + trajectory audit** — #25
 - no succession RNG.
 - no eligible descendant means current oldest-eligible-adult fallback, not a manufactured heir.
 
-## Capability 1 permanent genealogy seam
+## Capability 1 — delivered genealogy seam
 
-`engine/core/succession_genealogy.js` now provides pure, mutation-free, RNG-free genealogy queries:
-- explicit parent→child adjacency from persistent parental-union `partnerIds → childIds` plus current human `parentIds`;
-- duplicate evidence deduplication;
-- cycle-safe shortest descendant generation distance;
-- retained ancestry through dead/removed intermediate parents;
-- descendant ranking over an already-eligible human set: nearest generation → older age → lower stable ID.
+`engine/core/succession_genealogy.js` provides pure, mutation-free, RNG-free genealogy queries from current human parent IDs plus persistent parental-union child records.
 
-Permanent tests prove:
-- child/grandchild distance;
-- dead intermediate ancestry via persistent union records;
-- paternal descent across maternal-lineage mismatch;
-- co-parent identity does not imply spouse/descendant semantics;
-- duplicate parent/union evidence is harmless;
-- deterministic ranking;
-- exact snapshot + RNG neutrality.
+Frozen baseline audit hook:
+- seed45 · 24×24 · population 30;
+- first true selection divergence at day `9150` / Y25.4166667;
+- Eldergate Realm #1;
+- previous ruler / shadow founder #23;
+- baseline oldest-adult successor #28;
+- only eligible descendant Human #31, direct child, distance 1;
+- all earlier post-founding successions had no eligible descendant, so baseline/proposed ruler selection matched before this point.
 
-CI #822/#823 passed the permanent contracts.
+## Capability 2 — authoritative ruling-line succession evidence
 
-## Frozen seed45 succession trajectory
+### Rule
+- founding remains existing oldest-eligible-adult appointment;
+- later succession first ranks eligible descendants of current `rulingLineFounderId` by nearest generation → older age → lower stable ID;
+- no eligible descendant preserves the exact old open-selection fallback;
+- open fallback starts a new line;
+- vacancy preserves the current line for a later descendant fill;
+- no new RNG.
 
-A temporary probe ran **current unmodified v0.7 succession** with seed45 · 24×24 · population 30 and a shadow ruling-line audit. It searched for the first transition where descendant-first policy would actually choose a different ruler from the baseline oldest-adult rule.
+### Minimal polity authority
+Only four new current political fields:
+- `rulingLineFounderId`;
+- `rulingLineSequence`;
+- `rulingLineSinceDay`;
+- `rulingLineReignCount`.
 
-The requested 200-year horizon naturally stopped at **Y25.4166667 / day 9150**.
+No House/Dynasty/Claim object and no duplicated genealogy.
 
-Before the first true divergence:
-- first appointment count: `1`;
-- successions through the divergence event: `13`;
-- vacancies: `0`;
-- no-descendant fallback line changes: `12`;
-- compatible descendant continuations: `0`.
+### Explicit history
+Ruler events preserve existing `reason`, ruler IDs and recorded death/previous-ruler causes. They additionally record the succession path, ruling-line founder transition, line sequence/reign count, line-change boolean and descendant distance where applicable. Vacancy retains line identity without claiming the line disappeared.
 
-First no-descendant fallback:
-- Y21.75 / day 7830;
-- polity #1 **Eldergate Realm**;
-- previous ruler / shadow line founder **#28**;
-- baseline successor **#9**;
-- succession event **#23**;
-- 5 eligible adults;
-- zero eligible descendants.
+### Snapshot v16
+- current schema is v16;
+- v15 and earlier polity snapshots migrate deterministically;
+- legacy anchor = current ruler, otherwise last ruler, otherwise null;
+- anchored legacy polity starts line #1 / reign count 1 with `rulingLineSinceDay = null` because the historical start is unknown;
+- migration fabricates no event/date;
+- v16 round-trip and save/load continuation are exact.
 
-First true selection divergence:
-- **Y25.4166667 / day 9150**;
-- polity #1 **Eldergate Realm**;
-- previous ruler / shadow ruling-line founder **#23**;
-- baseline oldest-adult successor **#28**;
-- succession event **#41**;
-- 6 eligible adults;
-- exactly one eligible descendant: **Human #31**;
-- #31 is a **direct child** (`distance=1`), age **24.0167 years**, settlement #1;
-- proposed descendant-first successor therefore **#31**, not baseline #28.
+### Canonical authority
+Permanent tests prove the real implementation at the Capability-1 hook:
+- immediately before day 9150, Eldergate Realm ruler/founder is #23 and line sequence is #13;
+- at day 9150, authoritative successor becomes **Human #31**, not baseline #28;
+- event records descendant succession, distance 1, unchanged founder #23 / line #13;
+- duplicate and save/load continuation match exactly.
 
-Because all earlier successions had no eligible descendant, the proposed policy and baseline select the same ruler before this transition. No fertility/migration/rescue/hidden heir is needed; the v0.8 stop rule does not trigger.
+Normal CI remained green through authority and QA-maintenance heads; final implementation head `75e0a11929f9f4d1bc2dad7b530e339b9a63b5c6` passed CI #835 + full visual-qa #328.
 
-The temporary trajectory probe was deleted after freezing this evidence. Permanent CI keeps only the resolver/tests.
+## Prior-release regression identity
+
+The published v0.7 release remains immutable: canonical source `7f07ed67`, fork `67543ff4` at the v0.7 tag/release.
+
+v0.8 intentionally changes political history before the Y40 Sandbox Scenario base, so current-main deterministic Scenario baselines are now:
+- source `b411c106`;
+- fork `0f28ca42`.
+
+The full Recipe/share/fresh-open/Replay/Fork exactness journey remains unchanged and is still required. Portable and Replay/Fork Chromium gates repeatedly reproduce the current-main values.
+
+The final Visual work also removed QA-only brittleness from the canonical Scenario helper: browser-level CDP explicitly creates/attaches a page target, failed profile cleanup cannot mask the original error, and Fork/Run assertions use the shipped `FORK · EDITING · PAUSED` / `FORK · 3` / `#scenario-setup-run` contract.
 
 ## Ordered v0.8 state
 
-1. Genealogical succession resolver + trajectory audit — **branch evidence complete; final CI + full Visual QA → merge/delivery**.
-2. Authoritative ruling-line succession — **NEXT only after #258 merged-main CI + Pages/public `/play/` + full Visual QA are green**.
-3. Ruling-line readability — locked.
+1. Genealogical succession resolver + trajectory audit — **DONE + merged-main delivered**.
+2. Authoritative ruling-line succession — **implementation/browser gate complete; final docs head → merge/delivery**.
+3. Ruling-line readability — **NEXT only after #260 merged-main CI + Pages/public `/play/` + full Visual QA are green**.
 4. Dynastic World Stories — locked.
 5. Canonical Ruling Lines gate — locked.
 6. release-only `v0.8.0` handoff — locked.
-
-## Capability 2 intended first canonical behavior change
-
-The frozen audit says the first baseline/proposed selection divergence occurs at Y25.4167 in Eldergate Realm: current baseline selects #28 while descendant-first ranking selects direct child #31. Capability 2 must use this evidence as its first deterministic regression hook, while still proving no earlier successor selection changes unexpectedly.
 
 ## Explicit v0.8 non-goals
 
@@ -112,8 +117,8 @@ No economy/trade/storage/currency, professions/classes, marriage/household/marri
 
 ## Current decision gate
 
-1. require #258 final branch head CI + full Visual QA green;
-2. confirm diff contains only genealogy helper/tests + backlog/STATUS, with no `rulers.js`/snapshot/presentation behavior changes;
-3. mark ready and squash merge #258;
+1. require documentation-synchronized #260 final head CI + full Visual QA green;
+2. confirm no client/UI/story behavior entered Capability 2;
+3. mark #260 ready and squash merge;
 4. verify merged-main CI + Pages/public `/play/` + full Visual QA;
-5. only then open one capability-2 issue/branch for authoritative ruling-line succession.
+5. only then open Capability 3 for compact ruling-line readability.
