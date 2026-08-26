@@ -20,15 +20,15 @@ The deterministic simulation foundation is a strategic asset, but it is not a su
 - [Presentation-stack decision](docs/decisions/0003-presentation-stack.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Release candidate: v0.7.0 — Scenario Builder & Sharing
+## Current release: v0.7.0 — Scenario Builder & Sharing
 
-v0.7 turns the existing deterministic startup/command architecture into one finite player creation loop:
+v0.7 turns the deterministic startup/command architecture into one finite player creation loop:
 
 > **Compose a Scenario → share/import the exact same authoritative start → Run → Replay or Fork.**
 
-The shipped implementation breadth is frozen:
+Shipped scope:
 
-- **Scenario Recipe v1** — strict versioned startup input over current seed + `Sandbox | Living Ecology` + ordered Human/Grazer/Wolf placements; no live-world snapshot mirror;
+- **Scenario Recipe v1** — strict versioned startup input over current seed + `Sandbox | Living Ecology` + ordered Human/Grazer/Wolf placements; never a live-world snapshot mirror;
 - **Scenario Setup** — compact paused editor using the existing Phaser map input and authoritative commands; Clear rematerializes and Run freezes the Recipe;
 - **portable sharing** — canonical JSON, unpadded-base64url `scenario=` links, fresh-tab exact reconstruction and atomic visible JSON Import;
 - **Replay** — deterministic rematerialization of the frozen Recipe start, never timeline rewind/event replay/snapshot restore;
@@ -39,20 +39,24 @@ Frozen canonical identity:
 - source `Portable trio`: seed45 Sandbox, Human `(12,8)`, Grazer `(16,12)`, Wolf `(14,7)`, paused day 14400, fingerprint **`7f07ed67`**;
 - canonical fork: one additional Human `(12,8)`, fingerprint **`67543ff4`**;
 - canonical dirty source/fork fingerprints: `dfbad7ff` / `e0b5b305`;
-- canonical implementation gate artifact `9580488110` records `canonicalJourneyComplete: true` and four manually reviewed 1440×900 screenshots;
-- implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989` passed merged-main CI #811, Pages #57 including final public `/play/`, and full visual-qa #306.
+- implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989`;
+- canonical artifact `9580488110` records `canonicalJourneyComplete: true` and four manually reviewed 1440×900 screenshots.
+
+Release identity is immutable:
+- release commit **`1d5931a650f64765286e155c0e821bfe6d63a299`**;
+- annotated tag **`v0.7.0`** / tag object **`236eef64cf5090ff1a65bfee264f193078e79606`** targets exactly that release commit;
+- GitHub Release **`WorldBoxSR v0.7.0`** is published from checked-in release notes;
+- release workflow **#11**, release-commit CI **#817**, Pages **#58** including final public `/play/`, and full visual-qa **#312** are green.
 
 v0.7 deliberately does **not** ship terrain/biome/resource painting, live snapshot savegames, Setup undo/remove stacks, timeline rewind, rules DSL/objectives, cloud/workshop services, custom map sizes or new simulation mechanics.
-
-**Publication is still pending in this release candidate.** `v0.7.0` is not considered shipped until the release PR merges, the existing release workflow creates an annotated `v0.7.0` tag + GitHub Release pointing exactly at that release merge commit, and release-commit CI, Pages/public `/play/` and full Chromium all pass.
 
 - [v0.7 canonical browser demo / QA](docs/demos/v0.7.0.md)
 - [v0.7.0 release notes](docs/releases/v0.7.0.md)
 - [v0.7 finite backlog](docs/backlog/v0.7.md)
 
-## Current shipped release: v0.6.0 — Living Ecology
+## Previous release: v0.6.0 — Living Ecology
 
-v0.6 is the current immutable published release. It shipped a supported 24×24 Living Ecology preset, natural Grazer lifecycle/resource pressure, Grazer + Wolf presentation, authoritative deterministic Wolf predation, restrained ecology readability and a canonical Y40→Y50 recovery→predation release path.
+v0.6 shipped a supported 24×24 Living Ecology preset, natural Grazer lifecycle/resource pressure, Grazer + Wolf presentation, authoritative deterministic Wolf predation, restrained ecology readability and a canonical Y40→Y50 recovery→predation release path.
 
 Release identity:
 - release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
@@ -63,6 +67,10 @@ Release identity:
 - [v0.6.0 release notes](docs/releases/v0.6.0.md)
 
 v0.5 World Stories, v0.4 God Power Sandbox and v0.3 civilization/ruler/war foundations remain full release regressions.
+
+## Next planning stage: v0.8 — Civilization Depth
+
+v0.7 publication is complete. v0.8 planning may now begin, but it must be split into bounded player-visible stages rather than treated as one mega-sprint. The candidate pool includes economy/trade, professions, culture/technology, religion, deeper politics, boats/colonization/naval conflict and richer diplomacy; planning must choose a finite subset before implementation.
 
 ## Public playable demo
 

@@ -71,13 +71,11 @@ Detailed backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md). Release QA: [`docs/
 ---
 
 ## v0.7.0 — Scenario Builder & Sharing
-**Status: implementation frozen; release candidate publication gate active (#252 / PR #253).**
-
-**Primary fantasy: “I can assemble a world setup, send it to someone else, and we both start from exactly the same world before running, replaying or forking different histories.”**
+**Status: shipped.** Primary fantasy: “I can assemble a world setup, send it to someone else, and we both start from exactly the same world before running, replaying or forking different histories.”
 
 v0.7 deliberately ships a deterministic **Scenario Recipe**, not a full map painter.
 
-### Frozen shipped implementation
+### Shipped scope
 
 1. **Recipe v1 core** — strict `worldboxsr-scenario` startup input, current seed/preset ready base, ordered Human/Grazer/Wolf placements, bounded validation, canonical serialization and one deterministic materializer.
 2. **Scenario Setup workspace** — visible paused composition using the existing Phaser pointer/command path; Clear rematerializes; Run freezes the Recipe.
@@ -94,23 +92,16 @@ Canonical fork:
 - fourth Human `(12,8)`;
 - paused fingerprint `67543ff4`.
 
-Implementation freeze:
-- capability 5 merge `1043a63375fee4ccaa72141da7f1e026a550b989`;
-- merged-main CI #811;
-- Pages #57 including final public `/play/` verification;
-- full visual-qa #306;
-- canonical artifact `9580488110` + four manually reviewed 1440×900 screenshots.
+### Immutable release identity
 
-Detailed backlog: [`docs/backlog/v0.7.md`](backlog/v0.7.md). Release candidate QA: [`docs/demos/v0.7.0.md`](demos/v0.7.0.md). Release candidate notes: [`docs/releases/v0.7.0.md`](releases/v0.7.0.md).
+- implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989`;
+- release commit **`1d5931a650f64765286e155c0e821bfe6d63a299`**;
+- annotated tag **`v0.7.0`** / tag object **`236eef64cf5090ff1a65bfee264f193078e79606`** → exact release commit;
+- GitHub Release **`WorldBoxSR v0.7.0`** published from checked-in release notes;
+- release workflow **#11**, release-commit CI **#817**, Pages **#58** including final public `/play/`, and full visual-qa **#312** green;
+- the later docs-only release closeout does not move the tag or redefine release identity.
 
-### Release publication still pending
-
-The implementation is frozen, but `v0.7.0` is **not yet shipped**. Release-only PR #253 may change package/release/management docs only. After merge, require:
-- existing release workflow success;
-- annotated tag `v0.7.0` targets exactly the release merge commit;
-- GitHub Release uses checked-in `docs/releases/v0.7.0.md`;
-- release-commit CI, Pages/public `/play/` and full Chromium all green;
-- later docs-only closeout never moves the tag.
+Detailed backlog: [`docs/backlog/v0.7.md`](backlog/v0.7.md). Release QA: [`docs/demos/v0.7.0.md`](demos/v0.7.0.md). Release notes: [`docs/releases/v0.7.0.md`](releases/v0.7.0.md).
 
 ### Deliberate stop
 
@@ -119,9 +110,11 @@ No terrain/elevation/moisture/biome/water/resource painter, arbitrary tile edito
 ---
 
 ## v0.8.0 — Civilization Depth
-**Status: future planning only; may not begin until v0.7 immutable publication closeout.**
+**Status: planning may begin; finite scope not yet frozen.**
 
-Candidate pool selected by play evidence: trade/economy, professions, culture/technology, religion, deeper politics, boats/colonization/naval conflict and richer diplomacy. This must be subdivided into bounded stages rather than implemented as a mega-sprint.
+Candidate pool selected by play evidence: trade/economy, professions, culture/technology, religion, deeper politics, boats/colonization/naval conflict and richer diplomacy.
+
+v0.8 must be subdivided into bounded stages rather than implemented as a mega-sprint. Planning must choose one coherent player promise and explicit non-goals before any implementation branch opens.
 
 ---
 
@@ -137,9 +130,8 @@ A stable product/compatibility contract: reproducible worlds, dependable browser
 
 ## Current decision
 
-1. keep v0.7 product/gate behavior frozen at `1043a63375fee4ccaa72141da7f1e026a550b989`;
-2. finish release-only #252 / PR #253 with an exact package/docs allowlist;
-3. require release-PR normal CI + full Chromium before merge;
-4. after merge, verify annotated tag/GitHub Release + release-commit CI + Pages/public `/play/` + full Chromium;
-5. perform a separate docs-only shipped closeout without moving the tag;
-6. only then close #240/#252 and allow v0.8 planning.
+1. keep v0.7 release identity immutable at tag `v0.7.0` → release commit `1d5931a650f64765286e155c0e821bfe6d63a299`;
+2. complete the docs-only post-release closeout without moving that tag;
+3. close release gate #240 and handoff #252 after closeout verification;
+4. then open a **planning-only** v0.8 gate that selects a finite Civilization Depth promise;
+5. do not begin economy, religion, technology, boats or diplomacy implementation in parallel before that planning gate is reconciled.
