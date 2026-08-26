@@ -375,9 +375,10 @@ async function centerForSelector(cdp, selector) {
 }
 
 async function clickPoint(cdp, point, button) {
-  const mouseButton = button === 1 ? 'right' : 'left';
-  await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: mouseButton, clickCount: 1 });
-  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: mouseButton, clickCount: 1 });
+  const inspect = button === 1;
+  const modifiers = inspect ? 1 : 0; // CDP Alt modifier; product contract is Alt-click or right-click.
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers });
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers });
 }
 
 async function captureScreenshot(cdp, path) {
