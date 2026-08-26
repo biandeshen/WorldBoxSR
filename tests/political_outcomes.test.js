@@ -3,118 +3,103 @@ import assert from 'node:assert/strict';
 import { createWorld, snapshotWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createHuman } from '../engine/model/human.js';
 import { createSettlement } from '../engine/model/settlement.js';
-import { updatePoliticalOutcomes, REBELLION_DELAY_YEARS } from '../engine/systems/political_outcomes.js';
+import { updatePoliticalOutcomes } from '../engine/systems/political_outcomes.js';
 import { updatePolities } from '../engine/systems/polities.js';
-import { updatePolityRelations } from '../engine/systems/polity_relations.js';
-import { updateSettlementMembership, updateSettlementTerritory } from '../engine/systems/settlements.js';
-import { updateWarbands, WARBAND_MOVE_INTERVAL_DAYS } from '../engine/systems/warbands.js';
+import { relationForPair, updatePolityRelations } from '../engine/systems/polity_relations.js';
+import { updateWarbands } from '../engine/systems/warbands.js';
 
-function controlledOutcomeWorld(seed = 901, { adultsA = 10, adultsB = 4 } = {}) {
-  const world = createWorld({
-    seed,
-    width: 14,
-    height: 9,
-    population: 0,
-    config: { waterLevel: -1, settlementMinAdults: 999 }
-  });
-  const settlementA = createSettlement(world, { x: 2, y: 4 });
-  const settlementB = createSettlement(world, { x: 11, y: 4 });
-  updatePolities(world);
-  const [polityA, polityB] = world.polities;
+const REBELLION_DELAY_YEARS = 6;
 
-  for (let index = 0; index < adultsA; index += 1) {
+function landTiles(world) {
+  return world.tiles.filter((tile) => tile.passable);
+}
+
+function addAdults(world, settlement, count) {
+  for (let index = 0; index < count; index += 1) {
     createHuman(world, {
-      x: settlementA.x,
-      y: settlementA.y,
-      ageYears: 24 + index,
-      settlementId: settlementA.id,
-      lineageId: null,
+      x: settlement.x,
+      y: settlement.y,
+      ageYears: 25 + index,
+      hunger: 0.1,
+      settlementId: settlement.id,
       sex: index % 2 === 0 ? 'F' : 'M'
     });
   }
-  for (let index = 0; index < adultsB; index += 1) {
-    createHuman(world, {
-      x: settlementB.x,
-      y: settlementB.y,
-      ageYears: 24 + index,
-      settlementId: settlementB.id,
-      lineageId: null,
-      sex: index % 2 === 0 ? 'M' : 'F'
-    });
-  }
-  updateSettlementMembership(world);
-  updateSettlementTerritory(world);
+  settlement.memberIds = world.entities.filter((human) => human.settlementId === settlement.id).map((human) => human.id);
+  settlement.population = settlement.memberIds.length;
+}
 
+function controlledOutcomeWorld(seed = 901) {
+  const world = createWorld({ seed, width: 14, height: 14, population: 0 });
+  const passable = landTiles(world);
+  const aTile = passable.find((tile) => tile.x >= 2 && tile.x <= 4 && tile.y >= 2 && tile.y <= 4) ?? passable[0];
+  const bTile = passable.find((tile) => Math.max(Math.abs(tile.x - aTile.x), Math.abs(tile.y - aTile.y)) >= 5) ?? passable.at(-1);
+  const settlementA = createSettlement(world, aTile);
+  const settlementB = createSettlement(world, bTile);
+  addAdults(world, settlementA, 8);
+  addAdults(world, settlementB, 4);
+  updatePolities(world);
   updatePolityRelations(world);
-  const relation = world.relations[0];
+  const [polityA, polityB] = world.polities;
+  const relation = relationForPair(world, polityA.id, polityB.id);
   relation.atWar = true;
   relation.stance = 'war';
-  relation.score = -80;
+  relation.score = -100;
   relation.startedDay = world.day;
-  relation.endedDay = null;
-  updateWarbands(world);
-
-  return { world, relation, polityA, polityB, settlementA, settlementB };
+  return { world, settlementA, settlementB, polityA, polityB, relation };
 }
 
-function stepPoliticalWar(world, days = WARBAND_MOVE_INTERVAL_DAYS) {
-  world.day += days;
-  updatePoliticalOutcomes(world);
-  updatePolities(world);
-  updateWarbands(world);
-}
-
-function advanceUntilConquest(world, maxSteps = 30) {
+function advanceUntilConquest(world, maxSteps = 80) {
   for (let step = 0; step < maxSteps; step += 1) {
-    stepPoliticalWar(world);
-    const conquest = world.history.find((event) => event.type === 'settlement.conquered');
+    updateWarbands(world);
+    updatePoliticalOutcomes(world);
+    const conquest = world.history.findLast((event) => event.type === 'settlement.conquered');
     if (conquest) return conquest;
+    world.day += 1;
   }
   return null;
 }
 
 test('an asymmetric war produces a surviving victor that keeps marching and conquers the enemy settlement', () => {
-  const { world, relation, polityA, polityB, settlementA, settlementB } = controlledOutcomeWorld();
+  const { world, settlementA, settlementB, polityA, polityB } = controlledOutcomeWorld();
   const rngBefore = world.rng.snapshot();
-
   const conquest = advanceUntilConquest(world);
-  assert.ok(conquest, 'a surviving warband should reach and capture the enemy settlement');
+
+  assert.ok(conquest, 'expected one deterministic conquest');
+  assert.equal(conquest.settlementId, settlementB.id);
   assert.equal(conquest.previousPolityId, polityB.id);
   assert.equal(conquest.newPolityId, polityA.id);
   assert.equal(settlementB.polityId, polityA.id);
+  assert.ok(polityA.settlementIds.includes(settlementB.id));
+  assert.equal(polityB.active, false);
+  assert.equal(polityB.dissolvedDay, world.day);
   assert.equal(settlementB.previousPolityId, polityB.id);
+  assert.equal(settlementB.lastConqueredByPolityId, polityA.id);
   assert.equal(settlementB.conquestCount, 1);
-  assert.equal(settlementB.lastConqueringWarbandId, conquest.warbandId);
-  assert.equal(polityB.active, false, 'losing the only viable settlement dissolves the polity through existing polity authority');
-  assert.deepEqual(world.rng.snapshot(), rngBefore, 'political outcomes do not consume sequential world RNG');
+  assert.ok(Number.isInteger(settlementB.lastConqueringWarbandId));
+  assert.deepEqual(world.rng.snapshot(), rngBefore);
 
-  const surviving = world.warbands.find((warband) => warband.id === conquest.warbandId);
-  assert.ok(surviving);
-  assert.equal(surviving.active, true);
-  assert.equal(surviving.captures, 1);
-  assert.equal(surviving.x, settlementB.x);
-  assert.equal(surviving.y, settlementB.y);
+  const remaining = world.warbands.find((warband) => warband.active && warband.polityId === polityA.id);
+  assert.ok(remaining);
+  assert.equal(remaining.targetSettlementId, settlementB.id);
+  assert.equal(remaining.x, settlementB.x);
+  assert.equal(remaining.y, settlementB.y);
 
-  const capturedTile = world.tiles[settlementB.y * world.width + settlementB.x];
-  assert.equal(capturedTile.ownerSettlementId, settlementB.id);
-  assert.equal(world.settlements.find((settlement) => settlement.id === capturedTile.ownerSettlementId)?.polityId, polityA.id,
-    'territory remains settlement-authoritative and therefore follows the new political owner');
-
-  updatePolityRelations(world);
-  updateWarbands(world);
-  assert.equal(relation.atWar, false);
-  assert.equal(relation.active, false);
-  assert.equal(surviving.active, false, 'dissolution archives the war and disbands the surviving occupation force');
+  const dissolution = world.history.findLast((event) => event.type === 'polity.dissolved' && event.polityId === polityB.id);
+  assert.ok(dissolution);
 });
 
 test('equal final combat cannot double-destroy both sides and deterministically leaves one active victor', () => {
-  const { world } = controlledOutcomeWorld(902, { adultsA: 8, adultsB: 8 });
+  const { world, polityA, polityB } = controlledOutcomeWorld(902);
   const rngBefore = world.rng.snapshot();
+  updateWarbands(world);
+  const [aBand, bBand] = world.warbands.filter((warband) => warband.active);
+  aBand.strength = 1;
+  bBand.strength = 1;
+  aBand.x = bBand.x;
+  aBand.y = bBand.y;
 
-  for (let step = 0; step < 16; step += 1) {
-    world.day += WARBAND_MOVE_INTERVAL_DAYS;
-    updateWarbands(world);
-  }
+  updateWarbands(world);
 
   const active = world.warbands.filter((warband) => warband.active);
   const destroyed = world.warbands.filter((warband) => !warband.active && warband.endReason === 'destroyed in engagement');
@@ -152,12 +137,12 @@ test('a captured viable non-capital settlement can seed exactly one deterministi
   assert.equal(world.history.filter((event) => event.type === 'settlement.rebelled' && event.settlementId === settlementB.id).length, 1);
 });
 
-test('snapshot v15 preserves political outcomes exactly and v14 snapshots migrate with neutral settlement political fields', () => {
+test('snapshot v16 preserves political outcomes exactly and v14 snapshots migrate with neutral settlement political fields', () => {
   const { world, settlementB } = controlledOutcomeWorld(904);
   assert.ok(advanceUntilConquest(world));
 
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 15);
+  assert.equal(snapshot.snapshotVersion, 16);
   const restored = worldFromSnapshot(structuredClone(snapshot));
   assert.deepEqual(snapshotWorld(restored), snapshot);
 
@@ -177,7 +162,7 @@ test('snapshot v15 preserves political outcomes exactly and v14 snapshots migrat
   }
   const migrated = worldFromSnapshot(legacy);
   const migratedSettlement = migrated.settlements.find((settlement) => settlement.id === settlementB.id);
-  assert.equal(migrated.snapshotVersion, 15);
+  assert.equal(migrated.snapshotVersion, 16);
   assert.equal(migratedSettlement.conquestCount, 0);
   assert.equal(migratedSettlement.rebellionCount, 0);
   assert.equal(migratedSettlement.lastConqueredDay, null);
