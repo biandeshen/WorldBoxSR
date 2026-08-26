@@ -98,6 +98,12 @@ node tools/capture-canonical-scenario-builder-evidence.mjs "$browser" "$base_url
 # retained current transition while JSON.stringify(world) remains unchanged.
 node tools/capture-ruling-line-readability-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.8 capability 4: on the same deterministic exact-Y40 product surface, real
+# Rule-lens/Event-Card clicks must expose one recorded descendant continuation
+# and one recorded open-selection/new-line transition, follow an existing
+# event/map reference, preserve Rule membership/order and never mutate authority.
+node tools/capture-dynastic-world-stories-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -163,7 +169,10 @@ scenario_canonical_authority=canonical-scenario-builder-evidence.json
 ruling_line_ruler=ruling-line-ruler-inspector-1440x900.png
 ruling_line_settlement=ruling-line-settlement-inspector-1440x900.png
 ruling_line_authority=ruling-line-readability-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6/v0.7 regressions plus v0.8 ruling-line Inspector readability preserve declared authority ownership
+dynastic_descendant=dynastic-descendant-event-card-1440x900.png
+dynastic_new_line=dynastic-new-line-event-card-1440x900.png
+dynastic_world_stories_authority=dynastic-world-stories-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6/v0.7 regressions plus v0.8 ruling-line Inspector and Dynastic World Stories readability preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
