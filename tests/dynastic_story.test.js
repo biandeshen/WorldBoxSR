@@ -77,7 +77,7 @@ test('descendant succession tells recorded bloodline continuation without infere
   const story = dynasticRulerStoryForEvent(world, event);
 
   assert.equal(story.headline, "Eldergate Realm's ruling bloodline continues");
-  assert.equal(story.detail, 'Human #31 continues ruling line 13 as a child of founder Human #23 after death.');
+  assert.equal(story.detail, 'Human #31 continues ruling line 13 as a child of founder Human #23 after the previous ruler died.');
   assert.equal(story.transitionKind, 'descendant');
   assert.equal(story.descendantDistance, 1);
   assert.equal(JSON.stringify(world), before);
@@ -104,8 +104,25 @@ test('open selection explicitly begins a new recorded ruling line', () => {
   });
   const story = dynasticRulerStoryForEvent(storyWorld(), event);
   assert.equal(story.headline, 'Eldergate Realm begins a new ruling line');
-  assert.equal(story.detail, 'Human #12 begins ruling line 56 as founder Human #12 after vacancy filled.');
+  assert.equal(story.detail, 'Human #12 begins ruling line 56 as founder Human #12 after a vacancy.');
   assert.equal(story.transitionKind, 'open_selection');
+});
+
+test('recorded ruler-unavailability reasons stay factual and player-readable', () => {
+  const noLongerMember = dynasticRulerStoryForEvent(storyWorld(), successionEvent({
+    rulerId: 12,
+    successionPath: 'open_selection',
+    rulingLineFounderId: 12,
+    rulingLineSequence: 56,
+    rulingLineReignCount: 1,
+    descendantDistance: null,
+    reason: 'no_longer_member'
+  }));
+  assert.match(noLongerMember.detail, /after the previous ruler was no longer a polity member\.$/);
+
+  const unavailable = dynasticRulerStoryForEvent(storyWorld(), successionEvent({ reason: 'unavailable' }));
+  assert.match(unavailable.detail, /after the previous ruler became unavailable\.$/);
+  assert.doesNotMatch(`${noLongerMember.detail} ${unavailable.detail}`, /elected|usurp|legitim|claim/i);
 });
 
 test('founding appointment uses recorded line facts while legacy ruler events fall back', () => {
