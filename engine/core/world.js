@@ -16,8 +16,8 @@ import { updateRulers } from '../systems/rulers.js';
 import { updatePolityRelations } from '../systems/polity_relations.js';
 import { updateWarbands } from '../systems/warbands.js';
 
-export const SNAPSHOT_VERSION = 15;
-const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11, 12, 13, 14]);
+export const SNAPSHOT_VERSION = 16;
+const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11, 12, 13, 14, 15]);
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -173,6 +173,7 @@ export function worldFromSnapshot(snapshot) {
   const migratingPreV12 = version === 10 || version === 11;
   const migratingPreV13 = version === 10 || version === 11 || version === 12;
   const migratingPreV14 = version === 10 || version === 11 || version === 12 || version === 13;
+  const migratingPreV16 = version !== SNAPSHOT_VERSION;
   return {
     snapshotVersion: SNAPSHOT_VERSION,
     seed: snapshot.seed,
@@ -198,14 +199,7 @@ export function worldFromSnapshot(snapshot) {
       memberIds: [...settlement.memberIds],
       polityId: migratingPreV12 ? null : (settlement.polityId ?? null)
     })),
-    polities: migratingPreV12 ? [] : (snapshot.polities ?? []).map((polity) => ({
-      ...polity,
-      settlementIds: [...polity.settlementIds],
-      rulerId: polity.rulerId ?? null,
-      rulerSinceDay: polity.rulerSinceDay ?? null,
-      rulerSequence: polity.rulerSequence ?? 0,
-      lastRulerId: polity.lastRulerId ?? null
-    })),
+    polities: migratingPreV12 ? [] : (snapshot.polities ?? []).map((polity) => normalizePolitySnapshot(polity, { migratingPreV16 })),
     relations: migratingPreV13 ? [] : (snapshot.relations ?? []).map((relation) => ({ ...relation })),
     warbands: migratingPreV14 ? [] : (snapshot.warbands ?? []).map((warband) => ({ ...warband })),
     lineages: snapshot.lineages.map((lineage) => ({ ...lineage, memberIds: [...lineage.memberIds], founderIds: [...lineage.founderIds] })),
@@ -213,6 +207,37 @@ export function worldFromSnapshot(snapshot) {
     history: snapshot.history.map((event) => ({ ...event })),
     counters: { ...snapshot.counters, creatureBirths: migratingPreV11 ? 0 : (snapshot.counters.creatureBirths ?? 0) }
   };
+}
+
+function normalizePolitySnapshot(polity, { migratingPreV16 }) {
+  const rulerId = positiveIdOrNull(polity.rulerId);
+  const lastRulerId = positiveIdOrNull(polity.lastRulerId);
+  const legacyAnchor = rulerId ?? lastRulerId;
+
+  return {
+    ...polity,
+    settlementIds: [...polity.settlementIds],
+    rulerId,
+    rulerSinceDay: polity.rulerSinceDay ?? null,
+    rulerSequence: nonNegativeIntegerOrZero(polity.rulerSequence),
+    lastRulerId,
+    rulingLineFounderId: migratingPreV16 ? legacyAnchor : positiveIdOrNull(polity.rulingLineFounderId),
+    rulingLineSequence: migratingPreV16
+      ? (legacyAnchor === null ? 0 : 1)
+      : nonNegativeIntegerOrZero(polity.rulingLineSequence),
+    rulingLineSinceDay: migratingPreV16 ? null : (polity.rulingLineSinceDay ?? null),
+    rulingLineReignCount: migratingPreV16
+      ? (legacyAnchor === null ? 0 : 1)
+      : nonNegativeIntegerOrZero(polity.rulingLineReignCount)
+  };
+}
+
+function positiveIdOrNull(value) {
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function nonNegativeIntegerOrZero(value) {
+  return Number.isInteger(value) && value >= 0 ? value : 0;
 }
 
 function assertWorldSize(width, height) {

@@ -152,12 +152,12 @@ test('a captured viable non-capital settlement can seed exactly one deterministi
   assert.equal(world.history.filter((event) => event.type === 'settlement.rebelled' && event.settlementId === settlementB.id).length, 1);
 });
 
-test('snapshot v15 preserves political outcomes exactly and v14 snapshots migrate with neutral settlement political fields', () => {
+test('snapshot v16 preserves political outcomes exactly and v14 snapshots migrate with neutral settlement political fields', () => {
   const { world, settlementB } = controlledOutcomeWorld(904);
   assert.ok(advanceUntilConquest(world));
 
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 15);
+  assert.equal(snapshot.snapshotVersion, 16);
   const restored = worldFromSnapshot(structuredClone(snapshot));
   assert.deepEqual(snapshotWorld(restored), snapshot);
 
@@ -177,7 +177,7 @@ test('snapshot v15 preserves political outcomes exactly and v14 snapshots migrat
   }
   const migrated = worldFromSnapshot(legacy);
   const migratedSettlement = migrated.settlements.find((settlement) => settlement.id === settlementB.id);
-  assert.equal(migrated.snapshotVersion, 15);
+  assert.equal(migrated.snapshotVersion, 16);
   assert.equal(migratedSettlement.conquestCount, 0);
   assert.equal(migratedSettlement.rebellionCount, 0);
   assert.equal(migratedSettlement.lastConqueredDay, null);
