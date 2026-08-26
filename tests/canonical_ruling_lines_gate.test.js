@@ -165,14 +165,15 @@ function runCanonicalPath({ restoreAtDay9149 = false } = {}) {
   const founding = retainedFoundingEvent(world, CANONICAL.polityId);
   const openSelection = retainedOpenSelection(world, CANONICAL.polityId);
   assert.ok(founding, 'canonical polity must retain its founding ruling-line event');
-  assert.ok(openSelection, 'canonical polity must retain a real pre-descendant open-selection line change');
+  assert.ok(openSelection, 'canonical polity must retain the real open selection that began its current pre-descendant line');
   assert.equal(founding.rulingLineSequence, 1);
   assert.equal(founding.rulingLineFounderId, founding.rulerId);
   assert.equal(founding.rulingLineChanged, true);
   assert.equal(openSelection.rulingLineChanged, true);
-  assert.equal(openSelection.rulingLineFounderId, openSelection.rulerId);
+  assert.equal(openSelection.rulerId, CANONICAL.founderId);
+  assert.equal(openSelection.rulingLineFounderId, CANONICAL.founderId);
+  assert.equal(openSelection.rulingLineSequence, CANONICAL.rulingLineSequence);
   assert.equal(openSelection.descendantDistance, null);
-  assert.ok(openSelection.rulingLineSequence < CANONICAL.rulingLineSequence);
 
   const checkpoint = snapshotWorld(world);
   if (restoreAtDay9149) world = worldFromSnapshot(structuredClone(checkpoint));
@@ -209,5 +210,5 @@ test('canonical Ruling Lines path is byte-repeatable, save/load continuous and r
   assert.deepEqual(restored.evidence, uninterrupted.evidence, 'day-9149 save/load continuation must expose identical ruling-line facts');
   assert.deepEqual(restored.snapshot, uninterrupted.snapshot, 'day-9149 save/load continuation must reach byte-identical authority');
 
-  console.log(`Canonical Ruling Lines gate: polity #${CANONICAL.polityId} ${CANONICAL.polityName}; open-selection event #${uninterrupted.evidence.openSelection.eventId} → descendant event #${uninterrupted.evidence.descendant.eventId}; Human #${CANONICAL.founderId} → #${CANONICAL.successorId}; ruling line ${CANONICAL.rulingLineSequence}, reign 2; duplicate/save-load exact`);
+  console.log(`Canonical Ruling Lines gate: polity #${CANONICAL.polityId} ${CANONICAL.polityName}; open-selection event #${uninterrupted.evidence.openSelection.eventId} founded line ${uninterrupted.evidence.openSelection.lineSequence} with Human #${uninterrupted.evidence.openSelection.rulerId} → descendant event #${uninterrupted.evidence.descendant.eventId} Human #${CANONICAL.successorId}; reign 2; duplicate/save-load exact`);
 });
