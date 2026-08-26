@@ -28,9 +28,16 @@ if (renderer === 'legacy') {
   if (presetField) presetField.hidden = true;
 }
 
-const startup = renderer === 'legacy'
+const startup = (renderer === 'legacy'
   ? import('./main.js')
-  : import('./phaser_main.js');
+  : import('./phaser_main.js'))
+  .then(async (module) => {
+    if (renderer === 'phaser') {
+      const { installRulingLineInspectorRuntime } = await import('./presentation/ruling_line_runtime.js');
+      installRulingLineInspectorRuntime();
+    }
+    return module;
+  });
 
 startup.catch((error) => {
   console.error(`Failed to start ${renderer} renderer`, error);
