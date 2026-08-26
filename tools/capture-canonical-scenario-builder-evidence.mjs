@@ -66,6 +66,7 @@ try {
   await openRecipePanel(author.cdp);
   await clickSelector(author.cdp, '#scenario-copy-link');
   await waitForExpression(author.cdp, `document.querySelector('#scenario-recipe-text')?.value?.includes('scenario=') === true`, 2_000);
+  await waitForExpression(author.cdp, `/copied|shown/iu.test(document.querySelector('#scenario-portability-status')?.textContent ?? '')`, 3_000);
   const sharedUrl = await evaluate(author.cdp, `document.querySelector('#scenario-recipe-text')?.value ?? ''`);
   const copyStatus = await evaluate(author.cdp, `document.querySelector('#scenario-portability-status')?.textContent ?? ''`);
   const shared = new URL(sharedUrl);
