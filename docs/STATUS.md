@@ -10,89 +10,110 @@ Last updated: 2026-08-26
 - release workflow #10, CI #748, Pages #50/public `/play/`, visual-qa #247 green.
 
 **v0.7.0 — Scenario Builder & Sharing is shipped and closed.**
-
-Immutable release identity:
 - implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989`;
 - release commit `1d5931a650f64765286e155c0e821bfe6d63a299`;
-- annotated tag `v0.7.0` / tag object `236eef64cf5090ff1a65bfee264f193078e79606` targets exactly the release commit;
-- GitHub Release `WorldBoxSR v0.7.0` published from checked-in release notes;
-- release workflow #11, CI #817, Pages #58/public `/play/`, full visual-qa #312 green;
-- docs-only closeout #254 merged as `f14b6194a76a57ba77ff4867d95d0ff44b4c6d6e`; closeout CI #819, Pages #59/public `/play/`, visual-qa #313 green;
-- release gate #240 and handoff #252 are closed.
+- annotated tag `v0.7.0` / tag object `236eef64cf5090ff1a65bfee264f193078e79606` → exact release commit;
+- release workflow #11, CI #817, Pages #58/public `/play/`, visual-qa #312 green;
+- docs closeout `f14b6194a76a57ba77ff4867d95d0ff44b4c6d6e`; CI #819, Pages #59/public `/play/`, visual #313 green;
+- #240/#252 closed.
 
-Canonical v0.7 source `Portable trio`: seed45 Sandbox + Human `(12,8)` + Grazer `(16,12)` + Wolf `(14,7)`, paused fingerprint `7f07ed67`. Canonical fork adds Human `(12,8)`, fingerprint `67543ff4`.
+**v0.8.0 — Ruling Lines & Succession is the active implementation stage.** Release gate #255. Finite backlog: `docs/backlog/v0.8.md`.
 
-**v0.8.0 — Ruling Lines & Succession is now the active planning stage.** Release gate: #255. Finite backlog: `docs/backlog/v0.8.md`.
+Planning #256 merged as `cd97a4b739b3a1858e0ca86684c60c037b4de73f`; merged-main CI #821, Pages #60/public `/play/`, full visual-qa #314 green.
 
-No v0.8 behavior implementation is allowed until this planning-only branch/PR passes normal CI and merges.
+Capability 1 — **Genealogical succession resolver + trajectory audit** — #257/#258 is at branch closeout. It intentionally changes **no ruler behavior**.
 
 ## v0.8 player promise
 
 > **I can watch a ruling bloodline inherit power across generations, see when that bloodline loses the throne, and follow the new ruling line in the same causal world history.**
 
-This is one bounded Civilization Depth stage, not the whole economy/religion/technology/naval/diplomacy candidate pool.
-
-## Why this direction
-
-The current authority already provides:
-- real-human polity rulers and deterministic succession/vacancy;
-- parent IDs, child IDs, persistent parental-union child records, lineage IDs and generations;
-- causal ruler history;
-- Event Card / Focused Story / Watchlist / Rule-lens presentation;
-- deterministic save/load and browser regression gates.
-
-The current succession policy is intentionally shallow: all eligible polity adults are sorted oldest-first, then stable ID. It consumes no RNG and has no bloodline preference.
-
-Economy/storage is not treated as the cheap default for Civilization Depth. Existing experiments already found:
-- shared-food-storage v0 caused broad indirect demographic/spatial feedback and was rejected;
-- territorial scarcity is real but not a settlement-survival classifier;
-- settlement decline/abandonment has heterogeneous mechanisms, and generic rescue/persistence behavior was explicitly rejected.
-
-Ruling-line succession therefore reuses more shipped authority while creating a clearer new player story.
-
 ## Semantic guards
 
-- `parental_union` remains a historical co-parent record, **not** spouse/marriage/household/exclusivity.
-- `lineage` retains its existing maternal-inheritance meaning and is **not** renamed into a noble house/dynasty.
-- ruling-line continuation is a political fact derived from explicit parent→child descent.
-- dead humans must not be resurrected for genealogy; persistent authoritative parent/union records provide descendant evidence.
-- no second ancestry database may be introduced.
+- `parental_union` remains historical co-parent identity, not marriage/household/spouse/exclusivity.
+- existing `lineage` remains the maternal lineage primitive, not a noble house/dynasty.
+- ruling-line continuation is derived from explicit parent→child descent.
+- no second ancestry database.
+- no succession RNG.
+- no eligible descendant means current oldest-eligible-adult fallback, not a manufactured heir.
 
-## Intended minimal succession rule
+## Capability 1 permanent genealogy seam
 
-Founding appointment remains current behavior.
+`engine/core/succession_genealogy.js` now provides pure, mutation-free, RNG-free genealogy queries:
+- explicit parent→child adjacency from persistent parental-union `partnerIds → childIds` plus current human `parentIds`;
+- duplicate evidence deduplication;
+- cycle-safe shortest descendant generation distance;
+- retained ancestry through dead/removed intermediate parents;
+- descendant ranking over an already-eligible human set: nearest generation → older age → lower stable ID.
 
-Later succession intends to:
-1. prefer eligible living polity descendants of the current ruling-line founder;
-2. rank by nearest descendant generation, then existing older-age / lower-ID ordering;
-3. fall back to the current oldest-eligible polity adult when no eligible descendant exists;
-4. treat that outsider fallback as the start of a new ruling line;
-5. preserve truthful vacancy when no eligible adult exists;
-6. consume no succession RNG.
+Permanent tests prove:
+- child/grandchild distance;
+- dead intermediate ancestry via persistent union records;
+- paternal descent across maternal-lineage mismatch;
+- co-parent identity does not imply spouse/descendant semantics;
+- duplicate parent/union evidence is harmless;
+- deterministic ranking;
+- exact snapshot + RNG neutrality.
 
-This is deliberately not a historical primogeniture/elective/agnatic law simulator.
+CI #822/#823 passed the permanent contracts.
 
-## Ordered v0.8 slices
+## Frozen seed45 succession trajectory
 
-1. **Genealogical succession resolver + trajectory audit — NEXT**: pure descendant graph/ranking plus a temporary bounded audit to freeze a real seed45 canonical succession opportunity before behavior changes.
-2. **Authoritative ruling-line succession**: minimal political identity/persistence, descendant-first policy, current fallback, explicit line-continuation/change facts and snapshot migration.
-3. **Ruling-line readability**: compact ruler/founder/line-sequence/reign context in existing inspection.
-4. **Dynastic World Stories**: recorded succession presentation distinguishes line continuation vs new line using existing Event Card / Rule lens / human-polity refs.
-5. **Canonical Ruling Lines gate**: one headless + real Chromium path proves a real descendant succession and a truthful line-change fallback with prior releases green.
-6. release-only `v0.8.0` handoff.
+A temporary probe ran **current unmodified v0.7 succession** with seed45 · 24×24 · population 30 and a shadow ruling-line audit. It searched for the first transition where descendant-first policy would actually choose a different ruler from the baseline oldest-adult rule.
 
-## Capability-1 stop rule
+The requested 200-year horizon naturally stopped at **Y25.4166667 / day 9150**.
 
-The first slice must measure actual deterministic genealogy/succession opportunities. If no credible bounded natural descendant succession can be frozen for the supported world, **do not** manufacture an heir by adding fertility, migration, population rescue, hidden setup humans or a test-only succession event. Reconcile #255 instead.
+Before the first true divergence:
+- first appointment count: `1`;
+- successions through the divergence event: `13`;
+- vacancies: `0`;
+- no-descendant fallback line changes: `12`;
+- compatible descendant continuations: `0`.
+
+First no-descendant fallback:
+- Y21.75 / day 7830;
+- polity #1 **Eldergate Realm**;
+- previous ruler / shadow line founder **#28**;
+- baseline successor **#9**;
+- succession event **#23**;
+- 5 eligible adults;
+- zero eligible descendants.
+
+First true selection divergence:
+- **Y25.4166667 / day 9150**;
+- polity #1 **Eldergate Realm**;
+- previous ruler / shadow ruling-line founder **#23**;
+- baseline oldest-adult successor **#28**;
+- succession event **#41**;
+- 6 eligible adults;
+- exactly one eligible descendant: **Human #31**;
+- #31 is a **direct child** (`distance=1`), age **24.0167 years**, settlement #1;
+- proposed descendant-first successor therefore **#31**, not baseline #28.
+
+Because all earlier successions had no eligible descendant, the proposed policy and baseline select the same ruler before this transition. No fertility/migration/rescue/hidden heir is needed; the v0.8 stop rule does not trigger.
+
+The temporary trajectory probe was deleted after freezing this evidence. Permanent CI keeps only the resolver/tests.
+
+## Ordered v0.8 state
+
+1. Genealogical succession resolver + trajectory audit — **branch evidence complete; final CI + full Visual QA → merge/delivery**.
+2. Authoritative ruling-line succession — **NEXT only after #258 merged-main CI + Pages/public `/play/` + full Visual QA are green**.
+3. Ruling-line readability — locked.
+4. Dynastic World Stories — locked.
+5. Canonical Ruling Lines gate — locked.
+6. release-only `v0.8.0` handoff — locked.
+
+## Capability 2 intended first canonical behavior change
+
+The frozen audit says the first baseline/proposed selection divergence occurs at Y25.4167 in Eldergate Realm: current baseline selects #28 while descendant-first ranking selects direct child #31. Capability 2 must use this evidence as its first deterministic regression hook, while still proving no earlier successor selection changes unexpectedly.
 
 ## Explicit v0.8 non-goals
 
-No economy/trade/market/currency/storage, professions/classes, marriage/household/marriage diplomacy, noble titles/claims/legitimacy, elections/configurable succession law UI, claimant civil wars/usurpation framework, religion/culture/technology, boats/naval warfare, broad diplomacy rewrite, terrain/editor work, AI-authored political facts, fertility/migration rescue or controller guaranteeing dynasty survival.
+No economy/trade/storage/currency, professions/classes, marriage/household/marriage diplomacy, noble titles/claims/legitimacy, configurable succession laws/elections, claimant civil-war framework, religion/culture/technology, boats/naval warfare, broad diplomacy rewrite, terrain/editor work, AI-authored political facts, fertility/migration rescue or controller guaranteeing ruling-line survival.
 
 ## Current decision gate
 
-1. require planning branch diff to contain only `docs/backlog/v0.8.md`, `docs/ROADMAP.md`, `docs/STATUS.md`;
-2. open one planning-only PR and require normal CI green;
-3. squash merge planning before creating any v0.8 behavior branch;
-4. then open exactly one capability-1 issue/branch for the genealogy resolver + trajectory audit;
-5. keep every other Civilization Depth candidate out of the implementation queue until capability 1 produces evidence.
+1. require #258 final branch head CI + full Visual QA green;
+2. confirm diff contains only genealogy helper/tests + backlog/STATUS, with no `rulers.js`/snapshot/presentation behavior changes;
+3. mark ready and squash merge #258;
+4. verify merged-main CI + Pages/public `/play/` + full Visual QA;
+5. only then open one capability-2 issue/branch for authoritative ruling-line succession.
