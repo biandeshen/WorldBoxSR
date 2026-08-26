@@ -28,25 +28,82 @@ try {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
 
-  // Pause as soon as the real WorldScene + Pause listener exist so this gate
-  // inspects the deterministic exact-Y40 retained story window without adding
-  // any test-only ruler/event mutation.
+  // Pause as soon as the real WorldScene + Pause listener exist so we first
+  // preserve the deterministic exact-Y40 open-selection story window.
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world != null`, 5_000);
   await pauseWorld(cdp);
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day === 14400`, 3_000);
 
-  const baseline = await fingerprint(cdp);
   await openChronicle(cdp);
   await selectRuleLens(cdp);
-  const rule = await ruleEvidence(cdp);
-  if (rule.ids.length < 1 || rule.ids.length > 7) throw new Error(`invalid Rule lens size: ${JSON.stringify(rule)}`);
-  if (!strictlyDescending(rule.ids)) throw new Error(`Rule lens lost newest-first order: ${rule.ids.join(',')}`);
+  const initialRule = await ruleEvidence(cdp);
+  if (initialRule.ids.length < 1 || initialRule.ids.length > 7 || !strictlyDescending(initialRule.ids)) {
+    throw new Error(`invalid exact-Y40 Rule lens: ${JSON.stringify(initialRule)}`);
+  }
+  const openSelection = initialRule.events.find((event) => event.type === 'polity.ruler_succeeded' && event.successionPath === 'open_selection') ?? null;
+  if (!openSelection) throw new Error(`exact-Y40 Rule lens exposes no recorded open-selection story: ${JSON.stringify(initialRule.events)}`);
 
-  const descendant = rule.events.find((event) => event.type === 'polity.ruler_succeeded' && event.successionPath === 'descendant') ?? null;
-  const openSelection = rule.events.find((event) => event.type === 'polity.ruler_succeeded' && event.successionPath === 'open_selection') ?? null;
-  if (!descendant || !openSelection) {
-    throw new Error(`exact-Y40 Rule lens must expose descendant + open-selection stories; got ${JSON.stringify(rule.events)}`);
+  // Capability 2 intentionally changes authority. Use an existing real player
+  // action (Lightning) to trigger one new ordinary succession whose current
+  // ruling-line founder already has a surviving eligible descendant. The test
+  // selects the target from explicit genealogy only; it never writes ruler or
+  // history state directly.
+  const targetRuler = await descendantSuccessionTarget(cdp);
+  if (!targetRuler) throw new Error('exact-Y40 seed45 has no visible ruler with a surviving eligible ruling-line descendant');
+
+  await selectTool(cdp, 'lightning');
+  await clickPoint(cdp, { x: targetRuler.screenX, y: targetRuler.screenY });
+  await delay(120);
+  const death = await evaluate(cdp, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    const death = world?.history?.findLast((event) => event.type === 'human.died'
+      && event.entityId === ${targetRuler.rulerId} && event.cause === 'lightning') ?? null;
+    return death ? { id: death.id, rulerStillPresent: world.entities.some((human) => human.kind === 'human' && human.id === ${targetRuler.rulerId}) } : null;
+  })()`);
+  if (!death || death.rulerStillPresent) throw new Error('real Lightning did not remove the selected ruler through authoritative death');
+
+  await setSpeed(cdp, '1');
+  await setPaused(cdp, false);
+  await waitForExpression(cdp, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    return world?.history?.some((event) => event.type === 'polity.ruler_succeeded'
+      && event.polityId === ${targetRuler.polityId}
+      && event.previousRulerId === ${targetRuler.rulerId}
+      && event.successionPath === 'descendant'
+      && event.causes?.some((cause) => cause.kind === 'event' && cause.id === ${death.id})) === true;
+  })()`, 5_000);
+  await setPaused(cdp, true);
+
+  const descendant = await evaluate(cdp, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    const event = world?.history?.findLast((candidate) => candidate.type === 'polity.ruler_succeeded'
+      && candidate.polityId === ${targetRuler.polityId}
+      && candidate.previousRulerId === ${targetRuler.rulerId}
+      && candidate.successionPath === 'descendant') ?? null;
+    if (!event) return null;
+    return {
+      id: event.id,
+      type: event.type,
+      polityId: event.polityId,
+      rulerId: event.rulerId,
+      successionPath: event.successionPath,
+      rulingLineFounderId: event.rulingLineFounderId,
+      rulingLineSequence: event.rulingLineSequence,
+      descendantDistance: event.descendantDistance,
+      reason: event.reason ?? null
+    };
+  })()`);
+  if (!descendant) throw new Error('descendant succession disappeared after detection');
+
+  // From this post-causality pause onward the rest of the gate is strictly
+  // read-only World Stories navigation.
+  const baseline = await fingerprint(cdp);
+  await selectRuleLens(cdp);
+  const rule = await ruleEvidence(cdp);
+  if (rule.ids.length < 1 || rule.ids.length > 7 || !strictlyDescending(rule.ids)) throw new Error(`invalid post-succession Rule lens: ${JSON.stringify(rule)}`);
+  if (!rule.ids.includes(descendant.id) || !rule.ids.includes(openSelection.id)) {
+    throw new Error(`post-succession Rule lens must retain descendant #${descendant.id} + open selection #${openSelection.id}: ${JSON.stringify(rule.events)}`);
   }
 
   await openEventCard(cdp, descendant.id);
@@ -72,14 +129,19 @@ try {
   await scrollIntoView(cdp, '#history-detail');
   await captureScreenshot(cdp, join(outDir, 'dynastic-new-line-event-card-1440x900.png'));
 
-  const finalRule = await ruleEvidence(cdp);
-  if (!finalRule.ids.includes(descendant.id) || !finalRule.ids.includes(openSelection.id)) {
-    throw new Error(`tested dynastic transitions disappeared from Rule lens: ${JSON.stringify(finalRule)}`);
-  }
-  if ((await fingerprint(cdp)) !== baseline) throw new Error('Dynastic World Stories gate changed authoritative world');
+  if ((await fingerprint(cdp)) !== baseline) throw new Error('Dynastic World Stories read-only navigation changed authoritative world');
 
   writeFileSync(join(outDir, 'dynastic-world-stories-evidence.json'), `${JSON.stringify({
-    day: 14400,
+    initialDay: 14400,
+    lightningSetup: {
+      polityId: targetRuler.polityId,
+      polityName: targetRuler.polityName,
+      struckRulerId: targetRuler.rulerId,
+      rulingLineFounderId: targetRuler.founderId,
+      eligibleSurvivingDescendantIds: targetRuler.descendantIds,
+      deathEventId: death.id
+    },
+    postSuccessionDay: await currentDay(cdp),
     ruleEventIds: rule.ids,
     descendant: {
       eventId: descendant.id,
@@ -106,7 +168,7 @@ try {
     readOnlyAuthorityUnchanged: true
   }, null, 2)}\n`);
 
-  console.log(`Dynastic World Stories evidence: Rule ${rule.ids.join(',')} · descendant #${descendant.id} line ${descendant.rulingLineSequence} distance ${descendant.descendantDistance} · open selection #${openSelection.id} line ${openSelection.rulingLineSequence} · ${navigation.kind} navigation · authority unchanged`);
+  console.log(`Dynastic World Stories evidence: Lightning ruler #${targetRuler.rulerId} → descendant #${descendant.id} line ${descendant.rulingLineSequence} distance ${descendant.descendantDistance}; retained open selection #${openSelection.id} line ${openSelection.rulingLineSequence}; Rule ${rule.ids.join(',')}; ${navigation.kind} navigation; post-causality authority unchanged`);
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
@@ -132,6 +194,86 @@ function assertOpenSelectionCard(card, event) {
   if (!card.detail.includes(`begins ruling line ${event.rulingLineSequence}`)) throw new Error(`open-selection detail lost line sequence: ${card.detail}`);
   if (!card.detail.includes(`founder Human #${event.rulingLineFounderId}`)) throw new Error(`open-selection detail lost new founder: ${card.detail}`);
   if (/legitim|primogen|claim|elected|usurp/i.test(card.detail)) throw new Error(`open-selection story invented political semantics: ${card.detail}`);
+}
+
+async function descendantSuccessionTarget(cdpClient) {
+  return evaluate(cdpClient, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    const world = scene?.world;
+    const camera = scene?.cameras?.main;
+    if (!world || !camera) return null;
+    const adultAgeDays = world.config.adultAgeYears * world.config.daysPerYear;
+    const tileSize = 28;
+    const adjacency = new Map();
+    const add = (parentId, childId) => {
+      if (!Number.isInteger(parentId) || !Number.isInteger(childId) || parentId === childId) return;
+      if (!adjacency.has(parentId)) adjacency.set(parentId, new Set());
+      adjacency.get(parentId).add(childId);
+    };
+    for (const union of world.unions ?? []) {
+      if (union?.kind !== 'parental_union') continue;
+      for (const parentId of union.partnerIds ?? []) for (const childId of union.childIds ?? []) add(parentId, childId);
+    }
+    for (const human of world.entities ?? []) {
+      if (human?.kind !== 'human') continue;
+      for (const parentId of human.parentIds ?? []) add(parentId, human.id);
+    }
+    const distances = (founderId) => {
+      const result = new Map();
+      const seen = new Set([founderId]);
+      let frontier = [founderId];
+      let distance = 0;
+      while (frontier.length) {
+        distance += 1;
+        const next = [];
+        for (const parentId of frontier) {
+          for (const childId of adjacency.get(parentId) ?? []) {
+            if (seen.has(childId)) continue;
+            seen.add(childId);
+            result.set(childId, distance);
+            next.push(childId);
+          }
+        }
+        frontier = next;
+      }
+      return result;
+    };
+    const candidates = [];
+    for (const polity of (world.polities ?? []).filter((value) => value.active).sort((a, b) => a.id - b.id)) {
+      if (!Number.isInteger(polity.rulerId) || !Number.isInteger(polity.rulingLineFounderId)) continue;
+      const memberSettlements = new Set((world.settlements ?? [])
+        .filter((settlement) => settlement.active && settlement.polityId === polity.id)
+        .map((settlement) => settlement.id));
+      const adults = (world.entities ?? []).filter((human) => human.kind === 'human' && human.alive
+        && human.ageDays >= adultAgeDays && memberSettlements.has(human.settlementId));
+      const ruler = adults.find((human) => human.id === polity.rulerId);
+      if (!ruler) continue;
+      const distanceById = distances(polity.rulingLineFounderId);
+      const survivingDescendants = adults
+        .filter((human) => human.id !== ruler.id && (human.x !== ruler.x || human.y !== ruler.y) && distanceById.has(human.id))
+        .map((human) => ({ human, distance: distanceById.get(human.id) }))
+        .sort((a, b) => a.distance - b.distance || b.human.ageDays - a.human.ageDays || a.human.id - b.human.id);
+      if (!survivingDescendants.length) continue;
+      const worldX = (ruler.x + 0.5) * tileSize;
+      const worldY = (ruler.y + 0.5) * tileSize;
+      const screenX = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+      const screenY = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+      if (screenX < 280 || screenX > 1110 || screenY < 85 || screenY > 785) continue;
+      candidates.push({
+        polityId: polity.id,
+        polityName: polity.name,
+        rulerId: ruler.id,
+        founderId: polity.rulingLineFounderId,
+        x: ruler.x,
+        y: ruler.y,
+        screenX,
+        screenY,
+        descendantIds: survivingDescendants.map((entry) => entry.human.id),
+        topDistance: survivingDescendants[0].distance
+      });
+    }
+    return candidates.sort((a, b) => a.topDistance - b.topDistance || a.polityId - b.polityId)[0] ?? null;
+  })()`);
 }
 
 async function ruleEvidence(cdpClient) {
@@ -175,13 +317,7 @@ async function followOneRecordedReference(cdpClient, sourceEventId) {
     const event = detail?.querySelector('button[data-event-card-nav="event"]');
     if (event) return { kind: 'event', eventId: Number(event.dataset.eventId) };
     const map = detail?.querySelector('button[data-event-card-nav="map"]');
-    if (map) return {
-      kind: 'map',
-      entityKind: map.dataset.entityKind,
-      entityId: Number(map.dataset.entityId),
-      x: Number(map.dataset.x),
-      y: Number(map.dataset.y)
-    };
+    if (map) return { kind: 'map', entityKind: map.dataset.entityKind, entityId: Number(map.dataset.entityId) };
     return null;
   })()`);
   if (!choice) throw new Error(`dynastic Event Card #${sourceEventId} exposes no existing event/map navigation`);
@@ -217,23 +353,50 @@ async function openEventCard(cdpClient, eventId) {
   await waitForExpression(cdpClient, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${eventId}'`, 2_500);
 }
 
-async function pauseWorld(cdpClient) {
-  const paused = await evaluate(cdpClient, `(() => {
-    const pause = document.querySelector('#pause');
-    if (!pause) return false;
-    if (pause.dataset.active !== 'true') pause.click();
-    return pause.dataset.active === 'true';
+async function selectTool(cdpClient, toolName) {
+  const selected = await evaluate(cdpClient, `(() => {
+    const tool = document.querySelector('#tool');
+    if (!tool) return null;
+    tool.value = ${JSON.stringify(toolName)};
+    tool.dispatchEvent(new Event('change', { bubbles: true }));
+    return { value: tool.value, active: document.querySelector('[data-tool-button="${toolName}"]')?.dataset?.active === 'true' };
   })()`);
-  if (!paused) throw new Error('failed to pause Dynastic World Stories world');
+  if (selected?.value !== toolName || !selected.active) throw new Error(`${toolName} did not become active: ${JSON.stringify(selected)}`);
+}
+
+async function setSpeed(cdpClient, value) {
+  const actual = await evaluate(cdpClient, `(() => {
+    const speed = document.querySelector('#speed');
+    if (!speed) return null;
+    speed.value = ${JSON.stringify(value)};
+    speed.dispatchEvent(new Event('change', { bubbles: true }));
+    return speed.value;
+  })()`);
+  if (actual !== value) throw new Error(`failed to set Time control to ${value}`);
+}
+
+async function setPaused(cdpClient, paused) {
+  const state = await evaluate(cdpClient, `(() => {
+    const button = document.querySelector('#pause');
+    if (!button) return null;
+    const current = button.dataset.active === 'true';
+    if (current !== ${paused}) button.click();
+    return button.dataset.active === 'true';
+  })()`);
+  if (state !== paused) throw new Error(`failed to set paused=${paused}`);
   await delay(100);
 }
 
-async function fingerprint(cdpClient) {
-  return evaluate(cdpClient, `JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world)`);
-}
+async function pauseWorld(cdpClient) { await setPaused(cdpClient, true); }
+async function currentDay(cdpClient) { return evaluate(cdpClient, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day ?? -1`); }
+async function fingerprint(cdpClient) { return evaluate(cdpClient, `JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world)`); }
 
-async function clickSelector(cdpClient, selector) {
-  const point = await elementCenter(cdpClient, selector);
+async function clickSelector(cdpClient, selector) { await clickPoint(cdpClient, await elementCenter(cdpClient, selector)); }
+
+async function clickPoint(cdpClient, point) {
+  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y) || point.x < 0 || point.x > 1440 || point.y < 0 || point.y > 900) {
+    throw new Error(`invalid pointer target: ${JSON.stringify(point)}`);
+  }
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1 });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1 });
@@ -264,14 +427,8 @@ async function scrollIntoView(cdpClient, selector) {
   await delay(100);
 }
 
-function strictlyDescending(values) {
-  for (let index = 1; index < values.length; index += 1) if (values[index] >= values[index - 1]) return false;
-  return true;
-}
-
-function sameArray(a, b) {
-  return a.length === b.length && a.every((value, index) => value === b[index]);
-}
+function strictlyDescending(values) { for (let index = 1; index < values.length; index += 1) if (values[index] >= values[index - 1]) return false; return true; }
+function sameArray(a, b) { return a.length === b.length && a.every((value, index) => value === b[index]); }
 
 async function waitForDevToolsPort(dataDir, child) {
   const marker = join(dataDir, 'DevToolsActivePort');
@@ -329,10 +486,7 @@ async function createCdpClient(url) {
   return {
     send(method, params = {}) {
       const id = nextId++;
-      return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        socket.send(JSON.stringify({ id, method, params }));
-      });
+      return new Promise((resolve, reject) => { pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params })); });
     },
     close() { socket.close(); }
   };
@@ -372,14 +526,8 @@ async function stopChrome(child) {
 
 async function waitForExit(child, timeoutMs) {
   if (child.exitCode !== null) return true;
-  return Promise.race([
-    new Promise((resolve) => child.once('exit', () => resolve(true))),
-    delay(timeoutMs).then(() => false)
-  ]);
+  return Promise.race([new Promise((resolve) => child.once('exit', () => resolve(true))), delay(timeoutMs).then(() => false)]);
 }
 
-function ensureAlive(child) {
-  if (child.exitCode !== null) throw new Error(`Chrome exited early with code ${child.exitCode}`);
-}
-
+function ensureAlive(child) { if (child.exitCode !== null) throw new Error(`Chrome exited early with code ${child.exitCode}`); }
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
