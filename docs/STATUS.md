@@ -7,80 +7,92 @@ Last updated: 2026-08-26
 **v0.6.0 — Living Ecology is shipped and closed.** Immutable release identity:
 - release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
 - annotated tag `v0.6.0` / tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb`;
-- release workflow #10, CI #748, Pages #50/public `/play/`, visual-qa #247 green;
-- post-release closeout #239 completed without moving the tag.
+- release workflow #10, CI #748, Pages #50/public `/play/`, visual-qa #247 green.
 
-**v0.7.0 — Scenario Builder & Sharing is published and immutable.**
+**v0.7.0 — Scenario Builder & Sharing is shipped and closed.**
 
-Implementation freeze:
-- capability-5 merge `1043a63375fee4ccaa72141da7f1e026a550b989`;
-- merged-main CI #811, Pages #57/public `/play/`, full visual-qa #306 green.
+Immutable release identity:
+- implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989`;
+- release commit `1d5931a650f64765286e155c0e821bfe6d63a299`;
+- annotated tag `v0.7.0` / tag object `236eef64cf5090ff1a65bfee264f193078e79606` targets exactly the release commit;
+- GitHub Release `WorldBoxSR v0.7.0` published from checked-in release notes;
+- release workflow #11, CI #817, Pages #58/public `/play/`, full visual-qa #312 green;
+- docs-only closeout #254 merged as `f14b6194a76a57ba77ff4867d95d0ff44b4c6d6e`; closeout CI #819, Pages #59/public `/play/`, visual-qa #313 green;
+- release gate #240 and handoff #252 are closed.
 
-Release identity:
-- release commit **`1d5931a650f64765286e155c0e821bfe6d63a299`**;
-- annotated tag **`v0.7.0`** / tag object **`236eef64cf5090ff1a65bfee264f193078e79606`** targets exactly that release commit;
-- GitHub Release **`WorldBoxSR v0.7.0`** is published from checked-in `docs/releases/v0.7.0.md`;
-- release workflow **#11** green;
-- release-commit CI **#817** green;
-- Pages **#58** including final public `/play/` verification green;
-- release-commit full visual-qa **#312** green.
+Canonical v0.7 source `Portable trio`: seed45 Sandbox + Human `(12,8)` + Grazer `(16,12)` + Wolf `(14,7)`, paused fingerprint `7f07ed67`. Canonical fork adds Human `(12,8)`, fingerprint `67543ff4`.
 
-This docs-only closeout happens **after** the tagged release commit and does not move or redefine `v0.7.0`.
+**v0.8.0 — Ruling Lines & Succession is now the active planning stage.** Release gate: #255. Finite backlog: `docs/backlog/v0.8.md`.
 
-## v0.7 player promise — delivered
+No v0.8 behavior implementation is allowed until this planning-only branch/PR passes normal CI and merges.
 
-A player can compose a bounded deterministic Scenario Recipe, share/import it into the exact same authoritative start, Run a different history, Replay the exact Recipe start, or Fork/Edit it into a deterministic new Scenario without raw engine tooling.
+## v0.8 player promise
 
-## Frozen Scenario contract
+> **I can watch a ruling bloodline inherit power across generations, see when that bloodline loses the throne, and follow the new ruling line in the same causal world history.**
 
-- Recipe kind/version: `worldboxsr-scenario` / v1.
-- Base: current 24×24, 40-year showcase-ready `sandbox | living_ecology` startup.
-- Setup: ordered Human / Grazer / Wolf placement only.
-- Bounds: <=32 actions, <=10 entities/action, name <=64 code units, canonical JSON <=8192 UTF-8 bytes.
-- Portable transport: unpadded base64url under `scenario=`.
-- Recipe is deterministic startup input, never a live-state mirror or snapshot substitute.
-- Engine world remains sole authority; Phaser is the Scenario product surface.
+This is one bounded Civilization Depth stage, not the whole economy/religion/technology/naval/diplomacy candidate pool.
 
-## Canonical v0.7 evidence
+## Why this direction
 
-Source **Portable trio**:
-- seed45 Sandbox;
-- Human `(12,8)`;
-- Grazer `(16,12)`;
-- Wolf `(14,7)`;
-- paused day `14400`;
-- source fingerprint **`7f07ed67`**.
+The current authority already provides:
+- real-human polity rulers and deterministic succession/vacancy;
+- parent IDs, child IDs, persistent parental-union child records, lineage IDs and generations;
+- causal ruler history;
+- Event Card / Focused Story / Watchlist / Rule-lens presentation;
+- deterministic save/load and browser regression gates.
 
-End-to-end production Chromium journey:
-1. ordinary world → visible Setup → real-click source;
-2. Copy Link independently decodes to exact canonical Recipe;
-3. fresh Chrome profile reaches byte-identical paused source `7f07ed67`;
-4. ordinary Time/Play + Meteor diverges source to `dfbad7ff`, Recipe unchanged;
-5. Replay returns exact source and clears stale transient story/Inspector state;
-6. Fork/Edit starts from exact source + independent copy;
-7. fourth Human `(12,8)` creates deterministic fork **`67543ff4`**, source canonical unchanged;
-8. ordinary fork gameplay diverges to `e0b5b305`;
-9. Replay returns exact `67543ff4` fork / `SCENARIO · 4`, source canonical still unchanged.
+The current succession policy is intentionally shallow: all eligible polity adults are sorted oldest-first, then stable ID. It consumes no RNG and has no bloodline preference.
 
-Canonical implementation-gate head `8aca62fcb4ae31b4ab3ab8bab9aa003cc750846d` passed CI #808 + full visual-qa #303. Artifact `9580488110` records `canonicalJourneyComplete: true` and contains four manually reviewed 1440×900 canonical screenshots. Documentation-synchronized final head passed CI #810 + visual-qa #305 before merge.
+Economy/storage is not treated as the cheap default for Civilization Depth. Existing experiments already found:
+- shared-food-storage v0 caused broad indirect demographic/spatial feedback and was rejected;
+- territorial scarcity is real but not a settlement-survival classifier;
+- settlement decline/abandonment has heterogeneous mechanisms, and generic rescue/persistence behavior was explicitly rejected.
 
-## Delivered v0.7 slices
+Ruling-line succession therefore reuses more shipped authority while creating a clearer new player story.
 
-- Capability 1 — Recipe v1 core — #243 / `910a98445428cd361025b028387be065d70034f1`; CI #756, Pages #53, visual #253.
-- Capability 2 — Scenario Setup — #245 / `8efcb523148a4728d422de7abaeff8527caea5df`; CI #773, Pages #54, visual #270.
-- Capability 3 — Portable Recipe — #247 / `27f8c1f8715d9908acb7bb95e264bfb5b3ad2233`; CI #794, Pages #55, visual #291.
-- Capability 4 — Replay + Fork — #249 / `9b44c03df6898096a422822e4af024cf744b9faa`; CI #804, Pages #56, visual #301.
-- Capability 5 — Canonical release gate — #251 / `1043a63375fee4ccaa72141da7f1e026a550b989`; CI #811, Pages #57, visual #306.
-- Release handoff — #253 / `1d5931a650f64765286e155c0e821bfe6d63a299`; release workflow #11, CI #817, Pages #58, visual #312.
+## Semantic guards
 
-## Explicit v0.7 non-goals remain frozen
+- `parental_union` remains a historical co-parent record, **not** spouse/marriage/household/exclusivity.
+- `lineage` retains its existing maternal-inheritance meaning and is **not** renamed into a noble house/dynasty.
+- ruling-line continuation is a political fact derived from explicit parent→child descent.
+- dead humans must not be resurrected for genealogy; persistent authoritative parent/union records provide descendant evidence.
+- no second ancestry database may be introduced.
 
-No terrain/elevation/moisture/biome/water/resource painter, live snapshot savegame UI, Setup undo/remove stack, timeline rewind/event replay, rules DSL/scripts/objectives/scoring, cloud/accounts/workshop backend, short-link/compression service, custom map sizes, AI-generated canonical authority or new simulation mechanics.
+## Intended minimal succession rule
+
+Founding appointment remains current behavior.
+
+Later succession intends to:
+1. prefer eligible living polity descendants of the current ruling-line founder;
+2. rank by nearest descendant generation, then existing older-age / lower-ID ordering;
+3. fall back to the current oldest-eligible polity adult when no eligible descendant exists;
+4. treat that outsider fallback as the start of a new ruling line;
+5. preserve truthful vacancy when no eligible adult exists;
+6. consume no succession RNG.
+
+This is deliberately not a historical primogeniture/elective/agnatic law simulator.
+
+## Ordered v0.8 slices
+
+1. **Genealogical succession resolver + trajectory audit — NEXT**: pure descendant graph/ranking plus a temporary bounded audit to freeze a real seed45 canonical succession opportunity before behavior changes.
+2. **Authoritative ruling-line succession**: minimal political identity/persistence, descendant-first policy, current fallback, explicit line-continuation/change facts and snapshot migration.
+3. **Ruling-line readability**: compact ruler/founder/line-sequence/reign context in existing inspection.
+4. **Dynastic World Stories**: recorded succession presentation distinguishes line continuation vs new line using existing Event Card / Rule lens / human-polity refs.
+5. **Canonical Ruling Lines gate**: one headless + real Chromium path proves a real descendant succession and a truthful line-change fallback with prior releases green.
+6. release-only `v0.8.0` handoff.
+
+## Capability-1 stop rule
+
+The first slice must measure actual deterministic genealogy/succession opportunities. If no credible bounded natural descendant succession can be frozen for the supported world, **do not** manufacture an heir by adding fertility, migration, population rescue, hidden setup humans or a test-only succession event. Reconcile #255 instead.
+
+## Explicit v0.8 non-goals
+
+No economy/trade/market/currency/storage, professions/classes, marriage/household/marriage diplomacy, noble titles/claims/legitimacy, elections/configurable succession law UI, claimant civil wars/usurpation framework, religion/culture/technology, boats/naval warfare, broad diplomacy rewrite, terrain/editor work, AI-authored political facts, fertility/migration rescue or controller guaranteeing dynasty survival.
 
 ## Current decision gate
 
-1. merge this docs-only post-release closeout without moving `v0.7.0`;
-2. verify closeout-main CI / Pages / visual-qa remain green;
-3. close release handoff #252 and release gate #240;
-4. only then begin a planning-only v0.8 Civilization Depth gate;
-5. do not start v0.8 implementation before one finite player promise and non-goals are frozen.
+1. require planning branch diff to contain only `docs/backlog/v0.8.md`, `docs/ROADMAP.md`, `docs/STATUS.md`;
+2. open one planning-only PR and require normal CI green;
+3. squash merge planning before creating any v0.8 behavior branch;
+4. then open exactly one capability-1 issue/branch for the genealogy resolver + trajectory audit;
+5. keep every other Civilization Depth candidate out of the implementation queue until capability 1 produces evidence.
