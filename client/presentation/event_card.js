@@ -1,5 +1,6 @@
 import { resolveEventReferences } from '../../engine/analysis/history_query.js';
 import { chronicleEntryForEvent } from './civilization_story.js';
+import { dynasticRulerStoryForEvent } from './dynastic_story.js';
 import { ecologyStoryForEvent } from './ecology_story.js';
 
 export function eventCardForEvent(world, event) {
@@ -129,6 +130,11 @@ function resolvedReferenceNote(world, reference, value) {
 }
 
 function displayEntryForEvent(world, event) {
+  const dynastic = dynasticRulerStoryForEvent(world, event);
+  if (dynastic) {
+    const fallback = chronicleEntryForEvent(world, event);
+    return { ...fallback, ...dynastic };
+  }
   return ecologyStoryForEvent(world, event) ?? chronicleEntryForEvent(world, event);
 }
 
