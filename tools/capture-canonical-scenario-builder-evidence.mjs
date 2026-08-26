@@ -135,18 +135,16 @@ try {
   }
   await captureScreenshot(cdp, join(outDir, 'scenario-canonical-source-replayed-1440x900.png'));
 
-  // Fork/Edit must create an independent Recipe copy while preserving the source.
+  // Fork/Edit starts from the exact source world + an independent editable copy.
   await openRecipePanel(cdp);
   await clickSelector(cdp, '#scenario-fork');
-  await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('Fork Scenario ready') === true`, 25_000);
-  await waitForExpression(cdp, `document.querySelector('#scenario-state-badge')?.textContent === 'SETUP · 3'`, 2_000);
-  const forkSourceBefore = await forkSourceString(cdp);
-  if (forkSourceBefore !== sourceCanonical) throw new Error('Fork did not retain exact immutable source Recipe');
-  const forkStartBeforeEdit = await forkState(cdp);
-  if (forkStartBeforeEdit.draft !== sourceCanonical || forkStartBeforeEdit.source !== sourceCanonical) {
-    throw new Error('Fork did not begin as an independent exact Recipe copy');
+  await waitForExpression(cdp, `document.documentElement.dataset.scenarioFork === 'true' && document.documentElement.dataset.scenarioSetup === 'true'`, 25_000);
+  const forkBase = await forkState(cdp);
+  if (forkBase.fingerprint !== sourceFingerprint || forkBase.draft !== sourceCanonical || forkBase.source !== sourceCanonical
+      || forkBase.count !== '3/32 actions' || forkBase.state !== 'FORK · EDITING · PAUSED' || forkBase.badge !== 'FORK · 3') {
+    throw new Error(`canonical Fork did not start from exact source copy: ${JSON.stringify(forkBase)}`);
   }
-  if (forkStartBeforeEdit.fingerprint !== sourceFingerprint) throw new Error('Fork changed world before edit');
+  await captureScreenshot(cdp, join(outDir, 'scenario-canonical-fork-editing-1440x900.png'));
 
   await clickSelector(cdp, '[data-scenario-setup-tool="human"]');
   await clickPoint(cdp, await fixedTilePoint(cdp, FORK_ACTION.x, FORK_ACTION.y), 0);
@@ -161,15 +159,15 @@ try {
   if (forkFingerprint === sourceFingerprint || fnv1a(forkFingerprint) !== EXPECTED_FORK_HASH) {
     throw new Error(`canonical fork fingerprint drifted: expected ${EXPECTED_FORK_HASH}, got ${fnv1a(forkFingerprint)}`);
   }
-  await captureScreenshot(cdp, join(outDir, 'scenario-canonical-fork-editing-1440x900.png'));
 
-  // Freeze and play the fork, then Replay must rematerialize the exact fork start.
-  await clickSelector(cdp, '#scenario-run');
-  await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('Scenario running') === true`, 2_500);
+  await clickSelector(cdp, '#scenario-setup-run');
+  await waitForExpression(cdp, `document.documentElement.dataset.scenarioSetup === 'false'`, 2_000);
   const forkCanonical = await frozenRecipeString(cdp);
   if (forkCanonical !== editedFork.draft) throw new Error('Run changed canonical fork Recipe');
   if ((await fingerprint(cdp)) !== forkFingerprint) throw new Error('Run changed canonical fork starting authority');
+  if ((await forkSourceString(cdp)) !== sourceCanonical) throw new Error('Run of canonical fork lost immutable source identity');
 
+  // Dirty the fork through ordinary gameplay, then Replay current fork exactly.
   await setSpeed(cdp, '1');
   await clickPauseTo(cdp, false);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day > 14400`, 3_000);
@@ -181,16 +179,18 @@ try {
   if (dirtyFork.fingerprint === forkFingerprint || dirtyFork.recipe !== forkCanonical) {
     throw new Error('ordinary fork gameplay did not diverge authority cleanly');
   }
+  if ((await forkSourceString(cdp)) !== sourceCanonical) throw new Error('ordinary fork gameplay mutated source Recipe identity');
 
   await openRecipePanel(cdp);
   await clickSelector(cdp, '#scenario-replay');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('Replay Scenario ready') === true`, 25_000);
   const replayedFork = await scenarioState(cdp);
-  if (replayedFork.fingerprint !== forkFingerprint || replayedFork.recipe !== forkCanonical || fnv1a(replayedFork.fingerprint) !== EXPECTED_FORK_HASH) {
-    throw new Error('Replay did not restore exact canonical fork authority');
+  if (replayedFork.fingerprint !== forkFingerprint || replayedFork.recipe !== forkCanonical || fnv1a(replayedFork.fingerprint) !== EXPECTED_FORK_HASH
+      || replayedFork.day !== 14400 || !replayedFork.paused || replayedFork.active || replayedFork.badge !== 'SCENARIO · 4') {
+    throw new Error(`Replay did not restore exact canonical fork authority: ${JSON.stringify(replayedFork)}`);
   }
   if ((await forkSourceString(cdp)) !== sourceCanonical) throw new Error('fork Replay mutated source Recipe identity');
-  if (replayedFork.badge !== 'SCENARIO · 4') throw new Error(`fork Replay badge drifted: ${replayedFork.badge}`);
+  await openRecipePanel(cdp);
   await captureScreenshot(cdp, join(outDir, 'scenario-canonical-fork-replayed-1440x900.png'));
 
   const evidence = {
