@@ -500,54 +500,50 @@ async function connectCdp(port, browserPath, proc, timeoutMs) {
   throw new Error(`timed out connecting to Chrome DevTools browser endpoint; last=${lastError?.message ?? 'none'}`);
 }
 
-class CdpClient {
-  constructor(url) {
-    this.socket = new WebSocket(url);
-    this.nextId = 1;
-    this.pending = new Map();
-    this.ready = new Promise((resolve, reject) => {
-      this.socket.addEventListener('open', resolve, { once: true });
-      this.socket.addEventListener('error', reject, { once: true });
-    });
-    this.socket.addEventListener('message', (event) => {
-      const message = JSON.parse(String(event.data));
-      if (!message.id) return;
-      const pending = this.pending.get(message.id);
-      if (!pending) return;
-      this.pending.delete(message.id);
-      if (message.error) pending.reject(new Error(message.error.message));
-      else pending.resolve(message.result ?? {});
-    });
-  }
+function CdpClient(url) {
+  this.socket = new WebSocket(url);
+  this.nextId = 1;
+  this.pending = new Map();
+  this.ready = new Promise((resolve, reject) => {
+    this.socket.addEventListener('open', resolve, { once: true });
+    this.socket.addEventListener('error', reject, { once: true });
+  });
+  this.socket.addEventListener('message', (event) => {
+    const message = JSON.parse(String(event.data));
+    if (!message.id) return;
+    const pending = this.pending.get(message.id);
+    if (!pending) return;
+    this.pending.delete(message.id);
+    if (message.error) pending.reject(new Error(message.error.message));
+    else pending.resolve(message.result ?? {});
+  });
 
-  async send(method, params = {}, sessionId = null) {
+  this.send = async (method, params = {}, sessionId = null) => {
     await this.ready;
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
     });
-  }
+  };
 
-  close() {
+  this.close = () => {
     this.socket.close();
-  }
+  };
 }
 
-class CdpSessionClient {
-  constructor(browserClient, sessionId) {
-    this.browserClient = browserClient;
-    this.sessionId = sessionId;
-  }
+function CdpSessionClient(browserClient, sessionId) {
+  this.browserClient = browserClient;
+  this.sessionId = sessionId;
 
-  send(method, params = {}) {
+  this.send = (method, params = {}) => {
     if (method === 'Browser.close') return this.browserClient.send(method, params);
     return this.browserClient.send(method, params, this.sessionId);
-  }
+  };
 
-  close() {
+  this.close = () => {
     this.browserClient.close();
-  }
+  };
 }
 
 function fnv1a(text) {
