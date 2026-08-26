@@ -68,6 +68,10 @@ export function descendantLabel(distance) {
 
 function reasonPhrase(reason) {
   if (!reason) return '';
+  if (reason === 'death') return ' after the previous ruler died';
+  if (reason === 'no_longer_member') return ' after the previous ruler was no longer a polity member';
+  if (reason === 'unavailable') return ' after the previous ruler became unavailable';
+  if (reason === 'vacancy_filled') return ' after a vacancy';
   return ` after ${String(reason).replaceAll('_', ' ')}`;
 }
 
