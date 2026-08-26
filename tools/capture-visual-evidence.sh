@@ -53,6 +53,13 @@ fi
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 
+# v0.7 capability 5 is the only multi-profile gate that keeps more than one
+# long-lived browser session while proving one coherent author/share/Replay/Fork
+# journey. Run it first on the clean runner: its assertions are independent of
+# the historical gate order, while late execution after many headless Chrome
+# profiles can starve page-target creation even though Chrome DevTools is alive.
+node tools/capture-canonical-scenario-builder-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"
 node tools/capture-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 node tools/capture-focused-story-evidence.mjs "$browser" "$base_url" "$out_dir"
@@ -85,12 +92,6 @@ node tools/capture-scenario-portability-evidence.mjs "$browser" "$base_url" "$ou
 # then Fork/Edit by adding one real Human placement. The source Recipe must stay
 # immutable and Replay of the frozen fork must return to the exact fork start.
 node tools/capture-scenario-replay-fork-evidence.mjs "$browser" "$base_url" "$out_dir"
-
-# v0.7 capability 5: one coherent release path starts from an ordinary world,
-# authors Portable trio through visible Setup, Copy Links it into a fresh Chrome
-# profile, then runs/diverges, Replays the exact source, Forks one fixed Human,
-# runs/diverges again and Replays the exact fork. No new product semantics.
-node tools/capture-canonical-scenario-builder-evidence.mjs "$browser" "$base_url" "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
