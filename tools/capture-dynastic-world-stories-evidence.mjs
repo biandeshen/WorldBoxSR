@@ -9,6 +9,8 @@ if (!browser || !baseUrl || !outDir) {
   process.exit(2);
 }
 
+const MAX_SEARCH_YEARS = 40;
+const DAYS_PER_YEAR = 360;
 mkdirSync(outDir, { recursive: true });
 const userDataDir = mkdtempSync(join(tmpdir(), 'worldboxsr-dynastic-stories-'));
 const logFd = openSync(join(outDir, 'dynastic-world-stories-chrome-runtime.log'), 'w');
@@ -28,30 +30,29 @@ try {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
 
-  // Pause as soon as the real WorldScene + Pause listener exist so we first
-  // preserve the deterministic exact-Y40 open-selection story window.
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world != null`, 5_000);
   await pauseWorld(cdp);
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day === 14400`, 3_000);
 
-  await openChronicle(cdp);
-  await selectRuleLens(cdp);
-  const initialRule = await ruleEvidence(cdp);
-  if (initialRule.ids.length < 1 || initialRule.ids.length > 7 || !strictlyDescending(initialRule.ids)) {
-    throw new Error(`invalid exact-Y40 Rule lens: ${JSON.stringify(initialRule)}`);
+  // Do not manufacture an heir. Walk the ordinary deterministic world forward
+  // one product year at a time until a currently visible ruler has at least one
+  // adult ruling-line descendant that will survive a strike on the ruler tile.
+  let targetRuler = await descendantSuccessionTarget(cdp);
+  let searchedYears = 0;
+  while (!targetRuler && searchedYears < MAX_SEARCH_YEARS) {
+    const fromDay = await currentDay(cdp);
+    const targetDay = fromDay + DAYS_PER_YEAR;
+    await setSpeed(cdp, String(DAYS_PER_YEAR));
+    await armProductPauseAtDay(cdp, targetDay);
+    await setPaused(cdp, false);
+    await waitForProductPauseAtDay(cdp, targetDay, 5_000);
+    searchedYears += 1;
+    targetRuler = await descendantSuccessionTarget(cdp);
   }
-  const openSelection = initialRule.events.find((event) => event.type === 'polity.ruler_succeeded' && event.successionPath === 'open_selection') ?? null;
-  if (!openSelection) throw new Error(`exact-Y40 Rule lens exposes no recorded open-selection story: ${JSON.stringify(initialRule.events)}`);
+  if (!targetRuler) throw new Error(`no visible ruler with a surviving eligible ruling-line descendant within Y40–Y${40 + MAX_SEARCH_YEARS}`);
 
-  // Capability 2 intentionally changes authority. Use an existing real player
-  // action (Lightning) to trigger one new ordinary succession whose current
-  // ruling-line founder already has a surviving eligible descendant. The test
-  // selects the target from explicit genealogy only; it never writes ruler or
-  // history state directly.
-  const targetRuler = await descendantSuccessionTarget(cdp);
-  if (!targetRuler) throw new Error('exact-Y40 seed45 has no visible ruler with a surviving eligible ruling-line descendant');
-
+  // Use real shipped gameplay to create a fresh recorded descendant succession.
   await selectTool(cdp, 'lightning');
   await clickPoint(cdp, { x: targetRuler.screenX, y: targetRuler.screenY });
   await delay(120);
@@ -102,8 +103,9 @@ try {
   await selectRuleLens(cdp);
   const rule = await ruleEvidence(cdp);
   if (rule.ids.length < 1 || rule.ids.length > 7 || !strictlyDescending(rule.ids)) throw new Error(`invalid post-succession Rule lens: ${JSON.stringify(rule)}`);
-  if (!rule.ids.includes(descendant.id) || !rule.ids.includes(openSelection.id)) {
-    throw new Error(`post-succession Rule lens must retain descendant #${descendant.id} + open selection #${openSelection.id}: ${JSON.stringify(rule.events)}`);
+  const openSelection = rule.events.find((event) => event.type === 'polity.ruler_succeeded' && event.successionPath === 'open_selection') ?? null;
+  if (!rule.ids.includes(descendant.id) || !openSelection) {
+    throw new Error(`post-succession Rule lens must expose descendant #${descendant.id} + an open selection: ${JSON.stringify(rule.events)}`);
   }
 
   await openEventCard(cdp, descendant.id);
@@ -132,8 +134,10 @@ try {
   if ((await fingerprint(cdp)) !== baseline) throw new Error('Dynastic World Stories read-only navigation changed authoritative world');
 
   writeFileSync(join(outDir, 'dynastic-world-stories-evidence.json'), `${JSON.stringify({
-    initialDay: 14400,
+    startDay: 14400,
+    searchedYears,
     lightningSetup: {
+      day: targetRuler.day,
       polityId: targetRuler.polityId,
       polityName: targetRuler.polityName,
       struckRulerId: targetRuler.rulerId,
@@ -168,7 +172,7 @@ try {
     readOnlyAuthorityUnchanged: true
   }, null, 2)}\n`);
 
-  console.log(`Dynastic World Stories evidence: Lightning ruler #${targetRuler.rulerId} → descendant #${descendant.id} line ${descendant.rulingLineSequence} distance ${descendant.descendantDistance}; retained open selection #${openSelection.id} line ${openSelection.rulingLineSequence}; Rule ${rule.ids.join(',')}; ${navigation.kind} navigation; post-causality authority unchanged`);
+  console.log(`Dynastic World Stories evidence: searched ${searchedYears}y; Lightning ruler #${targetRuler.rulerId} → descendant #${descendant.id} line ${descendant.rulingLineSequence} distance ${descendant.descendantDistance}; open selection #${openSelection.id} line ${openSelection.rulingLineSequence}; Rule ${rule.ids.join(',')}; ${navigation.kind} navigation; post-causality authority unchanged`);
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
@@ -260,6 +264,7 @@ async function descendantSuccessionTarget(cdpClient) {
       const screenY = camera.y + (worldY - camera.worldView.y) * camera.zoom;
       if (screenX < 280 || screenX > 1110 || screenY < 85 || screenY > 785) continue;
       candidates.push({
+        day: world.day,
         polityId: polity.id,
         polityName: polity.name,
         rulerId: ruler.id,
@@ -321,13 +326,11 @@ async function followOneRecordedReference(cdpClient, sourceEventId) {
     return null;
   })()`);
   if (!choice) throw new Error(`dynastic Event Card #${sourceEventId} exposes no existing event/map navigation`);
-
   if (choice.kind === 'event') {
     await clickSelector(cdpClient, `#history-detail button[data-event-card-nav="event"][data-event-id="${choice.eventId}"]`);
     await waitForExpression(cdpClient, `document.querySelector('#history-detail')?.dataset?.eventCardId === '${choice.eventId}'`, 2_500);
     return choice;
   }
-
   await clickSelector(cdpClient, `#history-detail button[data-event-card-nav="map"][data-entity-kind="${choice.entityKind}"][data-entity-id="${choice.entityId}"]`);
   await delay(150);
   const inspector = await evaluate(cdpClient, `document.querySelector('#inspector')?.textContent ?? ''`);
@@ -375,6 +378,52 @@ async function setSpeed(cdpClient, value) {
   if (actual !== value) throw new Error(`failed to set Time control to ${value}`);
 }
 
+async function armProductPauseAtDay(cdpClient, targetDay) {
+  const armed = await evaluate(cdpClient, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    const pause = document.querySelector('#pause');
+    if (!scene?.world || !pause) return false;
+    const key = '__WORLDBOXSR_DYNASTIC_QA_PAUSE__';
+    globalThis[key]?.cancel?.();
+    let cancelled = false;
+    const state = { targetDay: ${targetDay}, done: false, observedDay: scene.world.day, cancel() { cancelled = true; } };
+    globalThis[key] = state;
+    const watch = () => {
+      if (cancelled) return;
+      const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+      if (!world) return;
+      state.observedDay = world.day;
+      if (world.day >= state.targetDay) {
+        if (pause.dataset.active !== 'true') pause.click();
+        state.done = true;
+        return;
+      }
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    return true;
+  })()`);
+  if (!armed) throw new Error(`failed to arm product Pause watcher for day ${targetDay}`);
+}
+
+async function waitForProductPauseAtDay(cdpClient, targetDay, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const state = await evaluate(cdpClient, `(() => ({
+      day: globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day ?? -1,
+      paused: document.querySelector('#pause')?.dataset?.active === 'true',
+      watch: globalThis.__WORLDBOXSR_DYNASTIC_QA_PAUSE__ ? {
+        done: globalThis.__WORLDBOXSR_DYNASTIC_QA_PAUSE__.done,
+        observedDay: globalThis.__WORLDBOXSR_DYNASTIC_QA_PAUSE__.observedDay
+      } : null
+    }))()`);
+    if (state.day === targetDay && state.paused && state.watch?.done) return;
+    if (state.day > targetDay) throw new Error(`product Time control overshot dynastic search day ${targetDay}: ${JSON.stringify(state)}`);
+    await delay(20);
+  }
+  throw new Error(`timed out waiting for product Pause at dynastic search day ${targetDay}`);
+}
+
 async function setPaused(cdpClient, paused) {
   const state = await evaluate(cdpClient, `(() => {
     const button = document.querySelector('#pause');
@@ -392,11 +441,8 @@ async function currentDay(cdpClient) { return evaluate(cdpClient, `globalThis.__
 async function fingerprint(cdpClient) { return evaluate(cdpClient, `JSON.stringify(globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world)`); }
 
 async function clickSelector(cdpClient, selector) { await clickPoint(cdpClient, await elementCenter(cdpClient, selector)); }
-
 async function clickPoint(cdpClient, point) {
-  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y) || point.x < 0 || point.x > 1440 || point.y < 0 || point.y > 900) {
-    throw new Error(`invalid pointer target: ${JSON.stringify(point)}`);
-  }
+  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y) || point.x < 0 || point.x > 1440 || point.y < 0 || point.y > 900) throw new Error(`invalid pointer target: ${JSON.stringify(point)}`);
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1 });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1 });
@@ -483,13 +529,7 @@ async function createCdpClient(url) {
     for (const waiter of pending.values()) waiter.reject(new Error('CDP websocket closed'));
     pending.clear();
   });
-  return {
-    send(method, params = {}) {
-      const id = nextId++;
-      return new Promise((resolve, reject) => { pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params })); });
-    },
-    close() { socket.close(); }
-  };
+  return { send(method, params = {}) { const id = nextId++; return new Promise((resolve, reject) => { pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params })); }); }, close() { socket.close(); } };
 }
 
 async function evaluate(cdpClient, expression) {
@@ -503,10 +543,7 @@ async function evaluate(cdpClient, expression) {
 
 async function waitForExpression(cdpClient, expression, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (await evaluate(cdpClient, expression)) return;
-    await delay(100);
-  }
+  while (Date.now() < deadline) { if (await evaluate(cdpClient, expression)) return; await delay(100); }
   throw new Error(`Timed out waiting for expression: ${expression}`);
 }
 
@@ -523,11 +560,6 @@ async function stopChrome(child) {
   child.kill('SIGKILL');
   await waitForExit(child, 2_000);
 }
-
-async function waitForExit(child, timeoutMs) {
-  if (child.exitCode !== null) return true;
-  return Promise.race([new Promise((resolve) => child.once('exit', () => resolve(true))), delay(timeoutMs).then(() => false)]);
-}
-
+async function waitForExit(child, timeoutMs) { if (child.exitCode !== null) return true; return Promise.race([new Promise((resolve) => child.once('exit', () => resolve(true))), delay(timeoutMs).then(() => false)]); }
 function ensureAlive(child) { if (child.exitCode !== null) throw new Error(`Chrome exited early with code ${child.exitCode}`); }
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
