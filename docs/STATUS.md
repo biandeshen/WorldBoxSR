@@ -25,7 +25,9 @@ Capability 1 — **Genealogical succession resolver + trajectory audit** — #25
 
 Capability 2 — **Authoritative ruling-line succession** — #259/#260 is delivered on main as `80c55a742efbb5c94f4ade855a60605f4bcbd958`; merged-main CI #838, Pages #62/public `/play/`, full visual-qa #331 green.
 
-Capability 3 — **Ruling-line readability** — #261/#262 has completed its branch machine + manual gate. Current task: final docs head CI + full Visual QA → squash merge → merged-main delivery. Capability 4 remains locked until then.
+Capability 3 — **Ruling-line readability** — #261/#262 is delivered on main as `998d179b0122457f2a5950c0dfe857f305fd4281`; merged-main CI #848, Pages #63/public `/play/`, full visual-qa #341 green.
+
+Capability 4 — **Dynastic World Stories** — #263/#264 has completed its branch machine + manual gate. Current task: documentation-synchronized final head CI + full Visual QA → squash merge → merged-main delivery. Capability 5 remains locked until then.
 
 ## v0.8 player promise
 
@@ -39,8 +41,11 @@ Capability 3 — **Ruling-line readability** — #261/#262 has completed its bra
 - no second ancestry database.
 - no succession RNG.
 - no eligible descendant means current oldest-eligible-adult fallback, not a manufactured heir.
+- presentation never invents legitimacy, claims, elections, primogeniture, usurpation or political motive.
 
-## Capability 1 — delivered genealogy seam
+## Delivered authoritative foundation
+
+### Capability 1 — genealogy seam
 
 `engine/core/succession_genealogy.js` provides pure, mutation-free, RNG-free genealogy queries from current human parent IDs plus persistent parental-union child records.
 
@@ -53,7 +58,7 @@ Frozen baseline audit hook:
 - only eligible descendant Human #31, direct child, distance 1;
 - all earlier post-founding successions had no eligible descendant, so baseline/proposed ruler selection matched before this point.
 
-## Capability 2 — delivered authoritative ruling-line succession
+### Capability 2 — authoritative ruling-line succession
 
 - founding remains existing oldest-eligible-adult appointment;
 - later succession first ranks eligible descendants of current `rulingLineFounderId` by nearest generation → older age → lower stable ID;
@@ -64,42 +69,52 @@ Frozen baseline audit hook:
 - snapshot v16 migrates v15-and-earlier polity state deterministically without fabricated historical events/dates;
 - canonical day 9150 seed45 successor is Human #31, direct child distance 1, continuing founder #23 / line #13 instead of baseline #28.
 
-Published v0.7 tag evidence remains immutable (`7f07ed67` / `67543ff4`). Because v0.8 intentionally changes Y40 political history, current-main Scenario baselines are now `b411c106` / `0f28ca42`; the Recipe/share/Replay/Fork contracts themselves remain exact.
+Published v0.7 tag evidence remains immutable (`7f07ed67` / `67543ff4`). Because v0.8 intentionally changes Y40 political history, current-main Scenario baselines are `b411c106` / `0f28ca42`; the Recipe/share/Replay/Fork contracts themselves remain exact.
 
-## Capability 3 — ruling-line readability evidence
+## Capability 3 — delivered ruling-line readability
+
+- pure `rulingLinePresentation(world, polity)` reads only current polity state plus retained recorded ruler-transition facts;
+- current ruler and polity settlement Inspector surfaces expose the same line sequence, reign count and founder Human #ID;
+- retained transition copy distinguishes founding, descendant continuation and open selection;
+- unavailable founder keeps its stable ID and is not inferred/replaced;
+- exact-Y40 Chromium inspected Eldergate Realm ruler Human #12 and settlement Eldergate through ordinary Alt-click;
+- both showed `ruling line 56 · reign 1 · founder Human #12` and `new ruling line · open selection`;
+- serialized authoritative world remained byte-identical.
+
+## Capability 4 — Dynastic World Stories evidence
 
 ### Presentation ownership
-- pure `rulingLinePresentation(world, polity)` reads current polity state plus retained recorded ruler-transition facts only;
-- stable line copy exposes line sequence, reign count and founder `Human #ID`;
-- unavailable founder keeps its stable ID and is marked unavailable rather than replaced/inferred;
-- transition copy distinguishes recorded `founding`, `descendant` and `open_selection` paths;
-- descendant wording derives only from recorded `descendantDistance` (`child`, `grandchild`, `N generations`).
 
-### Product surface
-- only the existing Phaser right-side Inspector is enhanced;
-- current ruler human receives the compact line/transition context;
-- polity settlement receives the same line identity under its existing current-ruler row;
-- non-ruler humans, HUD, Chronicle, map input and Legacy renderer are unchanged;
-- enhancer is presentation-only and never writes world/snapshot/history/RNG.
+- `dynasticRulerStoryForEvent()` is pure and reads only already-recorded ruler-event facts;
+- descendant succession copy uses recorded line sequence, founder Human #ID and descendant distance;
+- open selection copy uses recorded new line founder/sequence;
+- legacy/pre-v0.8 ruler events fall back to existing presentation rather than inventing dynasty facts;
+- Event Card keeps the existing authoritative Subject/Causes resolver and event/map navigation;
+- Rule lens membership/order/limit are unchanged; only readable ruler-event copy changes.
 
-### Real Chromium gate
-Final implementation head before docs sync: `9e666ee9b2dda9a746d6ca8a3f73da9fb0a9c545`.
-- CI #845 green;
-- full visual-qa #338 green;
-- exact seed45 Y40 world is paused through the real product control;
-- ordinary Alt-click inspected current ruler Human #12 of Eldergate Realm and settlement Eldergate;
-- both Inspector surfaces rendered `ruling line 56 · reign 1 · founder Human #12`;
-- both rendered the retained transition `new ruling line · open selection`;
-- serialized authoritative world fingerprint stayed byte-identical through both inspections;
-- manual 1440×900 review confirms the added text remains compact and the map stays the primary visual surface.
+### Real browser gate
+
+Final implementation head before docs sync: `bcf20715026dc8e780da216bc332b6de14387ffb`.
+- CI #856 green;
+- full visual-qa #349 green;
+- start exact seed45 Y40; use real `Time=1 year` plus product Pause for a bounded natural search;
+- a valid descendant opportunity appears after 4 years at day `15840` / Y44 without fertility/migration tuning or injected heirs;
+- real Lightning strikes Eldergate Realm ruler Human #23 while direct child Human #31 survives as the eligible descendant;
+- normal simulation records death Event #229 then descendant succession Event #235;
+- Event #235 reads: `Eldergate Realm's ruling bloodline continues` and `Human #31 continues ruling line 67 as a child of founder Human #23 after the previous ruler died.`;
+- the same Rule top7 `[235,227,226,225,224,221,220]` retains open-selection Event #227;
+- Event #227 reads: `Lindenvale Dominion begins a new ruling line` and `Human #11 begins ruling line 28 as founder Human #11 after the previous ruler was no longer a polity member.`;
+- ordinary Event Card navigation opens retained Event #229;
+- from the post-causality pause onward Rule/Event Card/navigation leave `JSON.stringify(world)` byte-identical;
+- manual fixed 1440×900 review confirms both cards remain compact and the map stays the primary surface.
 
 ## Ordered v0.8 state
 
 1. Genealogical succession resolver + trajectory audit — **DONE + merged-main delivered**.
 2. Authoritative ruling-line succession — **DONE + merged-main delivered**.
-3. Ruling-line readability — **branch gate complete; final docs head → merge/delivery**.
-4. Dynastic World Stories — **NEXT only after #262 merged-main CI + Pages/public `/play/` + full Visual QA are green**.
-5. Canonical Ruling Lines gate — locked.
+3. Ruling-line readability — **DONE + merged-main delivered**.
+4. Dynastic World Stories — **branch gate complete; final docs head → merge/delivery**.
+5. Canonical Ruling Lines gate — **NEXT only after #264 merged-main CI + Pages/public `/play/` + full Visual QA are green**.
 6. release-only `v0.8.0` handoff — locked.
 
 ## Explicit v0.8 non-goals
@@ -108,8 +123,9 @@ No economy/trade/storage/currency, professions/classes, marriage/household/marri
 
 ## Current decision gate
 
-1. require documentation-synchronized #262 final head CI + full Visual QA green;
-2. confirm changed-file audit contains only presentation/readability/tests/QA/docs and no authority changes;
-3. mark #262 ready and squash merge;
+1. require documentation-synchronized #264 final head CI + full Visual QA green;
+2. confirm changed-file audit contains only presentation/tests/QA/docs and no authority changes;
+3. mark #264 ready and squash merge;
 4. verify merged-main CI + Pages/public `/play/` + full Visual QA;
-5. only then open Capability 4 for Dynastic World Stories presentation.
+5. only then open Capability 5 canonical Ruling Lines gate;
+6. release-only `v0.8.0` work remains locked until Capability 5 merges and merged-main delivery is green.
