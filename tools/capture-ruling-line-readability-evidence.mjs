@@ -28,9 +28,10 @@ try {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
 
-  // Pause as soon as the product control exists so post-warmup inspection is
-  // anchored to the exact deterministic Y40 showcase instead of a later tick.
-  await waitForExpression(cdp, `document.querySelector('#pause') !== null`, 5_000);
+  // WorldScene.bindDom() runs before resetWorld(), so a non-null scene world is
+  // the earliest safe point where the real Pause button is guaranteed to have
+  // its product listener. Pause there so post-warmup inspection stays exact Y40.
+  await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world != null`, 5_000);
   await pauseWorld(cdp);
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day === 14400`, 3_000);
