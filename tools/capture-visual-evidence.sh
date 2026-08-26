@@ -92,6 +92,12 @@ node tools/capture-scenario-replay-fork-evidence.mjs "$browser" "$base_url" "$ou
 # runs/diverges again and Replays the exact fork. No new product semantics.
 node tools/capture-canonical-scenario-builder-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.8 capability 3: keep the exact seed45 Y40 authority paused and use ordinary
+# Alt-click inspection on one current ruler plus a clear settlement in the same
+# polity. Both Inspector views must expose the same ruling-line identity and any
+# retained current transition while JSON.stringify(world) remains unchanged.
+node tools/capture-ruling-line-readability-evidence.mjs "$browser" "$base_url" "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -154,7 +160,10 @@ scenario_canonical_source_replayed=scenario-canonical-source-replayed-1440x900.p
 scenario_canonical_fork_editing=scenario-canonical-fork-editing-1440x900.png
 scenario_canonical_fork_replayed=scenario-canonical-fork-replayed-1440x900.png
 scenario_canonical_authority=canonical-scenario-builder-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6 release regressions plus all v0.7 slice gates and the canonical Scenario Builder journey preserve declared authority ownership
+ruling_line_ruler=ruling-line-ruler-inspector-1440x900.png
+ruling_line_settlement=ruling-line-settlement-inspector-1440x900.png
+ruling_line_authority=ruling-line-readability-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6/v0.7 regressions plus v0.8 ruling-line Inspector readability preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
