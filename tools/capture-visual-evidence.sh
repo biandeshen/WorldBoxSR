@@ -104,6 +104,12 @@ node tools/capture-ruling-line-readability-evidence.mjs "$browser" "$base_url" "
 # event/map reference, preserve Rule membership/order and never mutate authority.
 node tools/capture-dynastic-world-stories-evidence.mjs "$browser" "$base_url" "$out_dir"
 
+# v0.8 capability 5: compose the already-shipped ruling-line Inspector and
+# Dynastic World Stories browser evidence into one release gate. This adds no
+# new simulation or presentation behavior; it fails unless both production
+# surfaces expose authoritative ruling-line facts and stay read-only.
+node tools/verify-canonical-ruling-lines-evidence.mjs "$out_dir"
+
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
 commit=$(git rev-parse HEAD)
@@ -172,7 +178,8 @@ ruling_line_authority=ruling-line-readability-evidence.json
 dynastic_descendant=dynastic-descendant-event-card-1440x900.png
 dynastic_new_line=dynastic-new-line-event-card-1440x900.png
 dynastic_world_stories_authority=dynastic-world-stories-evidence.json
-runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6/v0.7 regressions plus v0.8 ruling-line Inspector and Dynastic World Stories readability preserve declared authority ownership
+canonical_ruling_lines_authority=canonical-ruling-lines-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6/v0.7 regressions plus v0.8 ruling-line Inspector, Dynastic World Stories and canonical Ruling Lines release gate preserve declared authority ownership
 EOF
 
 printf 'Visual evidence captured with %s\n' "$browser"
