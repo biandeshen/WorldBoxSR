@@ -3,6 +3,7 @@ import {
   chronicleEntryForEvent,
   isCivilizationStoryEvent
 } from './civilization_story.js';
+import { dynasticRulerStoryForEvent } from './dynastic_story.js';
 import { ecologyStoryForEvent, isEcologyStoryEvent } from './ecology_story.js';
 
 export const CHRONICLE_LENS_LIMIT = 7;
@@ -70,6 +71,11 @@ function isReadableStoryEvent(event) {
 }
 
 function readableEntryForEvent(world, event) {
+  const dynastic = dynasticRulerStoryForEvent(world, event);
+  if (dynastic) {
+    const fallback = chronicleEntryForEvent(world, event);
+    return { ...fallback, ...dynastic };
+  }
   return ecologyStoryForEvent(world, event) ?? chronicleEntryForEvent(world, event);
 }
 
