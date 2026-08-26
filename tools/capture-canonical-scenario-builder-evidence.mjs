@@ -17,6 +17,7 @@ const SETUP = Object.freeze([
   Object.freeze({ placement: 'wolf', x: 14, y: 7 })
 ]);
 const FORK_ACTION = Object.freeze({ type: 'spawn_human', x: 12, y: 8, count: 1 });
+const CHROME_STARTUP_TIMEOUT_MS = 30_000;
 // Immutable v0.7.0 release/tag evidence remains source 7f07ed67 / fork 67543ff4.
 // v0.8 intentionally evolves authoritative political history before the Y40
 // Scenario base, so this live regression gate tracks the deterministic
@@ -425,14 +426,16 @@ async function launchBrowser(label, url) {
   closeSync(fd);
 
   try {
-    const port = await waitForDevToolsPort(portFile, proc, 10_000);
-    const cdp = await connectCdp(port, proc, 10_000);
+    const port = await waitForDevToolsPort(portFile, proc, CHROME_STARTUP_TIMEOUT_MS);
+    const cdp = await connectCdp(port, proc, CHROME_STARTUP_TIMEOUT_MS);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
     return { proc, cdp, userDataDir };
   } catch (error) {
     await terminate(proc);
-    rmSync(userDataDir, { recursive: true, force: true });
+    try { rmSync(userDataDir, { recursive: true, force: true }); } catch (cleanupError) {
+      console.warn(`Could not fully remove failed browser profile ${userDataDir}: ${cleanupError.message}`);
+    }
     throw error;
   }
 }
