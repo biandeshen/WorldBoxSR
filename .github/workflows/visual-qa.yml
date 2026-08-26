@@ -28,6 +28,7 @@ on:
       - 'tools/capture-scenario-replay-fork-evidence.mjs'
       - 'tools/capture-canonical-scenario-builder-evidence.mjs'
       - 'tools/capture-ruling-line-readability-evidence.mjs'
+      - 'tools/capture-dynastic-world-stories-evidence.mjs'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -66,9 +67,10 @@ jobs:
             echo '- v0.5 Event Card / Focused Story / Watchlist / Chronicle-lens / canonical one-session story regressions remain required.'
             echo '- v0.6 natural fauna, multi-species, Wolf predation, ecology readability and canonical trough→recovery→predation gates remain required.'
             echo '- v0.7 Scenario Setup: the real existing Phaser pointer path must enter a paused exact Sandbox base, place Human/Grazer/Wolf in ordered Recipe v1 authority, reject one impassable click without identity/world mutation, rename without authority change, Clear by exact rematerialization, rebuild the same start, Run without changing it, then allow ordinary Play to change the world while the frozen recipe stays unchanged.'
-            echo '- v0.7 portable Scenario: one authored Recipe must produce canonical Copy Link + downloaded JSON, then fresh shared-link and visible JSON-import Chrome profiles must reproduce the exact same paused authoritative start; one impassable import must fail atomically without changing world, recipe, URL or visible boot status.'
+            echo '- v0.7 portable Scenario: one authored Recipe must produce canonical Copy Link + downloaded JSON, then fresh shared-link and visible JSON-import Chrome profiles must reproduce the exact same paused authoritative start; one impassable JSON import must fail atomically without changing world, recipe, URL or visible boot status.'
             echo '- v0.7 Replay/Fork: a fresh shared Scenario must diverge through ordinary Time + Meteor, Replay exact source authority while clearing stale story/selection presentation and retaining bookmark storage, then Fork into the existing Setup workspace, add one real fixed Human action without mutating the source Recipe, and Replay the frozen fork back to its exact start.'
             echo '- v0.7 canonical Scenario Builder: ordinary visible Setup must author Portable trio, Copy Link it into a fresh browser, diverge + Replay the exact source, Fork one fixed Human, diverge again and Replay the exact fork while source identity remains immutable.'
             echo '- v0.8 ruling-line readability: exact-Y40 seed45 stays paused while real Alt-click inspection of one current ruler and one clear settlement in the same polity must show identical ruling-line founder/sequence/reign context plus any retained recorded transition without changing serialized world authority.'
-            echo '- Artifact `visual-evidence` preserves all prior release/slice regressions plus v0.8 ruling-line Inspector screenshots and JSON authority evidence.'
+            echo '- v0.8 Dynastic World Stories: exact-Y40 seed45 Rule-lens/Event-Card clicks must expose one recorded descendant/bloodline continuation and one open-selection/new-line transition, follow an existing event/map reference, keep Rule membership/order unchanged, and preserve serialized authority.'
+            echo '- Artifact `visual-evidence` preserves all prior release/slice regressions plus v0.8 ruling-line Inspector and Dynastic World Stories screenshots/JSON evidence.'
           } >> "$GITHUB_STEP_SUMMARY"
