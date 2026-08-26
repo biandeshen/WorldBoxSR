@@ -421,15 +421,18 @@ async function launchBrowser(label, url) {
     '--enable-unsafe-swiftshader',
     '--remote-debugging-port=0',
     `--user-data-dir=${userDataDir}`,
-    url
+    'about:blank'
   ], { stdio: ['ignore', fd, fd] });
   closeSync(fd);
 
   try {
     const port = await waitForDevToolsPort(portFile, proc, CHROME_STARTUP_TIMEOUT_MS);
-    const cdp = await connectCdp(port, proc, CHROME_STARTUP_TIMEOUT_MS);
+    const [, browserPath] = readFileSync(portFile, 'utf8').trim().split(/\r?\n/u);
+    if (!browserPath?.startsWith('/devtools/browser/')) throw new Error('Chrome DevTools browser endpoint missing');
+    const cdp = await connectCdp(port, browserPath, proc, CHROME_STARTUP_TIMEOUT_MS);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
+    await cdp.send('Page.navigate', { url });
     return { proc, cdp, userDataDir };
   } catch (error) {
     await terminate(proc);
@@ -472,18 +475,29 @@ async function waitForDevToolsPort(portFile, proc, timeoutMs) {
   throw new Error('timed out waiting for Chrome DevTools port');
 }
 
-async function connectCdp(port, proc, timeoutMs) {
+async function connectCdp(port, browserPath, proc, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
+  let lastError = null;
   while (Date.now() < deadline) {
     if (proc.exitCode !== null) throw new Error(`Chrome exited while connecting CDP: ${proc.exitCode}`);
+    let browserClient = null;
     try {
-      const pages = await fetch(`http://127.0.0.1:${port}/json/list`).then((response) => response.json());
-      const page = pages.find((entry) => entry.type === 'page');
-      if (page?.webSocketDebuggerUrl) return new CdpClient(page.webSocketDebuggerUrl);
-    } catch {}
-    await delay(50);
+      browserClient = new CdpClient(`ws://127.0.0.1:${port}${browserPath}`);
+      const targets = await browserClient.send('Target.getTargets');
+      let page = targets.targetInfos?.find((entry) => entry.type === 'page') ?? null;
+      if (!page) {
+        const created = await browserClient.send('Target.createTarget', { url: 'about:blank' });
+        page = { targetId: created.targetId };
+      }
+      const attached = await browserClient.send('Target.attachToTarget', { targetId: page.targetId, flatten: true });
+      return new CdpSessionClient(browserClient, attached.sessionId);
+    } catch (error) {
+      lastError = error;
+      try { browserClient?.close(); } catch {}
+      await delay(80);
+    }
   }
-  throw new Error('timed out connecting to Chrome DevTools');
+  throw new Error(`timed out connecting to Chrome DevTools browser endpoint; last=${lastError?.message ?? 'none'}`);
 }
 
 class CdpClient {
@@ -506,17 +520,33 @@ class CdpClient {
     });
   }
 
-  async send(method, params = {}) {
+  async send(method, params = {}, sessionId = null) {
     await this.ready;
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.socket.send(JSON.stringify({ id, method, params }));
+      this.socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
     });
   }
 
   close() {
     this.socket.close();
+  }
+}
+
+class CdpSessionClient {
+  constructor(browserClient, sessionId) {
+    this.browserClient = browserClient;
+    this.sessionId = sessionId;
+  }
+
+  send(method, params = {}) {
+    if (method === 'Browser.close') return this.browserClient.send(method, params);
+    return this.browserClient.send(method, params, this.sessionId);
+  }
+
+  close() {
+    this.browserClient.close();
   }
 }
 
