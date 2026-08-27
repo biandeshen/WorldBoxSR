@@ -26,10 +26,21 @@ test('pinch start explicitly cancels long-press inspection and ensures multi-poi
   assert.match(touchSource, /state\.cancel = \(\) => cancelTouchHold\(state\)/, 'touch inspector must expose a presentation-only cancellation hook');
 });
 
-test('pinch preserves live midpoint focus and suppresses remaining finger until all touches clear', () => {
+test('pinch preserves live midpoint without reading Phaser 4 stale post-zoom matrices', () => {
   const source = readFileSync(runtimePath, 'utf8');
-  assert.match(source, /camera\.getWorldPoint\(midpoint\.x, midpoint\.y\)/);
-  assert.match(source, /focusPreservingScroll/);
+  const worldPointReads = source.match(/camera\.getWorldPoint\(midpoint\.x, midpoint\.y\)/g) ?? [];
+  assert.equal(worldPointReads.length, 1, 'only the pre-zoom rendered camera matrix may be read');
+  assert.match(source, /focusPreservingScroll\(\{/);
+  assert.match(source, /viewportX: camera\.x/);
+  assert.match(source, /viewportWidth: camera\.width/);
+  assert.match(source, /originX: camera\.originX/);
+  assert.match(source, /zoom: targetZoom/);
+  assert.match(source, /camera\.clampX\(desiredScroll\.x\)/);
+  assert.match(source, /camera\.clampY\(desiredScroll\.y\)/);
+});
+
+test('pinch suppresses remaining finger until all touches clear', () => {
+  const source = readFileSync(runtimePath, 'utf8');
   assert.match(source, /suppressUntilClear = true/);
   assert.match(source, /if \(state\.suppressUntilClear\) scene\.drag = null/);
   assert.match(source, /if \(state\.touches\.size === 0\)/);
