@@ -1,0 +1,56 @@
+@media (max-width: 650px) {
+  #topbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    min-width: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  #topbar .brand { display: none; }
+
+  #row {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    gap: 5px;
+    padding: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+  #row::-webkit-scrollbar { display: none; }
+  #row > * { flex: 0 0 auto; }
+  #row button, #row input, #row select { white-space: nowrap; }
+
+  /* Put the three ordinary world controls first without removing any of the
+     existing mode/seed/time/Scenario/Recipe controls from the same strip. */
+  #pause { order: -30; }
+  #reset-camera { order: -29; }
+  #reset { order: -28; }
+  #scenario-setup-enter,
+  #scenario-portability-toggle { order: 10; }
+  #scenario-state-badge { order: 11; }
+}
+
+@media (max-width: 650px) and (hover: none) and (pointer: coarse) {
+  #power-dock {
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+    padding-bottom: 6px;
+  }
+  #power-buttons { grid-column: 1; }
+  #hint {
+    display: block;
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 8px;
+    white-space: nowrap;
+  }
+}
