@@ -8,9 +8,11 @@ const touchRuntimePath = fileURLToPath(new URL('../client/presentation/touch_ins
 const mobileCssPath = fileURLToPath(new URL('../client/mobile_hud.css', import.meta.url));
 const indexPath = fileURLToPath(new URL('../client/index.html', import.meta.url));
 
-test('pinch runtime reuses existing camera bounds and never wraps tool authority', () => {
+test('pinch runtime reuses existing camera composition bounds and never wraps tool authority', () => {
   const source = readFileSync(runtimePath, 'utf8');
+  assert.match(source, /from '\.\/camera_composition\.js'/, 'pinch must depend directly on the shared camera composition API');
   assert.match(source, /refreshCameraBoundsForZoom/);
+  assert.doesNotMatch(source, /from '\.\/camera_runtime\.js'/, 'camera runtime is not a public geometry module');
   assert.doesNotMatch(source, /setBounds\(/, 'pinch runtime must not duplicate camera bound math');
   assert.doesNotMatch(source, /scene\.useTool\s*=/, 'pinch must not wrap God Power / Scenario commands');
   assert.match(source, /scene\.drag = null/, 'pinch must suppress existing single-touch pointerup/tool and pan state');
