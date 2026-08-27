@@ -1,8 +1,15 @@
 import { polityColor } from './polity_style.js';
+import { settlementAmbientPose } from './settlement_ambient.js';
 import { populationTier, settlementVisualProfile } from './settlement_visual_profile.js';
 
 export class SettlementLayer {
-  constructor(scene, tileSize) { this.scene = scene; this.tileSize = tileSize; this.visuals = new Map(); }
+  constructor(scene, tileSize) {
+    this.scene = scene;
+    this.tileSize = tileSize;
+    this.visuals = new Map();
+    scene.events.on('update', (time) => this.update(time));
+  }
+
   sync(view) {
     const activeIds = new Set();
     for (const settlement of view.settlements) {
@@ -11,14 +18,26 @@ export class SettlementLayer {
       const current = this.visuals.get(settlement.id);
       if (current?.signature === signature) continue;
       if (current) destroyContainer(current.container);
-      this.visuals.set(settlement.id, { signature, container: createSettlementVisual(this.scene, settlement, this.tileSize) });
+      this.visuals.set(settlement.id, {
+        signature,
+        ...createSettlementVisual(this.scene, settlement, this.tileSize)
+      });
     }
     for (const [id, visual] of this.visuals) {
       if (activeIds.has(id)) continue;
-      destroyContainer(visual.container); this.visuals.delete(id);
+      destroyContainer(visual.container);
+      this.visuals.delete(id);
     }
   }
-  destroy() { for (const visual of this.visuals.values()) destroyContainer(visual.container); this.visuals.clear(); }
+
+  update(now) {
+    for (const visual of this.visuals.values()) updateSettlementAmbient(visual, now);
+  }
+
+  destroy() {
+    for (const visual of this.visuals.values()) destroyContainer(visual.container);
+    this.visuals.clear();
+  }
 }
 
 function settlementSignature(settlement) {
@@ -33,6 +52,8 @@ function createSettlementVisual(scene, settlement, tileSize) {
   const tier = profile.tier;
   const color = polityColor(settlement.polityColorIndex ?? Math.max(0, settlement.id - 1));
   const children = [];
+  let bannerMotion = null;
+  let smokeMotion = null;
 
   const ground = scene.add.ellipse(
     0,
@@ -73,9 +94,7 @@ function createSettlementVisual(scene, settlement, tileSize) {
     scene.add.rectangle(0, 4, profile.roadWidth, tier >= 3 ? 3.8 : 3.2, roadColor, 0.58),
     scene.add.rectangle(0, 4, tier >= 3 ? 3.8 : 3.2, profile.roadHeight, roadColor, 0.58)
   );
-  if (tier >= 3) {
-    children.push(scene.add.rectangle(0, -9, profile.roadWidth * 0.72, 2.4, roadColor, 0.38));
-  }
+  if (tier >= 3) children.push(scene.add.rectangle(0, -9, profile.roadWidth * 0.72, 2.4, roadColor, 0.38));
   if (tier >= 4) {
     children.push(scene.add.rectangle(-15, 4, 2.4, profile.roadHeight * 0.78, roadColor, 0.34));
     children.push(scene.add.rectangle(15, 4, 2.4, profile.roadHeight * 0.78, roadColor, 0.34));
@@ -97,8 +116,16 @@ function createSettlementVisual(scene, settlement, tileSize) {
     children.push(...hall);
   }
 
+  if (settlement.active && tier >= 2) {
+    const hearth = createHearthAmbience(scene, profile);
+    children.push(...hearth.parts);
+    smokeMotion = hearth.motion;
+  }
+
   if (settlement.active) {
-    children.push(...createBanner(scene, settlement, profile, color));
+    const banner = createBanner(scene, settlement, profile, color);
+    children.push(...banner.parts);
+    bannerMotion = banner.motion;
   }
 
   const primaryName = settlement.isCapital && settlement.polityName ? `♛ ${settlement.polityName}` : settlement.name;
@@ -136,7 +163,43 @@ function createSettlementVisual(scene, settlement, tileSize) {
   container.setScale(scale);
   container.setAlpha(settlement.active ? 1 : 0.48);
   container.setDepth(20 + y / Math.max(1, tileSize));
-  return container;
+  return {
+    container,
+    settlementId: settlement.id,
+    active: settlement.active,
+    tier,
+    bannerMotion,
+    smokeMotion
+  };
+}
+
+function updateSettlementAmbient(visual, now) {
+  if (!visual.active) return;
+  const pose = settlementAmbientPose({ nowMs: now, settlementId: visual.settlementId, tier: visual.tier, active: true });
+
+  if (visual.bannerMotion) {
+    for (const tracked of visual.bannerMotion.cloth) {
+      tracked.node.setAngle(tracked.baseAngle + pose.flagAngle);
+      tracked.node.y = tracked.baseY + pose.flagLift;
+      tracked.node.scaleX = tracked.baseScaleX * pose.flagScaleX;
+      tracked.node.scaleY = tracked.baseScaleY;
+    }
+  }
+
+  if (visual.smokeMotion) {
+    for (let index = 0; index < visual.smokeMotion.puffs.length; index += 1) {
+      const tracked = visual.smokeMotion.puffs[index];
+      const puff = pose.smoke[index];
+      if (!puff) {
+        tracked.node.setAlpha(0);
+        continue;
+      }
+      tracked.node.x = tracked.baseX + puff.x;
+      tracked.node.y = tracked.baseY + puff.y;
+      tracked.node.setAlpha(puff.alpha);
+      tracked.node.setScale(tracked.baseScale * puff.scale);
+    }
+  }
 }
 
 function createBanner(scene, settlement, profile, color) {
@@ -146,18 +209,58 @@ function createBanner(scene, settlement, profile, color) {
   const flag = scene.add.rectangle(x + 4.2 * scale, -16, 8.5, 5.2, color, 1).setScale(scale);
   const accent = lighten(color);
   const parts = [pole, flag];
+  const cloth = [flag];
   const style = settlement.polityBannerStyle || 'plain';
-  if (style === 'stripe') parts.push(scene.add.rectangle(x + 4.2 * scale, -16, 8.5, 1.2, accent, 0.92).setScale(scale));
-  else if (style === 'split') parts.push(scene.add.rectangle(x + 6.2 * scale, -16, 4, 5.2, accent, 0.6).setScale(scale));
+  let decoration = null;
+  if (style === 'stripe') decoration = scene.add.rectangle(x + 4.2 * scale, -16, 8.5, 1.2, accent, 0.92).setScale(scale);
+  else if (style === 'split') decoration = scene.add.rectangle(x + 6.2 * scale, -16, 4, 5.2, accent, 0.6).setScale(scale);
   else if (style === 'cross') {
-    parts.push(scene.add.rectangle(x + 4.2 * scale, -16, 1.2, 5.2, accent, 0.9).setScale(scale));
-    parts.push(scene.add.rectangle(x + 4.2 * scale, -16, 8.5, 1.1, accent, 0.9).setScale(scale));
-  } else if (style === 'chevron') {
-    parts.push(scene.add.triangle(x + 2.8 * scale, -16, -2, -2.1, -2, 2.1, 1.7, 0, accent, 0.92).setScale(scale));
-  } else {
-    parts.push(scene.add.rectangle(x + 2.6 * scale, -17, 3, 1.2, accent, 0.72).setScale(scale));
+    const vertical = scene.add.rectangle(x + 4.2 * scale, -16, 1.2, 5.2, accent, 0.9).setScale(scale);
+    const horizontal = scene.add.rectangle(x + 4.2 * scale, -16, 8.5, 1.1, accent, 0.9).setScale(scale);
+    parts.push(vertical, horizontal);
+    cloth.push(vertical, horizontal);
+  } else if (style === 'chevron') decoration = scene.add.triangle(x + 2.8 * scale, -16, -2, -2.1, -2, 2.1, 1.7, 0, accent, 0.92).setScale(scale);
+  else decoration = scene.add.rectangle(x + 2.6 * scale, -17, 3, 1.2, accent, 0.72).setScale(scale);
+  if (decoration) {
+    parts.push(decoration);
+    cloth.push(decoration);
   }
-  return parts;
+
+  return {
+    parts,
+    motion: {
+      cloth: cloth.map((node) => ({
+        node,
+        baseY: node.y,
+        baseAngle: node.angle,
+        baseScaleX: node.scaleX,
+        baseScaleY: node.scaleY
+      }))
+    }
+  };
+}
+
+function createHearthAmbience(scene, profile) {
+  const source = profile.hall
+    ? { x: 4, y: -12 }
+    : { x: profile.houseOffsets[0][0] + 3, y: profile.houseOffsets[0][1] - 8 };
+  const chimney = scene.add.rectangle(source.x, source.y + 2.5, 2.2, 5.2, 0x4d4036, 0.9);
+  const puffs = [
+    scene.add.circle(source.x, source.y, 1.8, 0xcbd4d0, 0),
+    scene.add.circle(source.x, source.y, 2.1, 0xc1ccc9, 0),
+    scene.add.circle(source.x, source.y, 2.4, 0xb7c5c2, 0)
+  ];
+  return {
+    parts: [chimney, ...puffs],
+    motion: {
+      puffs: puffs.map((node, index) => ({
+        node,
+        baseX: source.x,
+        baseY: source.y,
+        baseScale: 0.86 + index * 0.08
+      }))
+    }
+  };
 }
 
 function createHouse(scene, dx, dy, active, polityColorValue, index) {
