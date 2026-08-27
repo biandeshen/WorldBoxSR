@@ -48,8 +48,16 @@ function attachWhenReady() {
 
   attemptStartupRestore(scene, state);
   renderPersistenceState(scene, state);
-  window.setTimeout(() => renderPersistenceState(scene, state), 120);
+  renderWhenWorldReady(scene, state);
   state.timer = window.setInterval(() => saveCurrentWorld(scene, state, { announce: false }), AUTOSAVE_INTERVAL_MS);
+}
+
+function renderWhenWorldReady(scene, state) {
+  if (!scene.booting) {
+    renderPersistenceState(scene, state);
+    return;
+  }
+  window.setTimeout(() => renderWhenWorldReady(scene, state), 120);
 }
 
 function guardStaleShowcaseWarmup(scene) {
