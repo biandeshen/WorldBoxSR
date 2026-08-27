@@ -52,6 +52,7 @@ try {
   await cdp.send('Page.reload', { ignoreCache: true });
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.touchInspect?.attached === true`, 8_000);
+  await waitForExpression(cdp, `document.querySelector('#accessibility-preferences-status')?.textContent !== 'Loading preferences…'`, 8_000);
 
   const mobileHud = await mobileHudSnapshot(cdp);
   if (mobileHud.documentScrollWidth > mobileHud.viewportWidth + 0.5) {
@@ -86,6 +87,43 @@ try {
     return pause.dataset.active === 'true';
   })()`);
   if (!paused) throw new Error('touch evidence could not pause the world');
+
+  const accessibility = await evaluate(cdp, `(() => {
+    const panel = document.querySelector('#accessibility-preferences');
+    const reduce = document.querySelector('#accessibility-reduce-motion');
+    const mute = document.querySelector('#accessibility-mute-sound');
+    if (!panel || !reduce || !mute) throw new Error('accessibility controls unavailable');
+    panel.open = true;
+    globalThis.__WORLDBOXSR_AUDIO_CONTEXT_PROBE_COUNT__ = 0;
+    globalThis.AudioContext = class ProbeAudioContext {
+      constructor() {
+        globalThis.__WORLDBOXSR_AUDIO_CONTEXT_PROBE_COUNT__ += 1;
+        throw new Error('AudioContext probe should not be constructed while muted');
+      }
+    };
+    reduce.checked = true;
+    reduce.dispatchEvent(new Event('change', { bubbles: true }));
+    mute.checked = true;
+    mute.dispatchEvent(new Event('change', { bubbles: true }));
+    const raw = localStorage.getItem('worldboxsr:accessibility:v1');
+    return {
+      panelOpen: panel.open,
+      reduceChecked: reduce.checked,
+      muteChecked: mute.checked,
+      status: document.querySelector('#accessibility-preferences-status')?.textContent ?? '',
+      stored: raw ? JSON.parse(raw) : null,
+      audioContextConstructions: globalThis.__WORLDBOXSR_AUDIO_CONTEXT_PROBE_COUNT__
+    };
+  })()`);
+  if (!accessibility.panelOpen || !accessibility.reduceChecked || !accessibility.muteChecked) {
+    throw new Error(`accessibility controls did not accept local overrides: ${JSON.stringify(accessibility)}`);
+  }
+  if (accessibility.stored?.formatVersion !== 1 || accessibility.stored.reduceMotion !== true || accessibility.stored.muteSound !== true) {
+    throw new Error(`accessibility preferences did not persist exact narrow state: ${JSON.stringify(accessibility.stored)}`);
+  }
+  if (!/reduced motion on/.test(accessibility.status) || !/sound muted/.test(accessibility.status)) {
+    throw new Error(`accessibility status did not reflect effective preferences: ${accessibility.status}`);
+  }
 
   const targetPoint = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
@@ -126,6 +164,10 @@ try {
   if (afterTap.nextCommandId !== before.nextCommandId + 1) {
     throw new Error(`short touch tap did not execute exactly one command: ${before.nextCommandId} -> ${afterTap.nextCommandId}`);
   }
+  const mutedAudioConstructions = await evaluate(cdp, `globalThis.__WORLDBOXSR_AUDIO_CONTEXT_PROBE_COUNT__ ?? -1`);
+  if (mutedAudioConstructions !== 0) {
+    throw new Error(`muted God Power constructed AudioContext ${mutedAudioConstructions} time(s)`);
+  }
 
   await touchStart(cdp, targetPoint.screenX, targetPoint.screenY);
   await delay(620);
@@ -149,10 +191,35 @@ try {
     throw new Error(`long touch release consumed a command id: ${afterTap.nextCommandId} -> ${afterHold.nextCommandId}`);
   }
 
+  const restoredAccessibility = await evaluate(cdp, `(() => {
+    const panel = document.querySelector('#accessibility-preferences');
+    const reduce = document.querySelector('#accessibility-reduce-motion');
+    const mute = document.querySelector('#accessibility-mute-sound');
+    reduce.checked = false;
+    reduce.dispatchEvent(new Event('change', { bubbles: true }));
+    mute.checked = false;
+    mute.dispatchEvent(new Event('change', { bubbles: true }));
+    panel.open = false;
+    const raw = localStorage.getItem('worldboxsr:accessibility:v1');
+    return raw ? JSON.parse(raw) : null;
+  })()`);
+  if (restoredAccessibility?.reduceMotion !== false || restoredAccessibility?.muteSound !== false) {
+    throw new Error(`accessibility defaults were not restored for the reusable profile: ${JSON.stringify(restoredAccessibility)}`);
+  }
+
   await captureScreenshot(cdp, join(outDir, 'touch-long-press-inspect-430x820.png'));
-  writeFileSync(join(outDir, 'touch-inspect-evidence.json'), `${JSON.stringify({ mobileHud, target: targetPoint, before, afterTap, duringHold, afterHold }, null, 2)}\n`);
+  writeFileSync(join(outDir, 'touch-inspect-evidence.json'), `${JSON.stringify({
+    mobileHud,
+    accessibility: { ...accessibility, mutedAudioConstructions, restored: restoredAccessibility },
+    target: targetPoint,
+    before,
+    afterTap,
+    duringHold,
+    afterHold
+  }, null, 2)}\n`);
   console.log(
     `Touch/mobile HUD evidence: topbar ${mobileHud.topbar.width.toFixed(1)}px in ${mobileHud.viewportWidth}px; `
+    + `accessibility persisted + muted audio constructions ${mutedAudioConstructions}; `
     + `${targetPoint.x},${targetPoint.y}; short tap +1 human; hold command ${afterHold.nextCommandId} unchanged`
   );
 } finally {
