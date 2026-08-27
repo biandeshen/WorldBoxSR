@@ -42,6 +42,7 @@ try {
     panel.open = true;
     return true;
   })()`);
+  await waitForExpression(cdp, `document.querySelector('#session-save-now')?.disabled === false`, 8_000);
 
   await clickSelector(cdp, '#session-save-now');
   await waitForExpression(cdp, `localStorage.getItem(${JSON.stringify(LOCAL_SAVE_KEY)}) !== null`, 5_000);
