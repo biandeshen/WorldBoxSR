@@ -17,13 +17,13 @@ Deterministic simulation is a strategic asset, not a substitute for visible game
 - [Benchmark and competitor research](docs/product/benchmark-research.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Release candidate: v0.8.0 — Ruling Lines & Succession
+## Current shipped release: v0.8.0 — Ruling Lines & Succession
 
 v0.8 turns existing ruler/genealogy facts into one bounded, deterministic political-history loop:
 
 > **Watch a ruling bloodline inherit power, see when descent fails and a new ruling line begins, then follow those transitions through Inspector + World Stories.**
 
-Release-candidate scope:
+Shipped scope:
 - pure RNG-neutral descendant resolver over explicit parent/child records;
 - descendant-first polity succession with the existing oldest-adult open-selection fallback preserved;
 - minimal persistent ruling-line identity and deterministic snapshot-v16 migration;
@@ -31,14 +31,14 @@ Release-candidate scope:
 - factual descendant-continuation vs new-line wording in existing Event Cards / Rule Chronicle lens;
 - one canonical release gate proving duplicate/save-load exactness and read-only presentation.
 
-Implementation behavior is frozen at `1556a8a8e1e058db54a1ac93a2eed1a69020c191`.
-
-Merged-main delivery is green:
-- CI #863 — 396/396 tests + smoke + Pages build/check;
-- Pages #65 — deployed and verified public `/play/`;
-- full visual-qa #356 — all prior browser regressions plus v0.8 canonical Ruling Lines evidence.
-
-Publication is still pending until this release candidate is merged, immutable annotated tag `v0.8.0` + GitHub Release are created, and the release commit passes CI, Pages and full Chromium.
+Immutable release identity:
+- implementation freeze `1556a8a8e1e058db54a1ac93a2eed1a69020c191`;
+- release commit `0233cd6923717c3d277d6a35f2e6460e43814d60`;
+- annotated tag `v0.8.0` / tag object `04f5ea6b489ca37ff53fa444c8dce9461e5949c5` → exact release commit;
+- release workflow #12 green;
+- release-commit CI #865 green;
+- Pages #66 green with final public `/play/` verification;
+- full visual-qa #358 green.
 
 - [v0.8 canonical browser demo / QA](docs/demos/v0.8.0.md)
 - [v0.8.0 release notes](docs/releases/v0.8.0.md)
@@ -48,7 +48,7 @@ Publication is still pending until this release candidate is merged, immutable a
 
 A **ruling line** is political identity derived from explicit parent→child descent. It is not a marriage system, noble house, legitimacy/claim model, primogeniture rule, election system or inferred political motive. Existing `parental_union` and maternal `lineage` keep their prior meanings.
 
-## Current shipped release: v0.7.0 — Scenario Builder & Sharing
+## Previous shipped release: v0.7.0 — Scenario Builder & Sharing
 
 v0.7 ships the deterministic creation loop:
 

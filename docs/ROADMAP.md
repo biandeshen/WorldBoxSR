@@ -59,13 +59,13 @@ Immutable release identity:
 ---
 
 ## v0.8.0 — Ruling Lines & Succession
-**Status: release candidate / publication pending.** Release gate #255; release handoff #267.
+**Status: shipped.**
 
 Primary fantasy:
 
 > **I can watch a ruling bloodline inherit power across generations, see when that bloodline loses the throne, and follow the new ruling line in the same causal world history.**
 
-### Frozen shipped behavior
+### Shipped behavior
 
 1. **Genealogical resolver** — pure explicit parent→child descendant graph; cycle-safe; no mutation/RNG; deterministic nearest-generation → age → stable-ID ranking.
 2. **Authoritative succession** — descendant-first continuation of the current ruling-line founder; existing oldest-adult open-selection fallback starts a new line when no eligible descendant exists; snapshot v16 migration.
@@ -73,14 +73,14 @@ Primary fantasy:
 4. **Dynastic World Stories** — recorded descendant continuation vs new-line fallback rendered through existing Event Card / Rule lens / event-map references.
 5. **Canonical Ruling Lines gate** — duplicate + save/load exactness plus production Chromium read-only Inspector/story evidence, while v0.4–v0.7 browser regressions stay green.
 
-Implementation freeze: `1556a8a8e1e058db54a1ac93a2eed1a69020c191`.
-
-Frozen merged-main delivery:
-- CI #863 green (396/396 + smoke + Pages build/check);
-- Pages #65/public `/play/` green;
-- full visual-qa #356 green.
-
-Release-only next step: merge the exact seven-file #267 candidate, create immutable annotated `v0.8.0` tag + GitHub Release through the existing workflow, then verify release-commit CI/Pages/full Chromium.
+Immutable release identity:
+- implementation freeze `1556a8a8e1e058db54a1ac93a2eed1a69020c191`;
+- release commit `0233cd6923717c3d277d6a35f2e6460e43814d60`;
+- annotated tag `v0.8.0` / tag object `04f5ea6b489ca37ff53fa444c8dce9461e5949c5` → exact release commit;
+- GitHub Release `WorldBoxSR v0.8.0` published by release workflow #12;
+- release-commit CI #865 green;
+- Pages #66/public `/play/` green;
+- full visual-qa #358 green.
 
 ### Semantic boundary
 
@@ -132,8 +132,8 @@ A stable product/compatibility contract: reproducible worlds, dependable browser
 
 ## Current decision
 
-1. publish v0.8.0 from the frozen implementation without behavior changes;
-2. close #255/#267 only after immutable tag/release + release-commit delivery proof;
-3. then open a bounded v0.9 visual/world-feel planning gate;
+1. v0.8.0 is shipped and immutable; do not move its tag or reopen behavior under that version;
+2. open a bounded v0.9 World Feel/Public Alpha planning gate;
+3. first implementation target should be a visibly larger, denser world surface rather than another hidden simulation subsystem;
 4. do not start economy/religion/technology/naval breadth in parallel merely to increase feature-count optics;
 5. judge the next checkpoint first by what a player can **see and feel in the public demo**.
