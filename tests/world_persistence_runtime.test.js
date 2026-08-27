@@ -22,10 +22,22 @@ test('restoring a local world invalidates stale generation, installs paused and 
   assert.match(source, /local world restored · paused/);
 });
 
+test('page-hide final flush cannot create the first local checkpoint on a short visit', () => {
+  const source = readFileSync(runtimePath, 'utf8');
+  assert.match(source, /armed: false/, 'fresh visit must begin unarmed');
+  assert.match(source, /addEventListener\?\.\('pagehide', \(\) => flushArmedWorld\(scene, state\)\)/);
+  assert.match(source, /visibilityState === 'hidden'\) flushArmedWorld\(scene, state\)/);
+  assert.match(source, /function flushArmedWorld\(scene, state\)/);
+  assert.match(source, /if \(!state\.armed\) return false/, 'page-hide must be a final flush only after a checkpoint exists');
+  assert.match(source, /state\.armed = true/, 'periodic/manual save or restore must arm future final flushes');
+  assert.match(source, /state\.armed = false/, 'clearing the slot must disarm page-hide creation again');
+});
+
 test('ordinary autosave covers periodic and page-hide lifecycle without topbar expansion', () => {
   const source = readFileSync(runtimePath, 'utf8');
   const index = readFileSync(indexPath, 'utf8');
   assert.match(source, /AUTOSAVE_INTERVAL_MS = 30_000/);
+  assert.match(source, /window\.setInterval\(\(\) => saveCurrentWorld\(scene, state, \{ announce: false \}\), AUTOSAVE_INTERVAL_MS\)/);
   assert.match(source, /addEventListener\?\.\('pagehide'/);
   assert.match(source, /visibilityState === 'hidden'/);
   assert.match(index, /<details id="session-persistence">/);
