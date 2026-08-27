@@ -2,22 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { populationTier, settlementVisualProfile } from '../client/presentation/settlement_visual_profile.js';
 
-test('population thresholds map to four existing settlement visual tiers', () => {
+test('current-scale population bands map to four settlement visual tiers', () => {
   assert.equal(populationTier(0), 1);
-  assert.equal(populationTier(9), 1);
-  assert.equal(populationTier(10), 2);
-  assert.equal(populationTier(24), 2);
-  assert.equal(populationTier(25), 3);
-  assert.equal(populationTier(44), 3);
-  assert.equal(populationTier(45), 4);
+  assert.equal(populationTier(4), 1);
+  assert.equal(populationTier(5), 2);
+  assert.equal(populationTier(9), 2);
+  assert.equal(populationTier(10), 3);
+  assert.equal(populationTier(19), 3);
+  assert.equal(populationTier(20), 4);
   assert.equal(populationTier(120), 4);
 });
 
 test('settlement growth materially expands footprint and building density', () => {
-  const hamlet = settlementVisualProfile(6);
-  const village = settlementVisualProfile(16);
-  const town = settlementVisualProfile(32);
-  const city = settlementVisualProfile(60);
+  const hamlet = settlementVisualProfile(2);
+  const village = settlementVisualProfile(6);
+  const town = settlementVisualProfile(12);
+  const city = settlementVisualProfile(24);
 
   assert.deepEqual([hamlet.label, village.label, town.label, city.label], ['hamlet', 'village', 'town', 'city']);
   assert.deepEqual(
@@ -40,8 +40,8 @@ test('settlement growth materially expands footprint and building density', () =
 });
 
 test('capital emphasis is presentation-only and does not change population tier', () => {
-  const member = settlementVisualProfile(16);
-  const capital = settlementVisualProfile(16, { isCapital: true });
+  const member = settlementVisualProfile(6);
+  const capital = settlementVisualProfile(6, { isCapital: true });
 
   assert.equal(member.tier, capital.tier);
   assert.equal(member.groundWidth, capital.groundWidth);
@@ -55,11 +55,11 @@ test('capital emphasis is presentation-only and does not change population tier'
 });
 
 test('returned placement arrays are independent copies', () => {
-  const first = settlementVisualProfile(60);
+  const first = settlementVisualProfile(24);
   first.houseOffsets[0][0] = 999;
   first.farmOffsets.push([999, 999]);
 
-  const second = settlementVisualProfile(60);
+  const second = settlementVisualProfile(24);
   assert.notEqual(second.houseOffsets[0][0], 999);
   assert.equal(second.farmOffsets.some(([x, y]) => x === 999 && y === 999), false);
 });
