@@ -25,8 +25,10 @@ function attachWhenReady() {
     startX: 0,
     startY: 0,
     startedAt: 0,
-    timer: null
+    timer: null,
+    cancel: null
   };
+  state.cancel = () => cancelTouchHold(state);
   scene.touchInspect = state;
 
   scene.input.on('pointerdown', (pointer) => beginTouchHold(scene, state, pointer));
@@ -87,10 +89,6 @@ function commitTouchInspect(scene, state) {
   const tile = scene.pointerTile(pointer);
   if (!tile) return cancelTouchHold(state);
 
-  // The authoritative Scene pointerup handler only uses a tool when its drag
-  // object survives and was not moved. Clearing that existing presentation
-  // gesture state means this long-press ends as inspection without adding a
-  // second tool/command path or wrapping Scenario's useTool delegation.
   scene.drag = null;
   scene.inspectTile(tile.x, tile.y);
   scene.showToast?.(`Inspect · ${tile.x},${tile.y}`);
