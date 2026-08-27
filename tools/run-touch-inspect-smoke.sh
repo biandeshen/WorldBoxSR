@@ -14,6 +14,8 @@ if [[ -z "$browser" ]]; then echo "Touch QA requires Chrome/Chromium on PATH" >&
 
 mkdir -p "$out_dir"
 rm -f "$log_file"
+node --check tools/capture-touch-inspect-evidence.mjs
+node --check tools/capture-pinch-zoom-evidence.mjs
 if [[ ! -d dist ]]; then npm run pages:build; fi
 npx vite preview --host 127.0.0.1 --port "$port" --strictPort >"$log_file" 2>&1 &
 preview_pid=$!
