@@ -18,44 +18,42 @@ Deterministic simulation is a strategic asset, not a substitute for visible game
 - [Certified runtime & support](docs/SUPPORT.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Release candidate: v1.0.0 — Stable Sandbox Identity
+## Current shipped release: v1.0.0 — Stable Sandbox Identity
 
-v1.0 does not add a new breadth-mechanics framework. It freezes a dependable product contract around the sandbox built through v0.1–v0.9:
+v1.0 freezes a dependable product contract around the sandbox built through v0.1–v0.9:
 
 > **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported public surfaces, and coherent creation/intervention/civilization/ecology/story workflows.**
 
-Release-candidate scope:
+Shipped contract:
 - engine snapshot compatibility baseline v10–v16, current schema v16;
 - ordinary local-save envelope v1 across supported historical engine snapshots;
-- Scenario Recipe v1 frozen as the separate canonical Scenario identity;
+- Scenario Recipe v1 as the separate canonical Scenario identity;
 - certified Chrome/Chromium-class Phaser surfaces at 1440×900 desktop and 430×820 coarse touch;
-- Legacy Canvas as explicit ordinary-world compatibility fallback;
-- focused support contract bound to the actual browser/recovery/build evidence sources;
-- one final cross-system production gate composing causal World Stories, exact ordinary Save/Restore and canonical Scenario share/Run/Replay/Fork;
-- immediate manual `Save now` readiness after initial world warmup, fixing a real integration defect found by the final gate.
+- Legacy Canvas ordinary-world compatibility fallback with explicit limitations;
+- structural ≤300,000 B Phaser app-chunk contract;
+- one final production gate composing causal World Stories, exact ordinary Save/Restore and canonical Scenario share/Run/Replay/Fork;
+- immediate manual `Save now` readiness after initial world warmup, fixing the integration defect found by the final gate.
 
-Implementation behavior is frozen at:
-`efecf1e91ac88177ce82917c1312577927e26af6`
-
-Exact freeze delivery is green:
-- CI #946;
-- Pages #95 including final public `/play/` verification;
-- full historical visual-qa #434;
-- full artifact contains `stable-sandbox-evidence.json` with `stableSandboxGateComplete: true`.
-
-Publication is still pending until this release candidate is merged, immutable annotated tag `v1.0.0` + GitHub Release are created, and the release commit passes CI, Pages and full historical Chromium again.
+Immutable release identity:
+- implementation freeze `efecf1e91ac88177ce82917c1312577927e26af6`;
+- release commit `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
+- annotated tag `v1.0.0` / tag object `75e89c559e91cb0128fb35a79bd32c6fa84f02cf` → exact release commit;
+- GitHub Release `WorldBoxSR v1.0.0` published by release workflow #14;
+- release-commit CI #948 green;
+- Pages #96 green including final public `/play/` verification;
+- full historical visual-qa #436 green, including mobile touch/pinch, renderer recovery and stable-sandbox composition;
+- release artifact records `stableSandboxGateComplete: true`.
 
 - [v1.0 canonical stable-sandbox QA](docs/demos/v1.0.0.md)
 - [v1.0.0 release notes](docs/releases/v1.0.0.md)
-- [v1.0 finite backlog](docs/backlog/v1.0.md)
+- [v1.0 finite backlog / publication audit](docs/backlog/v1.0.md)
 - [Certified runtime & support](docs/SUPPORT.md)
 
-## Current shipped release: v0.9.0 — World Feel & Public Alpha Polish
+## Previous shipped release: v0.9.0 — World Feel & Public Alpha Polish
 
-v0.9 is the shipped world-first/public-alpha foundation underneath v1.0: larger world surface, clearer settlement/territory/civilization presentation, movement/ambient life, mobile touch, local ordinary-world persistence, renderer recovery, accessibility and faster validation boundaries.
+v0.9 is the world-first/public-alpha foundation underneath v1.0: larger world surface, clearer settlement/territory/civilization presentation, movement/ambient life, mobile touch, local ordinary-world persistence, renderer recovery and accessibility.
 
 Immutable v0.9 identity:
-- implementation freeze `d167caa1ac5af3ef9214546693e34f255cdca687`;
 - release commit `6901923ac1a059599a3ce701fa5060054cffd15d`;
 - annotated tag object `6992bba5f45366fa7d3832a981cb590cf5090554` → exact release commit;
 - release workflow #13, CI #929, Pages #88/public `/play/`, full visual-qa #422 green.
@@ -64,9 +62,9 @@ Immutable v0.9 identity:
 
 v0.8 Ruling Lines & Succession, v0.7 Scenario Builder, v0.6 Living Ecology, v0.5 World Stories, v0.4 God Power Sandbox and v0.3 Civilizations Rise remain full release regressions.
 
-## Public support boundary
+## Certified support boundary
 
-Certified v1.0 surfaces are deliberately narrow and evidence-backed:
+Certified:
 - Chrome/Chromium-class production Phaser at 1440×900 desktop;
 - Chrome/Chromium-class production Phaser at 430×820 coarse touch;
 - Legacy Canvas ordinary-world compatibility fallback.
@@ -91,7 +89,7 @@ npm run pages:build
 npm run pages:check
 ```
 
-For real-browser evidence:
+For full real-browser evidence:
 
 ```bash
 bash tools/capture-visual-evidence.sh
