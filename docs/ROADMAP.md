@@ -72,7 +72,7 @@ Immutable release identity:
 ---
 
 ## v0.9.0 — World Feel & Public Alpha Polish
-**Status: release candidate / publication pending.** Release handoff #310; parent #269.
+**Status: shipped.**
 
 Primary promise:
 
@@ -80,7 +80,7 @@ Primary promise:
 
 v0.9 is intentionally a world-feel / presentation / public-alpha reliability stage rather than a new hidden simulation-depth subsystem.
 
-### Delivered implementation
+### Shipped implementation
 
 1. **World-first viewport** — desktop camera uses the full render surface beneath floating HUD chrome; canonical 1440×900 world grows from roughly 718×718 to 864×864 while compact/mobile composition remains bounded.
 2. **Visual hierarchy** — population-scaled settlement footprints, stronger capital emphasis and clearer authoritative polity borders.
@@ -92,16 +92,17 @@ v0.9 is intentionally a world-feel / presentation / public-alpha reliability sta
 8. **Recovery/accessibility** — explicit renderer failure recovery actions plus local Reduce Motion and Mute preferences that never alter world authority.
 9. **Performance/throughput** — stable Phaser vendor chunk, checked <300 KB minified app-chunk budget, fast PR Chromium smoke while `main` retains the full historical denominator.
 
-### Implementation freeze
+### Immutable release identity
 
-`d167caa1ac5af3ef9214546693e34f255cdca687`
+- implementation freeze `d167caa1ac5af3ef9214546693e34f255cdca687`;
+- release commit `6901923ac1a059599a3ce701fa5060054cffd15d`;
+- annotated tag `v0.9.0` / tag object `6992bba5f45366fa7d3832a981cb590cf5090554` → exact release commit;
+- GitHub Release `WorldBoxSR v0.9.0` published by release workflow #13;
+- release-commit CI #929 green;
+- Pages #88/public `/play/` green;
+- full visual-qa #422 green, including v0.4–v0.8 history plus v0.9 mobile touch/pinch and renderer recovery.
 
-Freeze-commit evidence:
-- CI #927 green;
-- Pages #87/public `/play/` green;
-- full visual-qa #420 green, including v0.4–v0.8 history plus v0.9 mobile touch/pinch and renderer recovery.
-
-No v0.9 behavior changes are allowed during release packaging.
+The v0.9 implementation and release identities are immutable. Later docs cleanup must not move the tag.
 
 ### Authority boundary
 
@@ -111,13 +112,11 @@ v0.9 does not intentionally change authoritative simulation rules or the engine 
 
 No economy/trade/storage/currency, religion/culture/technology, new diplomacy/war-resolution rules, new conquest/destruction/rebuilding/loyalty mechanics, boats/naval warfare, cloud saves, multiple local save slots, or a second mobile renderer/camera authority.
 
-Release-only next step: merge the exact seven-file v0.9.0 candidate, let the existing release workflow create immutable `v0.9.0`, then verify release-commit CI, Pages/public `/play/` and full historical Chromium.
-
 ---
 
 ## v1.0 — Stable sandbox identity
 
-**Status: planning only after v0.9 immutable publication.**
+**Status: next bounded planning stage.**
 
 The next stage should stabilize the product/compatibility contract rather than immediately start another breadth sprint.
 
@@ -125,7 +124,7 @@ Primary target:
 
 > **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported performance, and coherent creation/intervention/civilization/ecology/story workflows.**
 
-Planning after v0.9 publication should bound:
+Planning should bound:
 - supported save/version compatibility and migration policy;
 - supported browser/device/performance envelope;
 - public-alpha onboarding and error/recovery contract;
@@ -136,8 +135,8 @@ Do not start economy/religion/technology/naval breadth merely to make a v1.0 fea
 
 ## Current decision
 
-1. keep v0.9 implementation frozen at `d167caa1...`;
-2. publish v0.9.0 through release-only #310 with no behavior changes;
-3. verify immutable tag/release plus release-commit CI/Pages/full Chromium;
-4. close #310/#269 only after publication proof;
-5. only then open bounded v1.0 planning.
+1. v0.9.0 is shipped and immutable; do not move its tag or reopen behavior under that version;
+2. close #310 and #269 with the immutable release evidence;
+3. open one bounded v1.0 Stable Sandbox Identity planning gate;
+4. prioritize compatibility, reliability and cross-system coherence before feature breadth;
+5. keep the public `/play/` demo as the product truth surface.

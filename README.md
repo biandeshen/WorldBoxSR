@@ -17,13 +17,13 @@ Deterministic simulation is a strategic asset, not a substitute for visible game
 - [Benchmark and competitor research](docs/product/benchmark-research.md)
 - [Release roadmap](docs/ROADMAP.md)
 
-## Release candidate: v0.9.0 — World Feel & Public Alpha Polish
+## Current shipped release: v0.9.0 — World Feel & Public Alpha Polish
 
 v0.9 is a deliberate world-first pass over the already-deep deterministic sandbox:
 
 > **Opening WorldBoxSR feels like looking at a living god-game world first: larger, more readable, visibly changing, recoverable, and usable across desktop and touch.**
 
-Release-candidate scope:
+Shipped scope:
 - full desktop world surface beneath floating HUD chrome, with much less dead screen space;
 - population-scaled settlement footprints and stronger polity borders;
 - movement-driven Human/Grazer/Wolf gait plus subtle inhabited-settlement ambience;
@@ -36,14 +36,14 @@ Release-candidate scope:
 - isolated Phaser vendor chunk and a checked <300 KB minified app-chunk budget;
 - faster PR browser smoke while `main` retains the full historical browser denominator.
 
-Implementation behavior is frozen at `d167caa1ac5af3ef9214546693e34f255cdca687`.
-
-Freeze-commit delivery is green:
-- CI #927;
-- Pages #87 including final public `/play/` verification;
-- full visual-qa #420, including v0.4–v0.8 regressions plus current mobile touch/pinch and renderer-recovery checks.
-
-Publication is still pending until this release candidate merges, immutable annotated tag `v0.9.0` + GitHub Release are created, and the release commit passes CI, Pages and full Chromium.
+Immutable release identity:
+- implementation freeze `d167caa1ac5af3ef9214546693e34f255cdca687`;
+- release commit `6901923ac1a059599a3ce701fa5060054cffd15d`;
+- annotated tag `v0.9.0` / tag object `6992bba5f45366fa7d3832a981cb590cf5090554` → exact release commit;
+- GitHub Release `WorldBoxSR v0.9.0` published by release workflow #13;
+- release-commit CI #929 green;
+- Pages #88 green with final public `/play/` verification;
+- full visual-qa #422 green, including historical v0.4–v0.8 regressions plus current mobile touch/pinch and renderer recovery.
 
 - [v0.9 canonical browser demo / QA](docs/demos/v0.9.0.md)
 - [v0.9.0 release notes](docs/releases/v0.9.0.md)
@@ -53,7 +53,7 @@ Publication is still pending until this release candidate merges, immutable anno
 
 v0.9 is primarily presentation, input, accessibility and reliability work. It does not intentionally change the authoritative simulation rules or engine snapshot schema from v0.8. Local ordinary-world persistence stores the existing `snapshotWorld(world)` result; Scenario Recipe / Replay / Fork remain the separate Scenario identity path.
 
-## Current shipped release: v0.8.0 — Ruling Lines & Succession
+## Previous shipped release: v0.8.0 — Ruling Lines & Succession
 
 v0.8 ships deterministic descendant-first ruling-line succession, compact ruling-line Inspector context, truthful Dynastic World Stories and one canonical exactness gate.
 
@@ -67,9 +67,15 @@ Immutable release identity:
 
 v0.7 Scenario Builder, v0.6 Living Ecology, v0.5 World Stories, v0.4 God Power Sandbox and v0.3 Civilizations Rise remain full release regressions.
 
-## Next stage after v0.9 publication: v1.0 — Stable sandbox identity
+## Next stage: v1.0 — Stable sandbox identity
 
-No v1.0 implementation is included in this release candidate. After immutable v0.9 publication, planning should focus on the stable product/compatibility contract: dependable browser play, reproducible worlds, supported performance, save/version policy, creation/intervention + civilizations + stories + ecology + Scenario workflows operating together as one credible sandbox.
+v1.0 should stabilize the product/compatibility contract rather than immediately start another breadth sprint.
+
+Primary direction:
+
+> **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported performance, and coherent creation/intervention/civilization/ecology/story workflows.**
+
+Planning should bound save/version compatibility, supported browser/device/performance targets, onboarding/recovery expectations, extension/content contracts and cross-system release standards before adding economy/religion/technology/naval breadth.
 
 ## Public playable demo
 
