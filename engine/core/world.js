@@ -17,7 +17,7 @@ import { updatePolityRelations } from '../systems/polity_relations.js';
 import { updateWarbands } from '../systems/warbands.js';
 
 export const SNAPSHOT_VERSION = 16;
-const LEGACY_SNAPSHOT_VERSIONS = new Set([10, 11, 12, 13, 14, 15]);
+export const SUPPORTED_SNAPSHOT_VERSIONS = Object.freeze([10, 11, 12, 13, 14, 15, 16]);
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -168,7 +168,7 @@ export function snapshotWorld(world) {
 
 export function worldFromSnapshot(snapshot) {
   const version = snapshot.snapshotVersion;
-  if (version !== SNAPSHOT_VERSION && !LEGACY_SNAPSHOT_VERSIONS.has(version)) throw new Error(`Unsupported snapshot version: ${version}`);
+  if (!SUPPORTED_SNAPSHOT_VERSIONS.includes(version)) throw new Error(`Unsupported snapshot version: ${version}`);
   const migratingPreV11 = version === 10;
   const migratingPreV12 = version === 10 || version === 11;
   const migratingPreV13 = version === 10 || version === 11 || version === 12;
