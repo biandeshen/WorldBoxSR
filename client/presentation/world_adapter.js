@@ -180,6 +180,8 @@ export function worldView(world) {
     grazers: creatures.filter((creature) => creature.species === 'grazer'),
     settlements: world.settlements.map((settlement) => {
       const polity = Number.isInteger(settlement.polityId) ? polityById.get(settlement.polityId) : null;
+      const previousPolity = Number.isInteger(settlement.previousPolityId) ? polityById.get(settlement.previousPolityId) : null;
+      const rebelFromPolity = Number.isInteger(settlement.lastRebelledFromPolityId) ? polityById.get(settlement.lastRebelledFromPolityId) : null;
       const relation = polity ? relevantRelation(relations, polity.id) : null;
       const counterpartId = relation ? (relation.polityAId === polity.id ? relation.polityBId : relation.polityAId) : null;
       const counterpart = Number.isInteger(counterpartId) ? polityById.get(counterpartId) : null;
@@ -189,7 +191,20 @@ export function worldView(world) {
         polityId: polity?.id ?? null, polityName: polity?.name ?? null, polityColorIndex: polity?.colorIndex ?? null, polityBannerStyle: polity?.bannerStyle ?? null,
         rulerId: polity?.rulerId ?? null, isCapital: polity?.capitalSettlementId === settlement.id,
         relationStance: relation?.stance ?? null, relationScore: relation?.score ?? null, relationCounterpartId: counterpartId, relationCounterpartName: counterpart?.name ?? null,
-        atWar: relation?.atWar ?? false
+        atWar: relation?.atWar ?? false,
+        conquestCount: settlement.conquestCount ?? 0,
+        previousPolityId: Number.isInteger(settlement.previousPolityId) ? settlement.previousPolityId : null,
+        previousPolityName: previousPolity?.name ?? null,
+        previousPolityColorIndex: previousPolity?.colorIndex ?? null,
+        lastConqueredDay: Number.isInteger(settlement.lastConqueredDay) ? settlement.lastConqueredDay : null,
+        lastConqueredByPolityId: Number.isInteger(settlement.lastConqueredByPolityId) ? settlement.lastConqueredByPolityId : null,
+        occupationStartedDay: Number.isInteger(settlement.occupationStartedDay) ? settlement.occupationStartedDay : null,
+        rebellionEligibleDay: Number.isInteger(settlement.rebellionEligibleDay) ? settlement.rebellionEligibleDay : null,
+        rebellionCount: settlement.rebellionCount ?? 0,
+        lastRebelledDay: Number.isInteger(settlement.lastRebelledDay) ? settlement.lastRebelledDay : null,
+        lastRebelledFromPolityId: Number.isInteger(settlement.lastRebelledFromPolityId) ? settlement.lastRebelledFromPolityId : null,
+        lastRebelledFromPolityName: rebelFromPolity?.name ?? null,
+        lastRebelledFromPolityColorIndex: rebelFromPolity?.colorIndex ?? null
       };
     }),
     polities: world.polities.map((polity) => ({ id: polity.id, name: polity.name, capitalSettlementId: polity.capitalSettlementId, settlementIds: [...polity.settlementIds], foundedDay: polity.foundedDay, active: polity.active, dissolvedDay: polity.dissolvedDay, colorIndex: polity.colorIndex, bannerStyle: polity.bannerStyle, rulerId: polity.rulerId ?? null, rulerSinceDay: polity.rulerSinceDay ?? null, rulerSequence: polity.rulerSequence ?? 0 })),
