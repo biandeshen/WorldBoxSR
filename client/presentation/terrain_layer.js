@@ -1,14 +1,19 @@
+import { meteorImpactMemoryProfile } from './meteor_impact_memory.js';
+
 export function createTerrainLayer(scene, view, tileSize) {
   const base = scene.add.graphics().setDepth(0);
   const waterLight = scene.add.graphics().setDepth(1).setAlpha(0.5);
+  const impactMemory = scene.add.graphics().setDepth(2);
   const layer = {
     scene,
     base,
     waterLight,
+    impactMemory,
     destroy() {
       scene.tweens.killTweensOf(waterLight);
       base.destroy();
       waterLight.destroy();
+      impactMemory.destroy();
     }
   };
 
@@ -28,8 +33,10 @@ export function createTerrainLayer(scene, view, tileSize) {
 export function renderTerrain(layer, view, tileSize) {
   const base = layer.base ?? layer;
   const waterLight = layer.waterLight ?? layer;
+  const impactMemory = layer.impactMemory ?? null;
   base.clear();
   if (waterLight !== base) waterLight.clear();
+  impactMemory?.clear();
 
   const tileMap = new Map(view.tiles.map((tile) => [`${tile.x},${tile.y}`, tile]));
 
@@ -51,6 +58,46 @@ export function renderTerrain(layer, view, tileSize) {
 
     base.lineStyle(Math.max(0.5, tileSize * 0.018), 0x081014, tile.biome === 'ocean' ? 0.08 : 0.055);
     base.strokeRect(px, py, tileSize, tileSize);
+  }
+
+  if (impactMemory) drawMeteorImpactMemory(impactMemory, view.recentMeteorSites ?? [], view.daysPerYear, tileSize);
+}
+
+function drawMeteorImpactMemory(graphics, sites, daysPerYear, tileSize) {
+  if (!Array.isArray(sites) || sites.length === 0) return;
+  const scale = Math.max(0.9, tileSize / 28);
+  for (const site of [...sites].reverse()) {
+    const profile = meteorImpactMemoryProfile({ recoveryRatio: site.recoveryRatio, ageDays: site.ageDays, daysPerYear });
+    if (!profile.visible) continue;
+
+    const inset = Math.max(2, tileSize * 0.08);
+    const left = site.minX * tileSize + inset;
+    const top = site.minY * tileSize + inset;
+    const right = (site.maxX + 1) * tileSize - inset;
+    const bottom = (site.maxY + 1) * tileSize - inset;
+    const footprintWidth = Math.max(tileSize, right - left);
+    const footprintHeight = Math.max(tileSize, bottom - top);
+    const corner = Math.min(tileSize * 0.72, Math.min(footprintWidth, footprintHeight) * profile.cornerRatio);
+    const lineWidth = Math.max(1, profile.lineWidth * scale);
+
+    graphics.lineStyle(lineWidth, 0x8d604b, profile.alpha);
+    graphics.lineBetween(left, top, left + corner, top);
+    graphics.lineBetween(left, top, left, top + corner);
+    graphics.lineBetween(right, top, right - corner, top);
+    graphics.lineBetween(right, top, right, top + corner);
+    graphics.lineBetween(left, bottom, left + corner, bottom);
+    graphics.lineBetween(left, bottom, left, bottom - corner);
+    graphics.lineBetween(right, bottom, right - corner, bottom);
+    graphics.lineBetween(right, bottom, right, bottom - corner);
+
+    const centerX = (site.x + 0.5) * tileSize;
+    const centerY = (site.y + 0.5) * tileSize;
+    const centerRadius = Math.max(3.2, tileSize * 0.16);
+    const crossHalf = Math.max(2.2, tileSize * 0.11);
+    graphics.lineStyle(Math.max(1, lineWidth * 0.85), 0xc18c68, profile.centerAlpha);
+    graphics.strokeCircle(centerX, centerY, centerRadius);
+    graphics.lineBetween(centerX - crossHalf, centerY - crossHalf, centerX + crossHalf, centerY + crossHalf);
+    graphics.lineBetween(centerX + crossHalf, centerY - crossHalf, centerX - crossHalf, centerY + crossHalf);
   }
 }
 
