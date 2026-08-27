@@ -1,3 +1,4 @@
+import { entityMotionPose } from './entity_motion.js';
 import { polityColor } from './polity_style.js';
 
 export class EntityLayer {
@@ -61,11 +62,15 @@ function updateCollection(map, now, tileSize) {
     const eased = t * (2 - t);
     const moving = t < 1 && (Math.abs(visual.toX - visual.fromX) > 0.01 || Math.abs(visual.toY - visual.fromY) > 0.01);
     const bob = Math.sin(now * visual.bobSpeed + visual.bobPhase) * (moving ? visual.moveBob : visual.idleBob);
+    const pose = entityMotionPose(visual.motionKind, now, visual.bobPhase, moving);
+
     visual.container.x = lerp(visual.fromX, visual.toX, eased);
     visual.container.y = lerp(visual.fromY, visual.toY, eased) + bob;
     visual.container.scaleX = visual.baseScale * visual.facing;
-    visual.container.scaleY = visual.baseScale;
+    visual.container.scaleY = visual.baseScale * pose.breathScaleY;
     visual.container.setDepth(30 + visual.container.y / Math.max(1, tileSize));
+    applyMotionPose(visual, pose);
+
     if (visual.shadow) {
       visual.shadow.scaleX = 1 + (moving ? Math.abs(Math.sin(now * 0.018 + visual.bobPhase)) * 0.08 : 0);
       visual.shadow.alpha = moving ? 0.22 : 0.28;
@@ -73,11 +78,21 @@ function updateCollection(map, now, tileSize) {
   }
 }
 
+function applyMotionPose(visual, pose) {
+  visual.backArm?.setAngle(pose.backArmAngle);
+  visual.frontArm?.setAngle(pose.frontArmAngle);
+  visual.rearLeg?.setAngle(pose.rearLegAngle);
+  visual.frontLeg?.setAngle(pose.frontLegAngle);
+  if (visual.tail) visual.tail.setAngle((visual.tailBaseAngle ?? 0) + pose.tailAngle);
+  for (const part of visual.headParts ?? []) part.node.y = part.baseY + pose.headOffsetY;
+}
+
 function createHumanVisual(scene, human, x, y, tileSize) {
   const baseScale = Math.max(0.9, tileSize / 24);
   const shadow = scene.add.ellipse(0, 5.7, 9.5, 3.7, 0x061015, 0.28);
   const backArm = scene.add.rectangle(-4.3, -0.5, 2.2, 6.2, 0xe0ad82, 1);
-  const legs = scene.add.rectangle(0, 4, 5, 5.4, 0x26313a, 1);
+  const rearLeg = scene.add.rectangle(-1.6, 4, 2.4, 5.4, 0x202a32, 1);
+  const frontLeg = scene.add.rectangle(1.6, 4, 2.4, 5.4, 0x303b44, 1);
   const tunic = scene.add.rectangle(0, -0.2, 8, 8.7, humanColor(human), 1);
   const tunicLight = scene.add.rectangle(-1.8, -1.4, 2.4, 5.4, lighten(humanColor(human)), 0.78);
   const belt = scene.add.rectangle(0, 1.8, 8, 1.3, 0xe4c575, 0.88);
@@ -87,10 +102,29 @@ function createHumanVisual(scene, human, x, y, tileSize) {
   const facePixel = scene.add.rectangle(2.1, -6.1, 1.2, 1.2, 0x51352c, 0.9);
   const status = scene.add.circle(0, -13, 2.1, 0xf1c45d, 0).setStrokeStyle(1, 0x151b20, 0);
   const crown = scene.add.text(0, -18.5, '♛', { fontFamily: 'serif', fontSize: '10px', color: '#ffe276', stroke: '#5a3714', strokeThickness: 2 }).setOrigin(0.5).setAlpha(human.isRuler ? 1 : 0);
-  const container = scene.add.container(x, y, [shadow, backArm, legs, tunic, tunicLight, belt, frontArm, head, hair, facePixel, status, crown]);
+  const container = scene.add.container(x, y, [shadow, backArm, rearLeg, frontLeg, tunic, tunicLight, belt, frontArm, head, hair, facePixel, status, crown]);
   container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-  return { container, shadow, tunic, tunicLight, status, crown, baseScale, facing: hashFacing(human.id), bobPhase: human.id * 1.731, bobSpeed: 0.009, idleBob: 0.28, moveBob: 0.72, anchorY: y };
+  return {
+    motionKind: 'human',
+    container,
+    shadow,
+    backArm,
+    frontArm,
+    rearLeg,
+    frontLeg,
+    tunic,
+    tunicLight,
+    status,
+    crown,
+    baseScale,
+    facing: hashFacing(human.id),
+    bobPhase: human.id * 1.731,
+    bobSpeed: 0.009,
+    idleBob: 0.28,
+    moveBob: 0.72,
+    anchorY: y
+  };
 }
 
 function createCreatureVisual(scene, creature, x, y, tileSize) {
@@ -114,13 +148,30 @@ function createGrazerVisual(scene, grazer, x, y, tileSize) {
   const container = scene.add.container(x, y, [shadow, rearLeg, frontLeg, body, flank, neck, head, ear, muzzle, eye, status]);
   container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-  return { species: 'grazer', container, shadow, status, baseScale, facing: hashFacing(grazer.id + 1000), bobPhase: grazer.id * 2.137, bobSpeed: 0.0075, idleBob: 0.18, moveBob: 0.48, anchorY: y };
+  return {
+    species: 'grazer',
+    motionKind: 'grazer',
+    container,
+    shadow,
+    rearLeg,
+    frontLeg,
+    headParts: trackVerticalParts([neck, head, ear, muzzle, eye]),
+    status,
+    baseScale,
+    facing: hashFacing(grazer.id + 1000),
+    bobPhase: grazer.id * 2.137,
+    bobSpeed: 0.0075,
+    idleBob: 0.18,
+    moveBob: 0.48,
+    anchorY: y
+  };
 }
 
 function createWolfVisual(scene, wolf, x, y, tileSize) {
   const baseScale = Math.max(0.9, tileSize / 24);
   const shadow = scene.add.ellipse(0, 5.2, 13.5, 3.8, 0x061015, 0.3);
-  const tail = scene.add.rectangle(-7.4, -0.9, 7.2, 2.3, 0x4b5560, 1).setAngle(-24);
+  const tailBaseAngle = -24;
+  const tail = scene.add.rectangle(-7.4, -0.9, 7.2, 2.3, 0x4b5560, 1).setAngle(tailBaseAngle);
   const rearLeg = scene.add.rectangle(-3.8, 4.4, 2, 5.4, 0x353c43, 1);
   const frontLeg = scene.add.rectangle(3.3, 4.4, 2, 5.4, 0x353c43, 1);
   const body = scene.add.rectangle(-0.7, 0, 12.6, 7.1, 0x59636d, 1);
@@ -136,7 +187,29 @@ function createWolfVisual(scene, wolf, x, y, tileSize) {
   const container = scene.add.container(x, y, [shadow, tail, rearLeg, frontLeg, body, back, chest, head, leftEar, rightEar, muzzle, nose, eye, status]);
   container.setScale(baseScale);
   container.setDepth(30 + y / Math.max(1, tileSize));
-  return { species: 'wolf', container, shadow, status, baseScale, facing: hashFacing(wolf.id + 2000), bobPhase: wolf.id * 2.491, bobSpeed: 0.007, idleBob: 0.14, moveBob: 0.44, anchorY: y };
+  return {
+    species: 'wolf',
+    motionKind: 'wolf',
+    container,
+    shadow,
+    tail,
+    tailBaseAngle,
+    rearLeg,
+    frontLeg,
+    headParts: trackVerticalParts([head, leftEar, rightEar, muzzle, nose, eye]),
+    status,
+    baseScale,
+    facing: hashFacing(wolf.id + 2000),
+    bobPhase: wolf.id * 2.491,
+    bobSpeed: 0.007,
+    idleBob: 0.14,
+    moveBob: 0.44,
+    anchorY: y
+  };
+}
+
+function trackVerticalParts(nodes) {
+  return nodes.map((node) => ({ node, baseY: node.y }));
 }
 
 function updateHumanState(visual, human) {
