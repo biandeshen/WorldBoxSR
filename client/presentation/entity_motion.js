@@ -9,8 +9,7 @@ export function entityMotionPose(kind, nowMs, phaseSeed = 0, moving = false) {
   const now = Number.isFinite(nowMs) ? nowMs : 0;
   const seed = Number.isFinite(phaseSeed) ? phaseSeed : 0;
   const phase = now * profile.speed + seed;
-  const strideWave = moving ? Math.sin(phase) : 0;
-  const stride = strideWave * profile.stride;
+  const stride = moving ? Math.sin(phase) * profile.stride : 0;
   const breathAmplitude = moving ? profile.moveBreath : profile.idleBreath;
   const breathScaleY = 1 + Math.sin(now * 0.0042 + seed * 0.63) * breathAmplitude;
   const headOffsetY = profile.headBob === 0
@@ -20,10 +19,10 @@ export function entityMotionPose(kind, nowMs, phaseSeed = 0, moving = false) {
   const tailAngle = Math.sin(now * (moving ? 0.017 : 0.006) + seed * 0.83) * tailAmplitude;
 
   return {
-    backArmAngle: stride,
-    frontArmAngle: -stride,
-    rearLegAngle: -stride * profile.legRatio,
-    frontLegAngle: stride * profile.legRatio,
+    backArmAngle: moving ? stride : 0,
+    frontArmAngle: moving ? -stride : 0,
+    rearLegAngle: moving ? -stride * profile.legRatio : 0,
+    frontLegAngle: moving ? stride * profile.legRatio : 0,
     breathScaleY,
     headOffsetY,
     tailAngle
