@@ -1,0 +1,34 @@
+#accessibility-preferences {
+  margin-top: 9px;
+  border-top: 1px solid #ffffff0e;
+  padding-top: 8px;
+}
+#accessibility-preferences summary {
+  cursor: pointer;
+  color: #c9e0e4;
+  font-size: 11px;
+  letter-spacing: .03em;
+}
+#accessibility-preferences-controls {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+.accessibility-preference {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #c7d8dc;
+  font-size: 10px;
+}
+.accessibility-preference input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #9edbc7;
+}
+#accessibility-preferences-status {
+  color: #789ba3;
+  font: 8px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+#accessibility-preferences-status[data-state="error"] { color: #d6a28f; }
