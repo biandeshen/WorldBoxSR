@@ -6,6 +6,12 @@ out_dir="${VISUAL_QA_OUT:-artifacts/visual}"
 log_file="${VISUAL_QA_LOG:-/tmp/worldboxsr-visual-qa.log}"
 base_url="http://127.0.0.1:${port}/WorldBoxSR/"
 ready_marker="Phaser 4 · authoritative simulation · showcase ready"
+scope="${VISUAL_QA_SCOPE:-full}"
+
+case "$scope" in
+  smoke|full) ;;
+  *) echo "VISUAL_QA_SCOPE must be smoke or full, got: $scope" >&2; exit 2 ;;
+esac
 
 browser=""
 for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
@@ -53,8 +59,34 @@ fi
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 "$browser" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 
+# Every scope keeps a real God Power pointer journey and causal story navigation.
 node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"
 node tools/capture-story-evidence.mjs "$browser" "$base_url" "$out_dir"
+
+if [[ "$scope" == "smoke" ]]; then
+  # One real Scenario editor path keeps pointer→tile→authoritative command and
+  # paused workspace interaction in the fast PR denominator without replaying
+  # the entire historical release suite before every micro-merge.
+  node tools/capture-scenario-setup-evidence.mjs "$browser" "$base_url" "$out_dir"
+  cat >"$out_dir/README.txt" <<EOF
+WorldBoxSR visual evidence
+scope=smoke
+commit=$(git rev-parse HEAD)
+viewport=1440x900
+candidate=${base_url}
+legacy=${base_url}?renderer=legacy
+seed=45
+candidate_screenshot=phaser-seed45-1440x900.png
+legacy_screenshot=legacy-seed45-1440x900.png
+god_power_authority=god-power-evidence.json
+story_authority=story-evidence.json
+scenario_setup_authority=scenario-setup-evidence.json
+runtime_probe=${ready_marker}; Renderer failed absent; real God Power, story navigation and Scenario Setup pointer/editor smoke passed
+EOF
+  printf 'Visual smoke evidence captured with %s\n' "$browser"
+  exit 0
+fi
+
 node tools/capture-focused-story-evidence.mjs "$browser" "$base_url" "$out_dir"
 node tools/capture-bookmark-evidence.mjs "$browser" "$base_url" "$out_dir"
 node tools/capture-chronicle-lenses-evidence.mjs "$browser" "$base_url" "$out_dir"
@@ -112,6 +144,7 @@ node tools/verify-canonical-ruling-lines-evidence.mjs "$out_dir"
 
 cat >"$out_dir/README.txt" <<EOF
 WorldBoxSR visual evidence
+scope=full
 commit=$(git rev-parse HEAD)
 viewport=1440x900
 candidate=${base_url}
@@ -182,4 +215,4 @@ canonical_ruling_lines_authority=canonical-ruling-lines-evidence.json
 runtime_probe=${ready_marker}; Renderer failed absent; v0.4/v0.5/v0.6/v0.7 regressions plus v0.8 ruling-line Inspector, Dynastic World Stories and canonical Ruling Lines release gate preserve declared authority ownership
 EOF
 
-printf 'Visual evidence captured with %s\n' "$browser"
+printf 'Visual full evidence captured with %s\n' "$browser"
