@@ -1,4 +1,4 @@
-import { refreshCameraBoundsForZoom } from './camera_runtime.js';
+import { refreshCameraBoundsForZoom } from './camera_composition.js';
 import { isTouchPointer } from './touch_inspect_intent.js';
 import {
   CAMERA_MAX_ZOOM,
