@@ -55,9 +55,10 @@ export function readLocalWorldSave(storage) {
 
 export function writeLocalWorldSave(storage, world, options = {}) {
   if (!storage?.setItem) throw new Error('Local storage is unavailable');
-  const serialized = serializeLocalWorldSave(world, options);
+  const envelope = createLocalWorldSave(world, options);
+  const serialized = JSON.stringify(envelope);
   storage.setItem(LOCAL_WORLD_SAVE_KEY, serialized);
-  return { serialized, bytes: utf8ByteLength(serialized), save: parseLocalWorldSave(serialized) };
+  return { serialized, bytes: utf8ByteLength(serialized), envelope };
 }
 
 export function clearLocalWorldSave(storage) {
