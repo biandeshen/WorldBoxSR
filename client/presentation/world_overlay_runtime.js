@@ -1,5 +1,5 @@
 import { polityColor } from './polity_style.js';
-import { targetFootprint, targetStyle, territoryCells, territorySignature } from './world_overlay.js';
+import { targetFootprint, targetStyle, territoryCells, territoryRenderStyle, territorySignature } from './world_overlay.js';
 
 const TILE_SIZE = 28;
 const TERRITORY_DEPTH = 6;
@@ -54,20 +54,44 @@ function redrawTerritory(force) {
   lastTerritorySignature = signature;
   territoryGraphics.clear();
 
+  const style = territoryRenderStyle(TILE_SIZE);
   for (const cell of territoryCells(scene.view)) {
     const color = polityColor(cell.colorIndex);
     const x = cell.x * TILE_SIZE;
     const y = cell.y * TILE_SIZE;
+    const inset = style.fillInset;
 
-    territoryGraphics.fillStyle(color, 0.09);
-    territoryGraphics.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
-    territoryGraphics.lineStyle(Math.max(1.2, TILE_SIZE * 0.055), color, 0.72);
+    territoryGraphics.fillStyle(color, style.fillAlpha);
+    territoryGraphics.fillRect(x + inset, y + inset, TILE_SIZE - inset * 2, TILE_SIZE - inset * 2);
 
-    if (cell.edges.left) territoryGraphics.lineBetween(x + 1, y + 1, x + 1, y + TILE_SIZE - 1);
-    if (cell.edges.right) territoryGraphics.lineBetween(x + TILE_SIZE - 1, y + 1, x + TILE_SIZE - 1, y + TILE_SIZE - 1);
-    if (cell.edges.top) territoryGraphics.lineBetween(x + 1, y + 1, x + TILE_SIZE - 1, y + 1);
-    if (cell.edges.bottom) territoryGraphics.lineBetween(x + 1, y + TILE_SIZE - 1, x + TILE_SIZE - 1, y + TILE_SIZE - 1);
+    drawEdgeAccents(territoryGraphics, cell.edges, x, y, color, style);
+    drawBoundaryLayer(territoryGraphics, cell.edges, x, y, 0x071017, style.shadowWidth, style.shadowAlpha);
+    drawBoundaryLayer(territoryGraphics, cell.edges, x, y, color, style.borderWidth, style.borderAlpha);
   }
+}
+
+function drawEdgeAccents(graphics, edges, x, y, color, style) {
+  const inset = style.fillInset;
+  const length = TILE_SIZE - inset * 2;
+  const accent = style.accentWidth;
+  graphics.fillStyle(color, style.accentAlpha);
+  if (edges.left) graphics.fillRect(x + inset, y + inset, accent, length);
+  if (edges.right) graphics.fillRect(x + TILE_SIZE - inset - accent, y + inset, accent, length);
+  if (edges.top) graphics.fillRect(x + inset, y + inset, length, accent);
+  if (edges.bottom) graphics.fillRect(x + inset, y + TILE_SIZE - inset - accent, length, accent);
+}
+
+function drawBoundaryLayer(graphics, edges, x, y, color, width, alpha) {
+  const inset = 1;
+  const left = x + inset;
+  const right = x + TILE_SIZE - inset;
+  const top = y + inset;
+  const bottom = y + TILE_SIZE - inset;
+  graphics.lineStyle(width, color, alpha);
+  if (edges.left) graphics.lineBetween(left, top, left, bottom);
+  if (edges.right) graphics.lineBetween(right, top, right, bottom);
+  if (edges.top) graphics.lineBetween(left, top, right, top);
+  if (edges.bottom) graphics.lineBetween(left, bottom, right, bottom);
 }
 
 function drawTarget(screenX, screenY) {

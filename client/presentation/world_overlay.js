@@ -28,6 +28,20 @@ export function targetFootprint(tool, centerX, centerY, width, height) {
   return cells;
 }
 
+export function territoryRenderStyle(tileSize) {
+  const size = Number.isFinite(tileSize) && tileSize > 0 ? tileSize : 28;
+  return {
+    fillAlpha: 0.13,
+    fillInset: Math.max(1, size * 0.035),
+    borderWidth: Math.max(1.7, size * 0.07),
+    borderAlpha: 0.94,
+    shadowWidth: Math.max(3.2, size * 0.13),
+    shadowAlpha: 0.48,
+    accentWidth: Math.max(2.6, size * 0.12),
+    accentAlpha: 0.2
+  };
+}
+
 export function territoryCells(view) {
   if (!view?.tiles || !Number.isInteger(view.width) || !Number.isInteger(view.height)) return [];
   const settlementById = new Map((view.settlements || []).map((settlement) => [settlement.id, settlement]));
