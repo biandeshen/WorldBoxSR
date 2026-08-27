@@ -1,5 +1,6 @@
 import { polityColor } from './polity_style.js';
 import { settlementAmbientPose } from './settlement_ambient.js';
+import { settlementPoliticalStatusProfile } from './settlement_political_status.js';
 import { settlementRuinsProfile } from './settlement_ruins_profile.js';
 import { populationTier, settlementVisualProfile } from './settlement_visual_profile.js';
 
@@ -21,13 +22,23 @@ export class SettlementLayer {
         worldDay: view.day,
         daysPerYear: view.daysPerYear
       });
-      const signature = settlementSignature(settlement, ruinsProfile);
+      const politicalStatus = settlementPoliticalStatusProfile({
+        active: settlement.active,
+        polityId: settlement.polityId,
+        previousPolityId: settlement.previousPolityId,
+        lastConqueredByPolityId: settlement.lastConqueredByPolityId,
+        occupationStartedDay: settlement.occupationStartedDay,
+        lastRebelledDay: settlement.lastRebelledDay,
+        worldDay: view.day,
+        daysPerYear: view.daysPerYear
+      });
+      const signature = settlementSignature(settlement, ruinsProfile, politicalStatus);
       const current = this.visuals.get(settlement.id);
       if (current?.signature === signature) continue;
       if (current) destroyContainer(current.container);
       this.visuals.set(settlement.id, {
         signature,
-        ...createSettlementVisual(this.scene, settlement, this.tileSize, ruinsProfile)
+        ...createSettlementVisual(this.scene, settlement, this.tileSize, ruinsProfile, politicalStatus)
       });
     }
     for (const [id, visual] of this.visuals) {
@@ -47,13 +58,16 @@ export class SettlementLayer {
   }
 }
 
-function settlementSignature(settlement, ruinsProfile) {
+function settlementSignature(settlement, ruinsProfile, politicalStatus) {
   const sizeSignature = settlement.active ? populationTier(settlement.population) : 'ruins';
   const lifecycleSignature = settlement.active ? 'active' : `abandoned:${ruinsProfile.ageBand}:${ruinsProfile.ageLabel}`;
-  return [settlement.name, lifecycleSignature, sizeSignature, settlement.active ? settlement.population : 0, settlement.polityId ?? 'none', settlement.polityName ?? 'none', settlement.polityColorIndex ?? 'none', settlement.polityBannerStyle ?? 'none', settlement.rulerId ?? 'vacant', settlement.isCapital ? 'capital' : 'member', settlement.relationStance ?? 'none', settlement.atWar ? 'war' : 'peace'].join('|');
+  const politicalSignature = politicalStatus.visible
+    ? `${politicalStatus.kind}:${politicalStatus.ageLabel}:${settlement.previousPolityColorIndex ?? 'none'}:${settlement.lastRebelledFromPolityColorIndex ?? 'none'}`
+    : 'political:none';
+  return [settlement.name, lifecycleSignature, politicalSignature, sizeSignature, settlement.active ? settlement.population : 0, settlement.polityId ?? 'none', settlement.polityName ?? 'none', settlement.polityColorIndex ?? 'none', settlement.polityBannerStyle ?? 'none', settlement.rulerId ?? 'vacant', settlement.isCapital ? 'capital' : 'member', settlement.relationStance ?? 'none', settlement.atWar ? 'war' : 'peace'].join('|');
 }
 
-function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
+function createSettlementVisual(scene, settlement, tileSize, ruinsProfile, politicalStatus) {
   if (!settlement.active) return createSettlementRuinsVisual(scene, settlement, tileSize, ruinsProfile);
 
   const x = (settlement.x + 0.5) * tileSize;
@@ -71,24 +85,24 @@ function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
     4,
     profile.groundWidth,
     profile.groundHeight,
-    settlement.active ? 0x9b8451 : 0x68645b,
-    settlement.active ? 0.21 : 0.12
+    0x9b8451,
+    0.21
   );
   ground.setStrokeStyle(
     tier >= 3 ? 1.5 : 1.2,
-    settlement.atWar ? 0xd35a4a : (settlement.active ? color : 0x80796e),
-    settlement.atWar ? 0.92 : (settlement.active ? 0.52 : 0.2)
+    settlement.atWar ? 0xd35a4a : color,
+    settlement.atWar ? 0.92 : 0.52
   );
   children.push(ground);
 
-  if (profile.capitalEmphasis && settlement.active) {
+  if (profile.capitalEmphasis) {
     children.push(
       scene.add.ellipse(0, -4, 27 * profile.civicScale, 20 * profile.civicScale, color, 0.08)
         .setStrokeStyle(1.2, lighten(color), 0.5)
     );
   }
 
-  if (settlement.atWar && settlement.active) {
+  if (settlement.atWar) {
     children.push(
       scene.add.ellipse(0, 4, profile.groundWidth + 9, profile.groundHeight + 8, 0x000000, 0)
         .setStrokeStyle(1.6, 0xe16b58, 0.75)
@@ -100,7 +114,11 @@ function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
     );
   }
 
-  const roadColor = settlement.active ? 0xbba56c : 0x777168;
+  if (politicalStatus.visible) {
+    children.push(...createPoliticalStatusMarker(scene, settlement, profile, politicalStatus));
+  }
+
+  const roadColor = 0xbba56c;
   children.push(
     scene.add.rectangle(0, 4, profile.roadWidth, tier >= 3 ? 3.8 : 3.2, roadColor, 0.58),
     scene.add.rectangle(0, 4, tier >= 3 ? 3.8 : 3.2, profile.roadHeight, roadColor, 0.58)
@@ -113,31 +131,29 @@ function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
 
   for (let index = 0; index < profile.farmOffsets.length; index += 1) {
     const [dx, dy] = profile.farmOffsets[index];
-    children.push(...createField(scene, dx, dy, settlement.active, index));
+    children.push(...createField(scene, dx, dy, true, index));
   }
 
   for (let index = 0; index < profile.houseOffsets.length; index += 1) {
     const [dx, dy] = profile.houseOffsets[index];
-    children.push(...createHouse(scene, dx, dy, settlement.active, color, index));
+    children.push(...createHouse(scene, dx, dy, true, color, index));
   }
 
   if (profile.hall) {
-    const hall = createHall(scene, 0, -4, settlement.active, color);
+    const hall = createHall(scene, 0, -4, true, color);
     for (const part of hall) part.setScale(profile.civicScale);
     children.push(...hall);
   }
 
-  if (settlement.active && tier >= 2) {
+  if (tier >= 2) {
     const hearth = createHearthAmbience(scene, profile);
     children.push(...hearth.parts);
     smokeMotion = hearth.motion;
   }
 
-  if (settlement.active) {
-    const banner = createBanner(scene, settlement, profile, color);
-    children.push(...banner.parts);
-    bannerMotion = banner.motion;
-  }
+  const banner = createBanner(scene, settlement, profile, color);
+  children.push(...banner.parts);
+  bannerMotion = banner.motion;
 
   const primaryName = settlement.isCapital && settlement.polityName ? `♛ ${settlement.polityName}` : settlement.name;
   const rulerText = Number.isInteger(settlement.rulerId) ? `♔ #${settlement.rulerId}` : '♔ vacant';
@@ -149,7 +165,7 @@ function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontSize: tier >= 3 ? '11px' : '10px',
     fontStyle: 'bold',
-    color: settlement.active ? '#fff2bf' : '#b9b1a2',
+    color: '#fff2bf',
     stroke: '#10151c',
     strokeThickness: 3,
     align: 'center'
@@ -157,31 +173,46 @@ function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
   const population = scene.add.text(0, -profile.labelOffset + 3, secondaryText, {
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
     fontSize: '8px',
-    color: settlement.atWar ? '#ffb4a7' : (settlement.active ? '#d8e1cd' : '#938d84'),
+    color: settlement.atWar ? '#ffb4a7' : '#d8e1cd',
     stroke: '#10151c',
     strokeThickness: 2,
     align: 'center'
   }).setOrigin(0.5, 0);
   children.push(label, population);
 
-  if (!settlement.active) {
-    children.push(scene.add.text(0, 0, '×', {
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontSize: '18px', color: '#a9a39a', stroke: '#202020', strokeThickness: 2
-    }).setOrigin(0.5));
-  }
-
   const container = scene.add.container(x, y, children);
   container.setScale(scale);
-  container.setAlpha(settlement.active ? 1 : 0.48);
   container.setDepth(20 + y / Math.max(1, tileSize));
   return {
     container,
     settlementId: settlement.id,
-    active: settlement.active,
+    active: true,
     tier,
     bannerMotion,
     smokeMotion
   };
+}
+
+function createPoliticalStatusMarker(scene, settlement, profile, politicalStatus) {
+  const historicalColorIndex = politicalStatus.kind === 'occupied'
+    ? settlement.previousPolityColorIndex
+    : settlement.lastRebelledFromPolityColorIndex;
+  const historicalColor = Number.isInteger(historicalColorIndex) ? polityColor(historicalColorIndex) : 0xa98f75;
+  const badgeColor = politicalStatus.kind === 'occupied' ? '#e8c68d' : '#f0a39a';
+  const badgeY = -profile.labelOffset - 9;
+  return [
+    scene.add.ellipse(0, 4, profile.groundWidth + 15, profile.groundHeight + 14, 0x000000, 0)
+      .setStrokeStyle(1.3, historicalColor, politicalStatus.ringAlpha),
+    scene.add.text(0, badgeY, politicalStatus.badgeText, {
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      fontSize: '7px',
+      fontStyle: 'bold',
+      color: badgeColor,
+      stroke: '#10151c',
+      strokeThickness: 2,
+      align: 'center'
+    }).setOrigin(0.5, 1).setAlpha(politicalStatus.badgeAlpha)
+  ];
 }
 
 function createSettlementRuinsVisual(scene, settlement, tileSize, ruinsProfile) {
