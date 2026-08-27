@@ -1,5 +1,5 @@
 import { polityColor } from './polity_style.js';
-import { warbandVisualProfile } from './warband_visual_profile.js';
+import { warbandObjectiveCue, warbandVisualProfile } from './warband_visual_profile.js';
 
 export class WarbandLayer {
   constructor(scene, tileSize) {
@@ -10,12 +10,14 @@ export class WarbandLayer {
 
   sync(view, now, duration = 180) {
     const active = new Set();
+    const settlementById = new Map((view.settlements ?? []).map((settlement) => [settlement.id, settlement]));
     for (const warband of view.warbands ?? []) {
       active.add(warband.id);
       const target = tileCenter(warband.x, warband.y, this.tileSize);
+      const targetSettlement = settlementById.get(warband.targetSettlementId) ?? null;
       let visual = this.warbands.get(warband.id);
       if (!visual) {
-        visual = createWarbandVisual(this.scene, warband, target.x, target.y, this.tileSize);
+        visual = createWarbandVisual(this.scene, warband, targetSettlement, target.x, target.y, this.tileSize);
         visual.fromX = target.x;
         visual.fromY = target.y;
         visual.toX = target.x;
@@ -32,7 +34,7 @@ export class WarbandLayer {
         visual.duration = duration;
       }
       visual.anchorY = target.y;
-      updateWarbandState(visual, warband);
+      updateWarbandState(visual, warband, targetSettlement, this.tileSize);
     }
 
     for (const [id, visual] of this.warbands) {
@@ -58,6 +60,7 @@ export class WarbandLayer {
       visual.engagementIcon.setAlpha(visual.engaged ? 1 : 0);
       visual.flag.setScale(moving ? 1 + Math.abs(Math.sin(now * 0.018 + visual.bobPhase)) * 0.08 : 1, 1);
       animateSoldiers(visual, now, moving);
+      drawObjectiveCue(visual);
     }
   }
 
@@ -67,9 +70,10 @@ export class WarbandLayer {
   }
 }
 
-function createWarbandVisual(scene, warband, x, y, tileSize) {
+function createWarbandVisual(scene, warband, targetSettlement, x, y, tileSize) {
   const color = polityColor(warband.polityColorIndex);
   const baseScale = Math.max(0.92, tileSize / 28);
+  const objectiveGraphics = scene.add.graphics().setDepth(43.9);
   const shadow = scene.add.ellipse(1, 7, 25, 7, 0x061015, 0.34);
   const engagementRing = scene.add.circle(0, 0, 14, 0xe75b4d, 0).setStrokeStyle(2, 0xff7668, 0);
   const soldiers = Array.from({ length: 5 }, (_, index) => createSoldier(scene, color, index));
@@ -84,6 +88,11 @@ function createWarbandVisual(scene, warband, x, y, tileSize) {
   container.setDepth(44 + y / Math.max(1, tileSize));
   const visual = {
     container,
+    objectiveGraphics,
+    objectiveColor: color,
+    objectiveCue: null,
+    targetWorldX: null,
+    targetWorldY: null,
     shadow,
     engagementRing,
     soldiers,
@@ -101,11 +110,11 @@ function createWarbandVisual(scene, warband, x, y, tileSize) {
     bobPhase: warband.id * 1.913,
     anchorY: y
   };
-  updateWarbandState(visual, warband);
+  updateWarbandState(visual, warband, targetSettlement, tileSize);
   return visual;
 }
 
-function updateWarbandState(visual, warband) {
+function updateWarbandState(visual, warband, targetSettlement, tileSize) {
   const color = polityColor(warband.polityColorIndex);
   const profile = warbandVisualProfile(warband);
   visual.flag.setFillStyle(color, 1);
@@ -118,6 +127,24 @@ function updateWarbandState(visual, warband) {
   visual.casualtyRatio = profile.casualtyRatio;
   visual.engagementRing.setStrokeStyle(2, 0xff7668, visual.engaged ? 0.9 : 0);
   visual.container.setAlpha(profile.currentStrength > 0 ? 1 : 0.5);
+  visual.objectiveColor = color;
+  visual.objectiveCue = warbandObjectiveCue({
+    x: warband.x,
+    y: warband.y,
+    targetX: targetSettlement?.x,
+    targetY: targetSettlement?.y,
+    movementState: warband.movementState,
+    engaged: warband.engaged,
+    tileSize
+  });
+  if (targetSettlement) {
+    const target = tileCenter(targetSettlement.x, targetSettlement.y, tileSize);
+    visual.targetWorldX = target.x;
+    visual.targetWorldY = target.y;
+  } else {
+    visual.targetWorldX = null;
+    visual.targetWorldY = null;
+  }
 
   for (let index = 0; index < visual.soldiers.length; index += 1) {
     const soldier = visual.soldiers[index];
@@ -128,6 +155,42 @@ function updateWarbandState(visual, warband) {
     soldier.y = offset.y;
     drawSoldier(soldier, color, index, visual.engaged, profile.casualtyRatio);
   }
+}
+
+function drawObjectiveCue(visual) {
+  const graphics = visual.objectiveGraphics;
+  const cue = visual.objectiveCue;
+  graphics.clear();
+  if (!cue?.visible || !Number.isFinite(visual.targetWorldX) || !Number.isFinite(visual.targetWorldY)) return;
+
+  const dx = visual.targetWorldX - visual.container.x;
+  const dy = visual.targetWorldY - visual.container.y;
+  const distance = Math.hypot(dx, dy);
+  if (!(distance > cue.targetRadius + 2)) return;
+
+  const directionX = dx / distance;
+  const directionY = dy / distance;
+  const arrowEndDistance = Math.min(cue.arrowEnd, Math.max(cue.arrowStart + 3, distance - cue.targetRadius - 3));
+  const startX = visual.container.x + directionX * cue.arrowStart;
+  const startY = visual.container.y + directionY * cue.arrowStart;
+  const endX = visual.container.x + directionX * arrowEndDistance;
+  const endY = visual.container.y + directionY * arrowEndDistance;
+  const angle = Math.atan2(directionY, directionX);
+  const backAngleA = angle + Math.PI * 0.78;
+  const backAngleB = angle - Math.PI * 0.78;
+
+  graphics.lineStyle(1.6, visual.objectiveColor, cue.arrowAlpha);
+  graphics.lineBetween(startX, startY, endX, endY);
+  graphics.lineBetween(endX, endY, endX + Math.cos(backAngleA) * cue.arrowHead, endY + Math.sin(backAngleA) * cue.arrowHead);
+  graphics.lineBetween(endX, endY, endX + Math.cos(backAngleB) * cue.arrowHead, endY + Math.sin(backAngleB) * cue.arrowHead);
+
+  graphics.lineStyle(1.2, visual.objectiveColor, cue.targetAlpha);
+  graphics.strokeCircle(visual.targetWorldX, visual.targetWorldY, cue.targetRadius);
+  const tick = cue.arrowHead * 0.55;
+  graphics.lineBetween(visual.targetWorldX - cue.targetRadius - tick, visual.targetWorldY, visual.targetWorldX - cue.targetRadius + tick, visual.targetWorldY);
+  graphics.lineBetween(visual.targetWorldX + cue.targetRadius - tick, visual.targetWorldY, visual.targetWorldX + cue.targetRadius + tick, visual.targetWorldY);
+  graphics.lineBetween(visual.targetWorldX, visual.targetWorldY - cue.targetRadius - tick, visual.targetWorldX, visual.targetWorldY - cue.targetRadius + tick);
+  graphics.lineBetween(visual.targetWorldX, visual.targetWorldY + cue.targetRadius - tick, visual.targetWorldX, visual.targetWorldY + cue.targetRadius + tick);
 }
 
 function animateSoldiers(visual, now, moving) {
@@ -195,6 +258,7 @@ function lerp(a, b, t) {
 }
 
 function destroyVisual(visual) {
+  visual.objectiveGraphics?.destroy();
   for (const child of visual.container.list || []) child.destroy();
   visual.container.destroy();
 }
