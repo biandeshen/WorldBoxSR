@@ -93,7 +93,7 @@ test('Meteor and Rain share the exact clipped Chebyshev radius-2 footprint while
   const meteorCorner = targetFootprint('meteor', 0, 0, 9, 9);
   const rainCorner = targetFootprint('rain', 0, 0, 9, 9);
   assert.equal(meteorCorner.length, 9);
-  assert.deepEqual(rainCorner, meteorCenter.filter((cell) => cell.x <= 2 && cell.y <= 2));
+  assert.deepEqual(rainCorner, meteorCorner);
   assert.deepEqual(meteorCorner.at(-1), { x: 2, y: 2, center: false });
   assert.deepEqual(targetFootprint('lightning', 4, 4, 9, 9), [{ x: 4, y: 4, center: true }]);
 });
