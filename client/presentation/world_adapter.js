@@ -6,6 +6,7 @@ import {
   NATURAL_GRAZER_CONFIG
 } from '../../engine/world/natural_fauna.js';
 import { acceptedGodAction } from './god_action_outcome.js';
+import { projectRecentBattleTraces } from './battle_trace_profile.js';
 
 export const SHOWCASE = Object.freeze({ width: 24, height: 24, population: 30, warmupYears: 40, warmupChunkYears: 2, defaultSeed: 45, grazerCount: 8 });
 export const SHOWCASE_PRESETS = Object.freeze([
@@ -104,6 +105,7 @@ export function worldView(world) {
   const polityById = new Map(world.polities.map((polity) => [polity.id, polity]));
   const relations = (world.relations ?? []).filter((relation) => relation.active).map((relation) => ({ ...relation }));
   const activeWarbands = (world.warbands ?? []).filter((warband) => warband.active).sort((a, b) => a.id - b.id);
+  const recentBattles = projectRecentBattleTraces(world.history, world.day, world.config.daysPerYear);
   const creatures = world.creatures
     .filter((creature) => creature.alive)
     .sort((a, b) => a.id - b.id)
@@ -190,7 +192,8 @@ export function worldView(world) {
     }),
     polities: world.polities.map((polity) => ({ id: polity.id, name: polity.name, capitalSettlementId: polity.capitalSettlementId, settlementIds: [...polity.settlementIds], foundedDay: polity.foundedDay, active: polity.active, dissolvedDay: polity.dissolvedDay, colorIndex: polity.colorIndex, bannerStyle: polity.bannerStyle, rulerId: polity.rulerId ?? null, rulerSinceDay: polity.rulerSinceDay ?? null, rulerSequence: polity.rulerSequence ?? 0 })),
     relations,
-    warbands
+    warbands,
+    recentBattles
   };
 }
 
