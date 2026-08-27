@@ -114,29 +114,35 @@ No economy/trade/storage/currency, religion/culture/technology, new diplomacy/wa
 
 ---
 
-## v1.0 — Stable sandbox identity
+## v1.0 — Stable Sandbox Identity
 
-**Status: next bounded planning stage.**
+**Status: finite plan frozen under #313; implementation pending.**
 
-The next stage should stabilize the product/compatibility contract rather than immediately start another breadth sprint.
+Primary promise:
 
-Primary target:
+> **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported public surfaces, and coherent creation/intervention/civilization/ecology/story workflows.**
 
-> **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported performance, and coherent creation/intervention/civilization/ecology/story workflows.**
+v1.0 is deliberately only three ordered capabilities:
 
-Planning should bound:
-- supported save/version compatibility and migration policy;
-- supported browser/device/performance envelope;
-- public-alpha onboarding and error/recovery contract;
-- extension/content contracts for creatures, powers and civilizations;
-- final cross-system coherence and regression/release standards.
+1. **Portable Compatibility Contract** — freeze historical engine snapshot v10–v16 support as the mandatory baseline, keep local-world envelope v1 and Scenario Recipe v1 supported/canonical, and make unsupported/corrupt/future versions fail explicitly and atomically.
+2. **Certified Runtime & Recovery Envelope** — certify current Chrome/Chromium-class 1440×900 desktop Phaser and 430×820 coarse-touch Phaser surfaces plus the existing ordinary-world Legacy fallback; keep `phaser_main` ≤300,000 B; do not claim Firefox/Safari without real gates.
+3. **Cross-System Stable Sandbox Gate** — prove ordinary-world intervention/story/save/restore/continue and Scenario Recipe/Run/Replay/Fork compose through existing production surfaces with deterministic authority intact.
 
-Do not start economy/religion/technology/naval breadth merely to make a v1.0 feature list look larger.
+The first implementation slice is the historical snapshot compatibility matrix. Do not open Capability 2/3 implementation in parallel before that baseline lands.
+
+### Explicit planning decisions
+
+- no public plugin/mod API in v1.0; `content/` remains internal/future-facing;
+- no large tutorial framework absent failed first-session evidence; current desktop/Scenario/mobile affordance text is the baseline to certify;
+- no uncalibrated 1k/10k benchmark wall-clock SLA; the large Node benchmark remains diagnostic until calibrated;
+- no economy/religion/technology/naval breadth by default.
+
+Detailed finite backlog: `docs/backlog/v1.0.md`.
 
 ## Current decision
 
-1. v0.9.0 is shipped and immutable; do not move its tag or reopen behavior under that version;
-2. close #310 and #269 with the immutable release evidence;
-3. open one bounded v1.0 Stable Sandbox Identity planning gate;
-4. prioritize compatibility, reliability and cross-system coherence before feature breadth;
-5. keep the public `/play/` demo as the product truth surface.
+1. keep all v0.9 and older release identities immutable;
+2. merge the docs-only v1.0 finite plan from #313;
+3. close #313 after ROADMAP/STATUS/backlog agree;
+4. open exactly one first implementation issue for Capability 1 historical compatibility matrix;
+5. do not start Capability 2/3 or unrelated breadth in parallel.
