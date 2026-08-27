@@ -36,88 +36,69 @@ WorldBoxSR is an open-ended sandbox, but development must not be open-ended. The
 ## v0.7.0 — Scenario Builder & Sharing
 **Status: shipped.** Scenario Recipe v1, Setup, portable share/import, Replay/Fork and canonical exact Scenario journey.
 
-Immutable identity:
-- release commit `1d5931a650f64765286e155c0e821bfe6d63a299`;
-- annotated tag object `236eef64cf5090ff1a65bfee264f193078e79606`;
-- release workflow #11, CI #817, Pages #58, full visual #312 green.
-
 ## v0.8.0 — Ruling Lines & Succession
 **Status: shipped.** Deterministic descendant-first ruling-line succession, exact fallback, Inspector readability and Dynastic World Stories.
 
-Immutable identity:
-- implementation freeze `1556a8a8e1e058db54a1ac93a2eed1a69020c191`;
-- release commit `0233cd6923717c3d277d6a35f2e6460e43814d60`;
-- annotated tag object `04f5ea6b489ca37ff53fa444c8dce9461e5949c5`;
-- release workflow #12, CI #865, Pages #66, full visual #358 green.
-
 ## v0.9.0 — World Feel & Public Alpha Polish
-**Status: shipped.** World-first viewport, stronger visual hierarchy/motion/civilization readability, local ordinary-world persistence, mobile touch, recovery/accessibility and faster PR validation.
-
-Immutable identity:
-- implementation freeze `d167caa1ac5af3ef9214546693e34f255cdca687`;
-- release commit `6901923ac1a059599a3ce701fa5060054cffd15d`;
-- annotated tag object `6992bba5f45366fa7d3832a981cb590cf5090554`;
-- release workflow #13, CI #929, Pages #88, full visual #422 green.
-
----
+**Status: shipped.** World-first viewport, stronger visual hierarchy/motion/civilization readability, local ordinary-world persistence, mobile touch and recovery/accessibility.
 
 ## v1.0.0 — Stable Sandbox Identity
-**Status: shipped.**
+**Status: shipped and immutable.**
 
 Primary promise:
 
 > **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported public surfaces, and coherent creation/intervention/civilization/ecology/story workflows.**
 
-### Shipped product contract
-
-1. **Portable Compatibility Contract** — current snapshot schema v16; supported engine inputs v10–v16; local ordinary-world envelope v1; Scenario Recipe v1; explicit future/unsupported rejection.
-2. **Certified Runtime & Recovery Envelope** — `docs/SUPPORT.md` certifies Chrome/Chromium-class Phaser at 1440×900 desktop and 430×820 coarse touch, plus Legacy Canvas ordinary-world compatibility fallback; Firefox/Safari remain uncertified/best effort; `phaser_main` remains ≤300,000 B with a dedicated Phaser vendor chunk.
-3. **Cross-System Stable Sandbox Gate** — unchanged causal World Stories + real UI Save→diverge→exact paused Restore→Scenario persistence isolation + unchanged canonical Scenario share/Run/Replay/Fork evidence, composed into `stable-sandbox-evidence.json`.
-
-The final gate also fixed one proven integration defect: initial manual `Save now` could remain disabled until the first 30-second autosave. v1.0 refreshes Session availability at the real initial boot→ready boundary without changing save formats or simulation authority.
-
-### Immutable release identity
-
+Immutable identity:
 - implementation freeze `efecf1e91ac88177ce82917c1312577927e26af6`;
 - release commit `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
-- annotated tag `v1.0.0` / tag object `75e89c559e91cb0128fb35a79bd32c6fa84f02cf` → exact release commit;
-- GitHub Release `WorldBoxSR v1.0.0` published by release workflow #14;
-- release-commit CI #948 green;
-- Pages #96/public `/play/` green;
-- full historical visual-qa #436 green, including mobile touch/pinch, renderer recovery and stable-sandbox composition;
-- tagged-release artifact records `stableSandboxGateComplete: true`.
+- annotated tag object `75e89c559e91cb0128fb35a79bd32c6fa84f02cf` → exact release commit;
+- release workflow #14, CI #948, Pages #96/public `/play/`, full visual #436 green.
 
-The v1.0 implementation and release identities are immutable. Later docs cleanup must never move the tag.
-
-### Support boundary
-
-Certified:
-- Chrome/Chromium-class production Phaser · 1440×900 desktop;
-- Chrome/Chromium-class production Phaser · 430×820 coarse touch;
-- Legacy Canvas ordinary-world compatibility fallback.
-
-Scenario remains Phaser-only. Firefox/Gecko, Safari/WebKit and arbitrary other browser/device surfaces remain uncertified/best effort until real evidence exists. See `docs/SUPPORT.md`.
-
-### Deliberate stop
-
-v1.0 does not add economy/trade/currency, religion/culture/technology, naval warfare, professions/classes, broad diplomacy rewrite, multiplayer/cloud sync, public mod marketplace/API, procedural AI-authored history, a new renderer, uncertified browser claims or an uncalibrated large-world SLA.
+v1.0 freezes:
+- snapshot support baseline v10–v16, local-save envelope v1 and Scenario Recipe v1;
+- certified Chrome/Chromium-class 1440×900 desktop + 430×820 touch Phaser surfaces and Legacy ordinary-world fallback;
+- cross-system causal Story + exact ordinary Save/Restore + canonical Scenario composition.
 
 ---
 
-## Post-1.0 direction
+## v1.1 — Settlement Life & Food Reserves
+**Status: planned; implementation next.** Direction gate #326. Finite backlog: `docs/backlog/v1.1.md`.
 
-**Status: not yet committed to a feature/version theme.**
+Primary fantasy:
 
-Do not automatically turn 1.0 into a breadth backlog. The next step is one evidence-based planning gate using the shipped public demo, current user-visible gaps, technical constraints and comparable sandbox products.
+> **A settlement turns the food around it into visible reserves; residents can survive short local shortages from those reserves, and the player can watch scarcity or recovery emerge from the same ecology and God interventions.**
 
-Candidate future domains such as deeper economy, religion/culture/technology, naval systems, multiplayer/cloud sync or public mod APIs remain **uncommitted** until separately justified.
+Post-1.0 evidence scoring selected this direction over conflict-depth, terrain shaping and culture/technology/religion breadth.
 
-The next planning gate should prefer a finite, visibly valuable product problem over subsystem-count optics and should preserve the v1.0 compatibility/support contracts unless explicitly versioned.
+### Capability order
+
+1. **Settlement Food Reserves + visible Granary** — one conserved food reserve, deterministic capacity, bounded surplus harvest from owned tiles, hungry local resident draw, map Granary + Inspector. This is the first implementation slice and must visibly change the public demo immediately.
+2. **Scarcity & recovery readability/history** — meaningful low/depleted/recovered transitions, truthful Chronicle/Event Card/Inspector presentation, no economic inference.
+3. **Canonical Settlement Life gate** — deterministic local food→reserve→shortage/drawdown→environmental recovery→reserve recovery journey, save/load exactness and all v0.4–v1.0 regressions.
+
+### Existing leverage
+
+- authoritative tile `food` / `foodCapacity` + deterministic regrowth;
+- Human hunger/starvation/direct food consumption;
+- Settlement membership + deterministic owned territory;
+- Rain/Meteor environmental effects;
+- settlement rendering, Inspector and World Stories surfaces.
+
+### Explicit non-goals
+
+No currency, prices, markets, trade routes, professions/classes, taxes/wages/ownership, crafting/production chains, tech tree, religion/culture, merchant AI or general multi-resource economy framework.
+
+### Versioning guard
+
+A persistent settlement reserve may require the current engine snapshot version to advance. If so, v1.0’s historical v10–v16 support floor remains mandatory and the new current version joins the compatibility matrix.
+
+---
 
 ## Current decision
 
-1. v1.0.0 is shipped and immutable; never move its tag or rewrite its published contract;
-2. close release #323 and final capability #321 after this docs-only closeout is merged and the tag target is re-verified;
-3. open exactly one post-1.0 evidence-based product-direction planning gate;
-4. do not start parallel post-1.0 feature branches before that planning gate freezes a finite direction;
-5. keep public `/play/`, deterministic authority and the certified support contract as product truth.
+1. v1.0.0 remains immutable; never move or rewrite its tag/release contract;
+2. merge the finite v1.1 planning sync and close #326;
+3. open exactly one Capability-1 implementation issue for Settlement Food Reserves + visible Granary;
+4. first v1.1 implementation PR must produce a player-visible public-demo difference, not another infrastructure-only slice;
+5. do not open Capability 2/3 or unrelated breadth in parallel.
