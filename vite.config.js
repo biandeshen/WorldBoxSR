@@ -12,6 +12,18 @@ export default defineConfig(({ command, isPreview }) => ({
     outDir: '../.pages',
     emptyOutDir: true,
     sourcemap: true,
-    target: 'es2022'
+    target: 'es2022',
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'phaser-vendor',
+              test: /[\\/]node_modules[\\/]phaser[\\/]/
+            }
+          ]
+        }
+      }
+    }
   }
 }));
