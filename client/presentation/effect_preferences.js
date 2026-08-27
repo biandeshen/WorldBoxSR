@@ -1,3 +1,8 @@
+import {
+  currentAccessibilityPreferences,
+  effectiveReducedMotion
+} from './accessibility_preferences.js';
+
 export function effectProfile(reducedMotion = false) {
   return reducedMotion
     ? {
@@ -19,6 +24,10 @@ export function effectProfile(reducedMotion = false) {
 }
 
 export function currentEffectProfile() {
-  const reduced = Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+  const systemReducedMotion = Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+  const reduced = effectiveReducedMotion({
+    systemReducedMotion,
+    preferences: currentAccessibilityPreferences()
+  });
   return effectProfile(reduced);
 }
