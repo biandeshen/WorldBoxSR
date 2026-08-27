@@ -24,8 +24,8 @@ const chrome = spawn(browser, [
 let cdp = null;
 try {
   const port = await waitForDevToolsPort(userDataDir, chrome);
-  const target = await waitForPageTarget(port, baseUrl, chrome);
-  cdp = await createCdpClient(target.webSocketDebuggerUrl);
+  const pageTarget = await waitForPageTarget(port, baseUrl, chrome);
+  cdp = await createCdpClient(pageTarget.webSocketDebuggerUrl);
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   await cdp.send('Emulation.setDeviceMetricsOverride', {
@@ -44,7 +44,7 @@ try {
   })()`);
   if (!paused) throw new Error('pinch evidence could not pause the world');
 
-  const target = await evaluate(cdp, `(() => {
+  const pinchTarget = await evaluate(cdp, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const camera = scene?.cameras?.main;
     if (!scene?.world || !camera) throw new Error('world scene unavailable');
@@ -61,9 +61,9 @@ try {
       .sort((a, b) => Math.abs(a.screenY - 410) - Math.abs(b.screenY - 410) || Math.abs(a.screenX - 120) - Math.abs(b.screenX - 120));
     return candidates[0] ?? null;
   })()`);
-  if (!target) throw new Error('no clear mobile pinch midpoint found');
+  if (!pinchTarget) throw new Error('no clear mobile pinch midpoint found');
 
-  const midpoint = { x: target.screenX, y: target.screenY };
+  const midpoint = { x: pinchTarget.screenX, y: pinchTarget.screenY };
   const startHalfSpan = 24;
   const endHalfSpan = 52;
   const before = await pinchSnapshot(cdp, midpoint);
@@ -105,7 +105,7 @@ try {
 
   await captureScreenshot(cdp, join(outDir, 'touch-pinch-zoom-430x820.png'));
   writeFileSync(join(outDir, 'pinch-zoom-evidence.json'), `${JSON.stringify({
-    target, midpoint, startHalfSpan, endHalfSpan, drift, pseudoHint, before, during, after, afterFreshTap
+    target: pinchTarget, midpoint, startHalfSpan, endHalfSpan, drift, pseudoHint, before, during, after, afterFreshTap
   }, null, 2)}\n`);
   console.log(`Pinch zoom evidence: ${before.zoom.toFixed(3)}x -> ${during.zoom.toFixed(3)}x; midpoint drift ${drift.toFixed(4)} world px; authority unchanged; fresh tap +1 human`);
 } finally {
