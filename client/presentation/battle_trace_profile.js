@@ -55,7 +55,7 @@ export function battleTraceProfile({ totalLoss = 0, ageDays = 0, daysPerYear = 3
     radius: 5.5 + severity * 4.5,
     stroke: 0.9 + severity * 0.7,
     crossHalf: 2.8 + severity * 2.2,
-    dotRadius: 0.9 + severity * 0.55
+    dotRadius: Math.min(1.45, 0.9 + severity * 0.55)
   };
 }
 
