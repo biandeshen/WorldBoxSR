@@ -60,7 +60,7 @@ try {
   }
 
   const spawnPoint = await wolfSpawnPoint(cdp);
-  if (!spawnPoint) throw new Error('no visible clear Wolf spawn tile 2..searchRadius cells from living Grazer');
+  if (!spawnPoint) throw new Error('no visible clear Wolf spawn tile 2..searchRadius cells from a reachable living Grazer');
 
   const toolResult = await evaluate(cdp, `(() => {
     const tool = document.querySelector('#tool');
@@ -244,12 +244,35 @@ async function wolfSpawnPoint(cdpClient) {
     const camera = scene?.cameras?.main;
     if (!world || !camera) return null;
     const tileSize = 28;
+    const radius = world.config.wolfPreySearchRadius;
     const grazers = world.creatures.filter((creature) => creature.alive && creature.species === 'grazer');
     const occupied = new Set([
       ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive).map((entity) => entity.x + ',' + entity.y),
       ...world.creatures.filter((creature) => creature.alive).map((creature) => creature.x + ',' + creature.y),
       ...(world.warbands ?? []).filter((band) => band.active).map((band) => band.x + ',' + band.y)
     ]);
+    const passable = new Set(world.tiles.filter((tile) => tile.passable).map((tile) => tile.x + ',' + tile.y));
+    const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+    const manhattan = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    const chosenPrey = (tile) => grazers
+      .map((grazer) => ({ grazer, distance: distance(tile, grazer) }))
+      .filter((entry) => entry.distance <= radius)
+      .sort((a, b) => a.distance - b.distance || a.grazer.id - b.grazer.id)[0] ?? null;
+    const reducingStep = (tile, prey) => {
+      const currentDistance = distance(tile, prey);
+      const candidates = [];
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          if (dx === 0 && dy === 0) continue;
+          const next = { x: tile.x + dx, y: tile.y + dy };
+          if (!passable.has(next.x + ',' + next.y)) continue;
+          const nextDistance = distance(next, prey);
+          if (nextDistance >= currentDistance) continue;
+          candidates.push({ tile: next, distance: nextDistance, manhattan: manhattan(next, prey) });
+        }
+      }
+      return candidates.sort((a, b) => a.distance - b.distance || a.manhattan - b.manhattan || a.tile.y - b.tile.y || a.tile.x - b.tile.x)[0] ?? null;
+    };
     const screen = (tile) => {
       const worldX = (tile.x + 0.5) * tileSize;
       const worldY = (tile.y + 0.5) * tileSize;
@@ -257,16 +280,20 @@ async function wolfSpawnPoint(cdpClient) {
     };
     const candidates = world.tiles
       .filter((tile) => tile.passable && !occupied.has(tile.x + ',' + tile.y))
-      .map((tile) => ({
-        tile,
-        nearestGrazerDistance: grazers.reduce((min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))), Infinity)
-      }))
-      .filter(({ nearestGrazerDistance }) => nearestGrazerDistance >= 2 && nearestGrazerDistance <= world.config.wolfPreySearchRadius)
-      .map(({ tile, nearestGrazerDistance }) => ({ tile, nearestGrazerDistance, point: screen(tile) }))
+      .map((tile) => ({ tile, prey: chosenPrey(tile) }))
+      .filter(({ prey }) => prey && prey.distance >= 2 && prey.distance <= radius)
+      .map(({ tile, prey }) => ({ tile, prey, firstStep: reducingStep(tile, prey.grazer), point: screen(tile) }))
+      .filter(({ firstStep }) => firstStep)
       .filter(({ point }) => point.x >= 30 && point.x <= 1120 && point.y >= 75 && point.y <= 790)
-      .sort((a, b) => b.nearestGrazerDistance - a.nearestGrazerDistance || a.tile.y - b.tile.y || a.tile.x - b.tile.x);
+      .sort((a, b) => a.prey.distance - b.prey.distance || a.tile.y - b.tile.y || a.tile.x - b.tile.x);
     const chosen = candidates[0];
-    return chosen ? { x: chosen.point.x, y: chosen.point.y, tileX: chosen.tile.x, tileY: chosen.tile.y, nearestGrazerDistance: chosen.nearestGrazerDistance } : null;
+    return chosen ? {
+      x: chosen.point.x,
+      y: chosen.point.y,
+      tileX: chosen.tile.x,
+      tileY: chosen.tile.y,
+      nearestGrazerDistance: chosen.prey.distance
+    } : null;
   })()`);
 }
 
