@@ -1,3 +1,5 @@
+import { currentAccessibilityPreferences } from './accessibility_preferences.js';
+
 let context = null;
 
 export function soundRecipe(effect) {
@@ -30,6 +32,7 @@ export function soundRecipe(effect) {
 }
 
 export function playToolSound(effect) {
+  if (currentAccessibilityPreferences().muteSound) return false;
   const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AudioContextCtor) return false;
 
