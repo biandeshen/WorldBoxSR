@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const runtimePath = fileURLToPath(new URL('../client/presentation/pinch_zoom_runtime.js', import.meta.url));
 const touchRuntimePath = fileURLToPath(new URL('../client/presentation/touch_inspect_runtime.js', import.meta.url));
+const mobileCssPath = fileURLToPath(new URL('../client/mobile_hud.css', import.meta.url));
 const indexPath = fileURLToPath(new URL('../client/index.html', import.meta.url));
 
 test('pinch runtime reuses existing camera bounds and never wraps tool authority', () => {
@@ -33,10 +34,12 @@ test('pinch preserves live midpoint focus and suppresses remaining finger until 
   assert.match(source, /state\.suppressUntilClear = false/);
 });
 
-test('coarse pointer hint exposes pinch while desktop markup remains untouched', () => {
-  const source = readFileSync(runtimePath, 'utf8');
-  assert.match(source, /matchMedia\?\.\('\(hover: none\) and \(pointer: coarse\)'\)/);
-  assert.match(source, /Tap: tool · Hold: inspect · Drag: pan · Pinch: zoom/);
+test('coarse pointer presentation appends pinch without rewriting existing touch hint truth', () => {
+  const runtime = readFileSync(runtimePath, 'utf8');
+  const css = readFileSync(mobileCssPath, 'utf8');
+  assert.doesNotMatch(runtime, /hint\.textContent/, 'pinch runtime should not own the existing touch hint text');
+  assert.match(css, /@media \(max-width: 650px\) and \(hover: none\) and \(pointer: coarse\)/);
+  assert.match(css, /#hint::after \{ content: ' · Pinch: zoom'; \}/);
 });
 
 test('production shell loads pinch after touch inspector so the cancellation seam exists', () => {
