@@ -94,13 +94,13 @@ export function meteorImpactMemoryProfile({ recoveryRatio = 1, ageDays = 0, days
 
   const deficit = 1 - recovery;
   const ageFade = clamp01(1 - age / maxAgeDays);
-  const alpha = (0.07 + deficit * 0.23) * (0.38 + ageFade * 0.62);
+  const alpha = Math.min(0.3, (0.07 + deficit * 0.23) * (0.38 + ageFade * 0.62));
   return {
     visible: alpha >= 0.04,
     alpha,
-    lineWidth: 1 + deficit * 0.8,
+    lineWidth: Math.min(1.8, 1 + deficit * 0.8),
     centerAlpha: Math.min(0.32, alpha + 0.055),
-    cornerRatio: 0.1 + deficit * 0.08
+    cornerRatio: Math.min(0.18, 0.1 + deficit * 0.08)
   };
 }
 
