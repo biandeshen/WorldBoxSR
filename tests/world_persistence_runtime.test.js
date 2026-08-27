@@ -22,6 +22,15 @@ test('restoring a local world invalidates stale generation, installs paused and 
   assert.match(source, /local world restored · paused/);
 });
 
+test('startup restore guards a not-yet-entered stale showcase warmup before it can touch the replacement world', () => {
+  const source = readFileSync(runtimePath, 'utf8');
+  assert.match(source, /guardStaleShowcaseWarmup\(scene\)/);
+  assert.match(source, /originalFinishShowcaseWarmup = scene\.finishShowcaseWarmup\?\.bind\(scene\)/);
+  assert.match(source, /scene\.finishShowcaseWarmup = \(token, seed\) =>/);
+  assert.match(source, /if \(token !== scene\.worldGeneration\) return Promise\.resolve\(\)/, 'stale scheduled warmup must stop before entering the original warmup');
+  assert.match(source, /return originalFinishShowcaseWarmup\(token, seed\)/);
+});
+
 test('page-hide final flush cannot create the first local checkpoint on a short visit', () => {
   const source = readFileSync(runtimePath, 'utf8');
   assert.match(source, /armed: false/, 'fresh visit must begin unarmed');
