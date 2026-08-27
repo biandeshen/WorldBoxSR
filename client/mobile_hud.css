@@ -53,4 +53,5 @@
     font-size: 8px;
     white-space: nowrap;
   }
+  #hint::after { content: ' · Pinch: zoom'; }
 }
