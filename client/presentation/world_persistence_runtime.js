@@ -28,6 +28,7 @@ function attachWhenReady() {
 
   const state = {
     attached: true,
+    armed: false,
     lastSavedAt: null,
     lastSavedBytes: null,
     startupRestoreAttempted: false,
@@ -38,14 +39,15 @@ function attachWhenReady() {
   saveButton?.addEventListener('click', () => saveCurrentWorld(scene, state, { announce: true }));
   restoreButton?.addEventListener('click', () => restoreSavedWorld(scene, state, { announce: true }));
   clearButton?.addEventListener('click', () => clearSavedWorld(scene, state));
-  globalThis.addEventListener?.('pagehide', () => saveCurrentWorld(scene, state, { announce: false }));
+  globalThis.addEventListener?.('pagehide', () => flushArmedWorld(scene, state));
   document.addEventListener?.('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveCurrentWorld(scene, state, { announce: false });
+    if (document.visibilityState === 'hidden') flushArmedWorld(scene, state);
   });
   globalThis.addEventListener?.(WORLD_REPLACED_EVENT, () => renderPersistenceState(scene, state));
 
   attemptStartupRestore(scene, state);
   renderPersistenceState(scene, state);
+  window.setTimeout(() => renderPersistenceState(scene, state), 120);
   state.timer = window.setInterval(() => saveCurrentWorld(scene, state, { announce: false }), AUTOSAVE_INTERVAL_MS);
 }
 
@@ -64,6 +66,7 @@ function attemptStartupRestore(scene, state) {
   }
   if (!saved) return;
 
+  state.armed = true;
   installSavedWorld(scene, state, saved, { announce: true, startup: true });
 }
 
@@ -81,6 +84,7 @@ function installSavedWorld(scene, state, saved, { announce = false, startup = fa
   if (presetSelect) presetSelect.value = saved.preset;
   scene.installReadyWorld(saved.world, { paused: true });
   if (bootStatus) bootStatus.textContent = 'Phaser 4 · authoritative simulation · local world restored · paused';
+  state.armed = true;
   state.lastSavedAt = saved.savedAt;
   globalThis.__WORLDBOXSR_LOCAL_SAVE_RESTORED__ = {
     savedAt: saved.savedAt,
@@ -106,6 +110,7 @@ function saveCurrentWorld(scene, state, { announce = false } = {}) {
       preset: presetSelect?.value || 'sandbox',
       savedAt
     });
+    state.armed = true;
     state.lastSavedAt = savedAt;
     state.lastSavedBytes = result.bytes;
     delete globalThis.__WORLDBOXSR_LOCAL_SAVE_ERROR__;
@@ -118,6 +123,11 @@ function saveCurrentWorld(scene, state, { announce = false } = {}) {
     if (announce) scene.showToast?.(`Save failed: ${error?.message || error}`);
     return false;
   }
+}
+
+function flushArmedWorld(scene, state) {
+  if (!state.armed) return false;
+  return saveCurrentWorld(scene, state, { announce: false });
 }
 
 function restoreSavedWorld(scene, state, { announce = false } = {}) {
@@ -133,6 +143,7 @@ function restoreSavedWorld(scene, state, { announce = false } = {}) {
       renderPersistenceState(scene, state);
       return false;
     }
+    state.armed = true;
     return installSavedWorld(scene, state, saved, { announce, startup: false });
   } catch (error) {
     globalThis.__WORLDBOXSR_LOCAL_SAVE_ERROR__ = `Saved world rejected: ${error?.message || error}`;
@@ -145,6 +156,7 @@ function restoreSavedWorld(scene, state, { announce = false } = {}) {
 function clearSavedWorld(scene, state) {
   try {
     clearLocalWorldSave(globalThis.localStorage);
+    state.armed = false;
     state.lastSavedAt = null;
     state.lastSavedBytes = null;
     delete globalThis.__WORLDBOXSR_LOCAL_SAVE_ERROR__;
@@ -165,6 +177,15 @@ function ordinaryWorldAvailable(scene) {
 
 function renderPersistenceState(scene, state) {
   if (!panel) return;
+  const scenarioReady = Boolean(scene.scenarioSetup?.attached);
+  if (!scenarioReady) {
+    saveButton && (saveButton.disabled = true);
+    restoreButton && (restoreButton.disabled = true);
+    clearButton && (clearButton.disabled = true);
+    setStatus('Autosave initializing…', 'idle');
+    return;
+  }
+
   const ordinary = ordinaryWorldAvailable(scene);
   saveButton && (saveButton.disabled = !ordinary || Boolean(scene.booting));
   const saved = safeReadSave();
@@ -185,7 +206,7 @@ function renderPersistenceState(scene, state) {
     setStatus(`Autosave ready · year ${worldYear(saved.world).toFixed(1)} · ${age}${size}`, 'ready');
     return;
   }
-  setStatus(scene.booting ? 'Autosave starts when this world is ready' : 'Autosave ready · no local save yet', 'idle');
+  setStatus(scene.booting ? 'Autosave starts when this world is ready' : 'Autosave ready · first checkpoint in ≤30s', 'idle');
 }
 
 function safeReadSave() {
