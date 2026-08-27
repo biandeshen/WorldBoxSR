@@ -1,5 +1,6 @@
 import { polityColor } from './polity_style.js';
 import { settlementAmbientPose } from './settlement_ambient.js';
+import { settlementRuinsProfile } from './settlement_ruins_profile.js';
 import { populationTier, settlementVisualProfile } from './settlement_visual_profile.js';
 
 export class SettlementLayer {
@@ -14,13 +15,19 @@ export class SettlementLayer {
     const activeIds = new Set();
     for (const settlement of view.settlements) {
       activeIds.add(settlement.id);
-      const signature = settlementSignature(settlement);
+      const ruinsProfile = settlementRuinsProfile({
+        active: settlement.active,
+        abandonedDay: settlement.abandonedDay,
+        worldDay: view.day,
+        daysPerYear: view.daysPerYear
+      });
+      const signature = settlementSignature(settlement, ruinsProfile);
       const current = this.visuals.get(settlement.id);
       if (current?.signature === signature) continue;
       if (current) destroyContainer(current.container);
       this.visuals.set(settlement.id, {
         signature,
-        ...createSettlementVisual(this.scene, settlement, this.tileSize)
+        ...createSettlementVisual(this.scene, settlement, this.tileSize, ruinsProfile)
       });
     }
     for (const [id, visual] of this.visuals) {
@@ -40,11 +47,15 @@ export class SettlementLayer {
   }
 }
 
-function settlementSignature(settlement) {
-  return [settlement.name, settlement.active ? 'active' : 'abandoned', populationTier(settlement.population), settlement.population, settlement.polityId ?? 'none', settlement.polityName ?? 'none', settlement.polityColorIndex ?? 'none', settlement.polityBannerStyle ?? 'none', settlement.rulerId ?? 'vacant', settlement.isCapital ? 'capital' : 'member', settlement.relationStance ?? 'none', settlement.atWar ? 'war' : 'peace'].join('|');
+function settlementSignature(settlement, ruinsProfile) {
+  const sizeSignature = settlement.active ? populationTier(settlement.population) : 'ruins';
+  const lifecycleSignature = settlement.active ? 'active' : `abandoned:${ruinsProfile.ageBand}:${ruinsProfile.ageLabel}`;
+  return [settlement.name, lifecycleSignature, sizeSignature, settlement.active ? settlement.population : 0, settlement.polityId ?? 'none', settlement.polityName ?? 'none', settlement.polityColorIndex ?? 'none', settlement.polityBannerStyle ?? 'none', settlement.rulerId ?? 'vacant', settlement.isCapital ? 'capital' : 'member', settlement.relationStance ?? 'none', settlement.atWar ? 'war' : 'peace'].join('|');
 }
 
-function createSettlementVisual(scene, settlement, tileSize) {
+function createSettlementVisual(scene, settlement, tileSize, ruinsProfile) {
+  if (!settlement.active) return createSettlementRuinsVisual(scene, settlement, tileSize, ruinsProfile);
+
   const x = (settlement.x + 0.5) * tileSize;
   const y = (settlement.y + 0.5) * tileSize;
   const scale = Math.max(0.86, tileSize / 24);
@@ -170,6 +181,56 @@ function createSettlementVisual(scene, settlement, tileSize) {
     tier,
     bannerMotion,
     smokeMotion
+  };
+}
+
+function createSettlementRuinsVisual(scene, settlement, tileSize, ruinsProfile) {
+  const x = (settlement.x + 0.5) * tileSize;
+  const y = (settlement.y + 0.5) * tileSize;
+  const scale = Math.max(0.86, tileSize / 24);
+  const children = [];
+
+  const foundation = scene.add.ellipse(0, 4, 31, 19, 0x565550, ruinsProfile.foundationAlpha)
+    .setStrokeStyle(1.1, 0xaaa28f, Math.min(0.42, ruinsProfile.foundationAlpha + 0.1));
+  const shadow = scene.add.ellipse(1, 7, 24, 7, 0x071015, 0.2);
+  const leftWall = scene.add.rectangle(-6.5, 0.5, 6.5, 7, 0x7c776d, ruinsProfile.stoneAlpha).setAngle(-5);
+  const rightWall = scene.add.rectangle(6.8, 2.2, 5.8, 5.2, 0x68665f, ruinsProfile.stoneAlpha * 0.9).setAngle(7);
+  const rearStone = scene.add.rectangle(1, -4.5, 7.5, 3.2, 0x898174, ruinsProfile.stoneAlpha * 0.74).setAngle(-4);
+  const fallenStone = scene.add.rectangle(-0.5, 6.2, 8.5, 2.6, 0x625f59, ruinsProfile.stoneAlpha * 0.8).setAngle(4);
+  const beam = scene.add.rectangle(2, -1.2, 13, 2.1, 0x554538, ruinsProfile.beamAlpha).setAngle(19);
+  const rubbleA = scene.add.rectangle(-10, 5.5, 3, 2.2, 0x716e66, ruinsProfile.stoneAlpha * 0.68).setAngle(-12);
+  const rubbleB = scene.add.rectangle(10.2, 5.8, 2.6, 2, 0x716e66, ruinsProfile.stoneAlpha * 0.62).setAngle(15);
+  children.push(foundation, shadow, leftWall, rightWall, rearStone, fallenStone, beam, rubbleA, rubbleB);
+
+  const label = scene.add.text(0, -18, settlement.name, {
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+    fontSize: '10px',
+    fontStyle: 'bold',
+    color: '#c2baaa',
+    stroke: '#10151c',
+    strokeThickness: 3,
+    align: 'center'
+  }).setOrigin(0.5, 1).setAlpha(ruinsProfile.labelAlpha);
+  const age = scene.add.text(0, -15, `RUINS · ${ruinsProfile.ageLabel}`, {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    fontSize: '8px',
+    color: '#9f988b',
+    stroke: '#10151c',
+    strokeThickness: 2,
+    align: 'center'
+  }).setOrigin(0.5, 0).setAlpha(ruinsProfile.labelAlpha);
+  children.push(label, age);
+
+  const container = scene.add.container(x, y, children);
+  container.setScale(scale);
+  container.setDepth(20 + y / Math.max(1, tileSize));
+  return {
+    container,
+    settlementId: settlement.id,
+    active: false,
+    tier: 0,
+    bannerMotion: null,
+    smokeMotion: null
   };
 }
 
