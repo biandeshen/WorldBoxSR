@@ -5,7 +5,7 @@ const outputDir = path.resolve('.pages');
 const indexPath = path.join(outputDir, 'index.html');
 const playIndexPath = path.join(outputDir, 'play', 'index.html');
 const assetsDir = path.join(outputDir, 'assets');
-const PHASER_APP_MAX_BYTES = 500_000;
+const PHASER_APP_MAX_BYTES = 300_000;
 
 const [html, playHtml, assets, sourceRoot, sourcePlay] = await Promise.all([
   readFile(indexPath, 'utf8'),
