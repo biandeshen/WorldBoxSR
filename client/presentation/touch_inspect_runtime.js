@@ -77,7 +77,7 @@ function commitTouchInspect(scene, state) {
   const intent = touchInspectIntent({
     touch: isTouchPointer(pointer),
     isDown: Boolean(pointer.isDown),
-    elapsedMs: performance.now() - state.startedAt,
+    elapsedMs: Math.max(TOUCH_INSPECT_HOLD_MS, performance.now() - state.startedAt),
     distancePx,
     holdMs: TOUCH_INSPECT_HOLD_MS,
     moveThresholdPx: TOUCH_INSPECT_MOVE_THRESHOLD_PX
