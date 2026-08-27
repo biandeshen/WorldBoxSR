@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { visibleWarbandSoldiers, warbandVisualProfile } from '../client/presentation/warband_visual_profile.js';
+import { visibleWarbandSoldiers, warbandObjectiveCue, warbandVisualProfile } from '../client/presentation/warband_visual_profile.js';
 
 test('warband strength maps monotonically to zero through five visible soldiers', () => {
   const cases = [
@@ -54,4 +54,42 @@ test('invalid profile inputs collapse safely without inventing soldiers', () => 
   assert.equal(profile.soldierCount, 0);
   assert.equal(profile.formation, 'mobilized');
   assert.deepEqual(profile.offsets, []);
+});
+
+test('marching objective cue points toward the recorded target without claiming a route', () => {
+  const cue = warbandObjectiveCue({ x: 2, y: 3, targetX: 8, targetY: 11, movementState: 'marching', tileSize: 28 });
+  assert.equal(cue.visible, true);
+  assert.ok(Math.abs(cue.targetTileDistance - 10) < 1e-12);
+  assert.ok(Math.abs(cue.directionX - 0.6) < 1e-12);
+  assert.ok(Math.abs(cue.directionY - 0.8) < 1e-12);
+  assert.ok(Math.abs(Math.hypot(cue.directionX, cue.directionY) - 1) < 1e-12);
+  assert.ok(cue.arrowStart > 12 && cue.arrowStart < 14);
+  assert.ok(cue.arrowEnd > 27 && cue.arrowEnd < 28);
+  assert.ok(cue.arrowHead > 5 && cue.arrowHead < 6);
+  assert.ok(cue.targetRadius > 11 && cue.targetRadius < 12);
+  assert.ok(cue.arrowAlpha > cue.targetAlpha);
+});
+
+test('mobilized objective remains subtler than marching while preserving the same truth direction', () => {
+  const mobilized = warbandObjectiveCue({ x: 1, y: 1, targetX: 5, targetY: 1, movementState: 'mobilized' });
+  const marching = warbandObjectiveCue({ x: 1, y: 1, targetX: 5, targetY: 1, movementState: 'marching' });
+  assert.equal(mobilized.visible, true);
+  assert.equal(mobilized.directionX, 1);
+  assert.equal(mobilized.directionY, 0);
+  assert.equal(marching.directionX, mobilized.directionX);
+  assert.equal(marching.directionY, mobilized.directionY);
+  assert.ok(mobilized.arrowAlpha < marching.arrowAlpha);
+  assert.ok(mobilized.targetAlpha < marching.targetAlpha);
+});
+
+test('engaged, missing-target and zero-distance objective cues hide exactly', () => {
+  const engaged = warbandObjectiveCue({ x: 2, y: 2, targetX: 7, targetY: 7, movementState: 'engaged', engaged: true });
+  const missing = warbandObjectiveCue({ x: 2, y: 2, targetX: null, targetY: 7, movementState: 'marching' });
+  const arrived = warbandObjectiveCue({ x: 2, y: 2, targetX: 2, targetY: 2, movementState: 'marching' });
+  for (const cue of [engaged, missing, arrived]) {
+    assert.equal(cue.visible, false);
+    assert.equal(cue.arrowAlpha, 0);
+    assert.equal(cue.targetAlpha, 0);
+    assert.equal(cue.targetRadius, 0);
+  }
 });
