@@ -3,6 +3,7 @@ import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+const WOLF_SPAWN_TILE = Object.freeze({ x: 11, y: 0 });
 const [browser, baseUrl, outDir] = process.argv.slice(2);
 if (!browser || !baseUrl || !outDir) {
   console.error('usage: node tools/capture-wolf-predation-evidence.mjs <browser> <base-url> <out-dir>');
@@ -59,8 +60,17 @@ try {
     throw new Error(`unexpected Wolf predation setup: ${JSON.stringify(setup)}`);
   }
 
-  const spawnPoint = await wolfSpawnPoint(cdp);
-  if (!spawnPoint) throw new Error('no visible clear Wolf spawn tile 2..searchRadius cells from living Grazer');
+  let spawnPoint = await fixedWolfSpawnPoint(cdp);
+  if (!spawnPoint) throw new Error(`canonical Wolf spawn tile ${WOLF_SPAWN_TILE.x},${WOLF_SPAWN_TILE.y} is no longer a clear passable Y40 start near living Grazer authority`);
+  if (!spawnPoint.clickable) {
+    // The world-first desktop camera intentionally renders the top rows beneath
+    // the translucent topbar. Use the shipped wheel-zoom input to expose the
+    // same v0.6 Y40 canonical Wolf start for a real pointer click instead of
+    // changing world state or choosing a different ecology trajectory.
+    await wheelAt(cdp, { x: 720, y: 450 }, 180);
+    spawnPoint = await fixedWolfSpawnPoint(cdp);
+  }
+  if (!spawnPoint?.clickable) throw new Error(`canonical Wolf spawn tile ${WOLF_SPAWN_TILE.x},${WOLF_SPAWN_TILE.y} could not be exposed through ordinary camera zoom`);
 
   const toolResult = await evaluate(cdp, `(() => {
     const tool = document.querySelector('#tool');
@@ -205,6 +215,10 @@ try {
       hunger: spawned.hunger,
       grazers: spawned.grazers
     },
+    ordinaryCameraExposure: {
+      wheelZoomUsed: spawnPoint.cameraAdjusted,
+      canonicalTile: [WOLF_SPAWN_TILE.x, WOLF_SPAWN_TILE.y]
+    },
     ordinaryTimeControl: { daysPerStep: 1 },
     firstMovement: firstMove,
     predation: {
@@ -237,36 +251,36 @@ try {
   catch (error) { console.warn(`Could not fully remove temporary Chrome profile ${userDataDir}: ${error?.message || error}`); }
 }
 
-async function wolfSpawnPoint(cdpClient) {
+async function fixedWolfSpawnPoint(cdpClient) {
   return evaluate(cdpClient, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const world = scene?.world;
     const camera = scene?.cameras?.main;
     if (!world || !camera) return null;
     const tileSize = 28;
+    const tile = world.tiles.find((candidate) => candidate.x === ${WOLF_SPAWN_TILE.x} && candidate.y === ${WOLF_SPAWN_TILE.y});
+    if (!tile?.passable) return null;
+    const occupied = [
+      ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive),
+      ...world.creatures.filter((creature) => creature.alive),
+      ...(world.warbands ?? []).filter((band) => band.active)
+    ].some((entry) => entry.x === tile.x && entry.y === tile.y);
+    if (occupied) return null;
     const grazers = world.creatures.filter((creature) => creature.alive && creature.species === 'grazer');
-    const occupied = new Set([
-      ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive).map((entity) => entity.x + ',' + entity.y),
-      ...world.creatures.filter((creature) => creature.alive).map((creature) => creature.x + ',' + creature.y),
-      ...(world.warbands ?? []).filter((band) => band.active).map((band) => band.x + ',' + band.y)
-    ]);
-    const screen = (tile) => {
-      const worldX = (tile.x + 0.5) * tileSize;
-      const worldY = (tile.y + 0.5) * tileSize;
-      return { x: camera.x + (worldX - camera.worldView.x) * camera.zoom, y: camera.y + (worldY - camera.worldView.y) * camera.zoom };
+    const nearestGrazerDistance = grazers.reduce((min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))), Infinity);
+    if (!(nearestGrazerDistance >= 2 && nearestGrazerDistance <= world.config.wolfPreySearchRadius)) return null;
+    const worldX = (tile.x + 0.5) * tileSize;
+    const worldY = (tile.y + 0.5) * tileSize;
+    const x = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+    const y = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+    return {
+      x,
+      y,
+      tileX: tile.x,
+      tileY: tile.y,
+      nearestGrazerDistance,
+      clickable: x >= 30 && x <= 1120 && y >= 75 && y <= 790
     };
-    const candidates = world.tiles
-      .filter((tile) => tile.passable && !occupied.has(tile.x + ',' + tile.y))
-      .map((tile) => ({
-        tile,
-        nearestGrazerDistance: grazers.reduce((min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))), Infinity)
-      }))
-      .filter(({ nearestGrazerDistance }) => nearestGrazerDistance >= 2 && nearestGrazerDistance <= world.config.wolfPreySearchRadius)
-      .map(({ tile, nearestGrazerDistance }) => ({ tile, nearestGrazerDistance, point: screen(tile) }))
-      .filter(({ point }) => point.x >= 30 && point.x <= 1120 && point.y >= 75 && point.y <= 790)
-      .sort((a, b) => b.nearestGrazerDistance - a.nearestGrazerDistance || a.tile.y - b.tile.y || a.tile.x - b.tile.x);
-    const chosen = candidates[0];
-    return chosen ? { x: chosen.point.x, y: chosen.point.y, tileX: chosen.tile.x, tileY: chosen.tile.y, nearestGrazerDistance: chosen.nearestGrazerDistance } : null;
   })()`);
 }
 
@@ -320,6 +334,15 @@ async function clickPoint(cdpClient, point, modifiers) {
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, modifiers });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers });
+}
+
+async function wheelAt(cdpClient, point, deltaY) {
+  await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y });
+  await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: point.x, y: point.y, deltaX: 0, deltaY });
+  await delay(180);
+  const adjusted = await fixedWolfSpawnPoint(cdpClient);
+  if (adjusted) adjusted.cameraAdjusted = true;
+  return adjusted;
 }
 
 async function elementCenter(cdpClient, selector) {
