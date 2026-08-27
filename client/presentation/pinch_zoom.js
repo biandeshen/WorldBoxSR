@@ -21,11 +21,37 @@ export function pinchZoom({ startZoom, startDistance, currentDistance, minZoom =
   return clamp(startZoom * (currentDistance / startDistance), min, max);
 }
 
-export function focusPreservingScroll({ scrollX, scrollY, worldBefore, worldAfter } = {}) {
-  if (!Number.isFinite(scrollX) || !Number.isFinite(scrollY) || !finitePoint(worldBefore) || !finitePoint(worldAfter)) return null;
+// Phaser 4 rebuilds Camera.matrixCombined during preRender, not synchronously
+// inside setZoom(). Therefore pinch focus cannot safely call getWorldPoint()
+// both before and immediately after setZoom(). Instead, solve the public camera
+// transform directly: keep one known world point under one screen point at the
+// new zoom, then let the existing camera bounds clamp that desired scroll.
+export function focusPreservingScroll({
+  worldPoint,
+  screenPoint,
+  viewportX = 0,
+  viewportY = 0,
+  viewportWidth,
+  viewportHeight,
+  originX = 0.5,
+  originY = 0.5,
+  zoom
+} = {}) {
+  if (!finitePoint(worldPoint) || !finitePoint(screenPoint)) return null;
+  if (!Number.isFinite(viewportX) || !Number.isFinite(viewportY)) return null;
+  if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) return null;
+  if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) return null;
+  if (!Number.isFinite(originX) || !Number.isFinite(originY)) return null;
+  if (!Number.isFinite(zoom) || zoom <= 0) return null;
+
+  const originPxX = viewportWidth * originX;
+  const originPxY = viewportHeight * originY;
+  const localX = screenPoint.x - viewportX;
+  const localY = screenPoint.y - viewportY;
+
   return {
-    x: scrollX + worldBefore.x - worldAfter.x,
-    y: scrollY + worldBefore.y - worldAfter.y
+    x: worldPoint.x - originPxX - ((localX - originPxX) / zoom),
+    y: worldPoint.y - originPxY - ((localY - originPxY) / zoom)
   };
 }
 
