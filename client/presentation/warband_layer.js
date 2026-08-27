@@ -1,3 +1,4 @@
+import { battleTraceProfile } from './battle_trace_profile.js';
 import { polityColor } from './polity_style.js';
 import { warbandObjectiveCue, warbandVisualProfile } from './warband_visual_profile.js';
 
@@ -6,9 +7,11 @@ export class WarbandLayer {
     this.scene = scene;
     this.tileSize = tileSize;
     this.warbands = new Map();
+    this.battleTraceGraphics = scene.add.graphics().setDepth(19.2);
   }
 
   sync(view, now, duration = 180) {
+    drawBattleTraces(this.battleTraceGraphics, view.recentBattles ?? [], view.daysPerYear, this.tileSize);
     const active = new Set();
     const settlementById = new Map((view.settlements ?? []).map((settlement) => [settlement.id, settlement]));
     for (const warband of view.warbands ?? []) {
@@ -65,6 +68,7 @@ export class WarbandLayer {
   }
 
   destroy() {
+    this.battleTraceGraphics.destroy();
     for (const visual of this.warbands.values()) destroyVisual(visual);
     this.warbands.clear();
   }
@@ -154,6 +158,30 @@ function updateWarbandState(visual, warband, targetSettlement, tileSize) {
     soldier.x = offset.x;
     soldier.y = offset.y;
     drawSoldier(soldier, color, index, visual.engaged, profile.casualtyRatio);
+  }
+}
+
+function drawBattleTraces(graphics, traces, daysPerYear, tileSize) {
+  graphics.clear();
+  if (!Array.isArray(traces) || traces.length === 0) return;
+  const scale = Math.max(0.84, tileSize / 24);
+  const chronological = [...traces].reverse();
+  for (const trace of chronological) {
+    const profile = battleTraceProfile({ totalLoss: trace.totalLoss, ageDays: trace.ageDays, daysPerYear });
+    if (!profile.visible) continue;
+    const center = tileCenter(trace.x, trace.y, tileSize);
+    const radius = profile.radius * scale;
+    const crossHalf = profile.crossHalf * scale;
+    const dotRadius = profile.dotRadius * scale;
+
+    graphics.lineStyle(profile.stroke * scale, 0xa46855, profile.alpha);
+    graphics.strokeEllipse(center.x, center.y + scale, radius * 2.15, radius * 1.32);
+    graphics.lineStyle(Math.max(1, profile.stroke * 0.9) * scale, 0xd3ad7b, Math.min(0.38, profile.alpha + 0.07));
+    graphics.lineBetween(center.x - crossHalf, center.y - crossHalf, center.x + crossHalf, center.y + crossHalf);
+    graphics.lineBetween(center.x + crossHalf, center.y - crossHalf, center.x - crossHalf, center.y + crossHalf);
+    graphics.fillStyle(0xc38d67, Math.min(0.3, profile.alpha * 0.84));
+    graphics.fillCircle(center.x - radius * 0.72, center.y + radius * 0.38, dotRadius);
+    graphics.fillCircle(center.x + radius * 0.66, center.y + radius * 0.28, dotRadius * 0.82);
   }
 }
 
