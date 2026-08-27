@@ -27,3 +27,4 @@ for _ in $(seq 1 50); do
 done
 curl --silent --show-error --fail "$base_url" >/dev/null
 node tools/capture-touch-inspect-evidence.mjs "$browser" "$base_url" "$out_dir"
+node tools/capture-pinch-zoom-evidence.mjs "$browser" "$base_url" "$out_dir"
