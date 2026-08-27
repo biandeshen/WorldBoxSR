@@ -49,10 +49,15 @@ const PROFILES = Object.freeze([
   })
 ]);
 
+// Presentation-only scale bands. Current supported worlds commonly have
+// single-digit settlement populations, so the former 10/25/45 thresholds kept
+// nearly every visible polity on the smallest art forever. These bands change
+// no settlement authority or mechanics; they only make existing population
+// differences readable at the current simulation scale.
 export function populationTier(population) {
-  if (population >= 45) return 4;
-  if (population >= 25) return 3;
-  if (population >= 10) return 2;
+  if (population >= 20) return 4;
+  if (population >= 10) return 3;
+  if (population >= 5) return 2;
   return 1;
 }
 
