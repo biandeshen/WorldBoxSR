@@ -53,6 +53,32 @@ try {
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
   await waitForExpression(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.touchInspect?.attached === true`, 8_000);
 
+  const mobileHud = await mobileHudSnapshot(cdp);
+  if (mobileHud.documentScrollWidth > mobileHud.viewportWidth + 0.5) {
+    throw new Error(`mobile document overflows horizontally: ${mobileHud.documentScrollWidth} > ${mobileHud.viewportWidth}`);
+  }
+  if (mobileHud.topbar.left < -0.5 || mobileHud.topbar.right > mobileHud.viewportWidth + 0.5) {
+    throw new Error(`mobile topbar escapes viewport: ${JSON.stringify(mobileHud.topbar)}`);
+  }
+  if (mobileHud.row.left < -0.5 || mobileHud.row.right > mobileHud.viewportWidth + 0.5) {
+    throw new Error(`mobile control strip escapes viewport: ${JSON.stringify(mobileHud.row)}`);
+  }
+  if (mobileHud.brandDisplay !== 'none') throw new Error(`mobile brand still consumes compact-strip width: ${mobileHud.brandDisplay}`);
+  for (const [name, control] of Object.entries(mobileHud.primaryControls)) {
+    if (!control.visibleInViewport) throw new Error(`primary mobile control ${name} is not initially visible: ${JSON.stringify(control)}`);
+  }
+  for (const [name, control] of Object.entries(mobileHud.reachableControls)) {
+    if (!control.present || control.display === 'none' || control.width <= 0) {
+      throw new Error(`mobile control ${name} is no longer reachable: ${JSON.stringify(control)}`);
+    }
+  }
+  if (mobileHud.hint.display === 'none' || !mobileHud.hint.visible) {
+    throw new Error(`coarse-pointer touch hint is not visible: ${JSON.stringify(mobileHud.hint)}`);
+  }
+  if (mobileHud.hint.text !== 'Tap: use selected tool · Hold: inspect · Drag: pan') {
+    throw new Error(`unexpected touch hint: ${mobileHud.hint.text}`);
+  }
+
   const paused = await evaluate(cdp, `(() => {
     const pause = document.querySelector('#pause');
     if (!pause) throw new Error('missing #pause');
@@ -124,13 +150,70 @@ try {
   }
 
   await captureScreenshot(cdp, join(outDir, 'touch-long-press-inspect-430x820.png'));
-  writeFileSync(join(outDir, 'touch-inspect-evidence.json'), `${JSON.stringify({ target: targetPoint, before, afterTap, duringHold, afterHold }, null, 2)}\n`);
-  console.log(`Touch inspect evidence: ${targetPoint.x},${targetPoint.y}; short tap +1 human; hold inspected with command ${afterHold.nextCommandId} unchanged`);
+  writeFileSync(join(outDir, 'touch-inspect-evidence.json'), `${JSON.stringify({ mobileHud, target: targetPoint, before, afterTap, duringHold, afterHold }, null, 2)}\n`);
+  console.log(
+    `Touch/mobile HUD evidence: topbar ${mobileHud.topbar.width.toFixed(1)}px in ${mobileHud.viewportWidth}px; `
+    + `${targetPoint.x},${targetPoint.y}; short tap +1 human; hold command ${afterHold.nextCommandId} unchanged`
+  );
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
   closeSync(logFd);
   try { rmSync(userDataDir, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 }); } catch {}
+}
+
+async function mobileHudSnapshot(cdpClient) {
+  return evaluate(cdpClient, `(() => {
+    const rect = (element) => {
+      if (!element) return null;
+      const box = element.getBoundingClientRect();
+      return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+    };
+    const control = (id) => {
+      const element = document.querySelector(id);
+      if (!element) return { present: false, display: 'missing', width: 0, visibleInViewport: false };
+      const box = element.getBoundingClientRect();
+      const display = getComputedStyle(element).display;
+      return {
+        present: true,
+        display,
+        width: box.width,
+        left: box.left,
+        right: box.right,
+        visibleInViewport: display !== 'none' && box.width > 0 && box.left >= -0.5 && box.right <= innerWidth + 0.5
+      };
+    };
+    const topbar = document.querySelector('#topbar');
+    const row = document.querySelector('#row');
+    const hint = document.querySelector('#hint');
+    const hintBox = hint?.getBoundingClientRect?.();
+    return {
+      viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      topbar: rect(topbar),
+      row: { ...rect(row), clientWidth: row?.clientWidth ?? 0, scrollWidth: row?.scrollWidth ?? 0, scrollLeft: row?.scrollLeft ?? 0 },
+      brandDisplay: getComputedStyle(document.querySelector('.brand')).display,
+      primaryControls: {
+        pause: control('#pause'),
+        view: control('#reset-camera'),
+        world: control('#reset')
+      },
+      reachableControls: {
+        mode: control('#world-preset'),
+        seed: control('#seed'),
+        time: control('#speed'),
+        scenario: control('#scenario-setup-enter'),
+        recipe: control('#scenario-portability-toggle')
+      },
+      hint: {
+        text: hint?.textContent ?? '',
+        display: hint ? getComputedStyle(hint).display : 'missing',
+        visible: Boolean(hintBox && hintBox.width > 0 && hintBox.height > 0 && hintBox.left >= -0.5 && hintBox.right <= innerWidth + 0.5 && hintBox.top >= -0.5 && hintBox.bottom <= innerHeight + 0.5),
+        rect: hintBox ? { left: hintBox.left, right: hintBox.right, top: hintBox.top, bottom: hintBox.bottom, width: hintBox.width, height: hintBox.height } : null
+      }
+    };
+  })()`);
 }
 
 async function authoritySnapshot(cdpClient) {
