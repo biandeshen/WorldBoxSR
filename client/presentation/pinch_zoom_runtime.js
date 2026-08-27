@@ -110,19 +110,27 @@ function applyPinch(scene, state) {
   if (!midpoint || targetZoom === null) return;
 
   const camera = scene.cameras.main;
+  // getWorldPoint is trustworthy here because it reads the matrix from the
+  // current rendered frame. Do not call it again immediately after setZoom:
+  // Phaser 4 rebuilds matrixCombined during the next camera preRender.
   const worldBefore = camera.getWorldPoint(midpoint.x, midpoint.y);
   camera.setZoom(targetZoom);
   refreshCameraBoundsForZoom(scene, TILE_SIZE);
-  const worldAfter = camera.getWorldPoint(midpoint.x, midpoint.y);
-  const nextScroll = focusPreservingScroll({
-    scrollX: camera.scrollX,
-    scrollY: camera.scrollY,
-    worldBefore,
-    worldAfter
+
+  const desiredScroll = focusPreservingScroll({
+    worldPoint: worldBefore,
+    screenPoint: midpoint,
+    viewportX: camera.x,
+    viewportY: camera.y,
+    viewportWidth: camera.width,
+    viewportHeight: camera.height,
+    originX: camera.originX,
+    originY: camera.originY,
+    zoom: targetZoom
   });
-  if (nextScroll) {
-    camera.scrollX = nextScroll.x;
-    camera.scrollY = nextScroll.y;
+  if (desiredScroll) {
+    camera.scrollX = camera.useBounds ? camera.clampX(desiredScroll.x) : desiredScroll.x;
+    camera.scrollY = camera.useBounds ? camera.clampY(desiredScroll.y) : desiredScroll.y;
   }
   scene.drag = null;
 }
