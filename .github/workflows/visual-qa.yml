@@ -29,6 +29,8 @@ on:
       - 'tools/capture-canonical-scenario-builder-evidence.mjs'
       - 'tools/capture-ruling-line-readability-evidence.mjs'
       - 'tools/capture-dynastic-world-stories-evidence.mjs'
+      - 'tools/capture-touch-inspect-evidence.mjs'
+      - 'tools/run-touch-inspect-smoke.sh'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
 
@@ -49,6 +51,8 @@ jobs:
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Capture runtime and screenshots
         run: bash tools/capture-visual-evidence.sh
+      - name: Verify mobile touch inspection
+        run: bash tools/run-touch-inspect-smoke.sh
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -66,8 +70,9 @@ jobs:
             echo "- Scope: \`${VISUAL_QA_SCOPE}\`."
             echo '- Production Vite build served through the real project-site base path.'
             echo '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.'
+            echo '- Mobile-emulated Chromium must prove short tap uses the selected power while long hold inspects without consuming another command.'
             if [ "$VISUAL_QA_SCOPE" = 'smoke' ]; then
-              echo '- PR smoke keeps canonical + Legacy 1440×900 screenshots, real Meteor→Rain pointer recovery, causal World Stories navigation, and real Scenario Setup pointer/editor interaction.'
+              echo '- PR smoke keeps canonical + Legacy 1440×900 screenshots, real Meteor→Rain pointer recovery, causal World Stories navigation, real Scenario Setup pointer/editor interaction, and mobile touch inspection.'
               echo '- Full historical v0.4–v0.8 Chromium regression remains mandatory after merge on `main`.'
             else
               echo '- v0.4 Meteor→Rain real-pointer damage/recovery regression remains required.'
