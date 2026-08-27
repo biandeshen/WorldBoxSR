@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { formatAbandonmentAge, settlementRuinsProfile } from '../client/presentation/settlement_ruins_profile.js';
+
+const settlementLayerPath = fileURLToPath(new URL('../client/presentation/settlement_layer.js', import.meta.url));
 
 test('active settlements never receive the ruins presentation', () => {
   const profile = settlementRuinsProfile({ active: true, abandonedDay: 10, worldDay: 1000, daysPerYear: 100 });
@@ -57,4 +61,14 @@ test('age label is compact and floors completed world years', () => {
   assert.equal(formatAbandonmentAge(4.9), '4y abandoned');
   assert.equal(formatAbandonmentAge(Number.NaN), 'age unknown');
   assert.equal(formatAbandonmentAge(-1), 'age unknown');
+});
+
+test('ruins renderer is structurally independent from current population tier', () => {
+  const source = readFileSync(settlementLayerPath, 'utf8');
+  const start = source.indexOf('function createSettlementRuinsVisual');
+  const end = source.indexOf('function updateSettlementAmbient', start);
+  assert.ok(start >= 0 && end > start, 'dedicated ruins renderer must exist');
+  const ruinsSource = source.slice(start, end);
+  assert.doesNotMatch(ruinsSource, /settlement\.population|populationTier|settlementVisualProfile/, 'ruins must not reconstruct former size from current population=0');
+  assert.match(source, /if \(!settlement\.active\) return createSettlementRuinsVisual/, 'inactive settlements must bypass active population-tier rendering');
 });
