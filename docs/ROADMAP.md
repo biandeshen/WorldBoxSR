@@ -11,136 +11,118 @@ WorldBoxSR is an open-ended sandbox, but development must not be open-ended. The
 5. Visual/game-feel work requires reproducible evidence.
 6. Infrastructure is subordinate to the playable loop.
 7. Every version owns a canonical showcase path and explicit non-goals.
-8. Implementation freezes before release packaging; release tags never move during later docs closeout.
+8. Implementation freezes before release packaging; published release tags never move.
+9. Ordinary feature slices reuse focused tests/browser smoke; bespoke release-grade canonical gates belong at authority-changing or milestone boundaries, not every micro-change.
 
 ---
 
 ## v0.1.0 — A Living World
 **Status: shipped developer-prototype baseline.**
 
-Deterministic terrain/resources, human lifecycle/ancestry, settlements/history, save/load, grazers, Simulation Lab/tests, minimal Canvas client, god tools and GitHub delivery infrastructure.
-
----
+Deterministic terrain/resources, human lifecycle/ancestry, settlements/history, save/load, grazers, Simulation Lab/tests, minimal client and God tools.
 
 ## v0.2.0 — Playable World
 **Status: shipped.**
 
-Player-visible Phaser/Vite checkpoint: terrain/units/settlements, direct God Powers, responsive camera, inspection, event pulse, deterministic showcase, Pages and real Chromium Visual QA.
-
----
+Phaser/Vite world view, direct powers, camera/input, inspection, event pulse, public Pages and real Chromium QA.
 
 ## v0.3.0 — Civilizations Rise
-**Status: shipped.** Primary fantasy: “I can watch small settlements become rival powers.”
+**Status: shipped.**
 
-Polities, rulers/succession, relations/war/peace, visible warbands, conquest/transfer/dissolution/rebellion and canonical civilization collision path.
-
-Detailed backlog: [`docs/backlog/v0.3.md`](backlog/v0.3.md). Release QA: [`docs/demos/v0.3.0.md`](demos/v0.3.0.md).
-
----
+Polities, rulers/succession, relations/war/peace, warbands, conquest/transfer/dissolution/rebellion.
 
 ## v0.4.0 — God Power Sandbox
-**Status: shipped.** Primary fantasy: “intervening is fun even before I care about the simulation.”
+**Status: shipped.**
 
-Six-power dock, authoritative Meteor destruction + Rain recovery, truthful outcomes, Chronicle intervention history and deterministic headless/Chromium gate.
-
-Detailed backlog: [`docs/backlog/v0.4.md`](backlog/v0.4.md). Release QA: [`docs/demos/v0.4.0.md`](demos/v0.4.0.md).
-
----
+Six-power dock, authoritative Meteor destruction + Rain recovery, truthful Chronicle outcomes.
 
 ## v0.5.0 — World Stories
-**Status: shipped.** Primary fantasy: “this world has a history I can follow and remember.”
+**Status: shipped.**
 
-Causal Event Cards, Focused Story Trail, same-tab Watchlist, four Chronicle lenses and one canonical browser story path. Release tag `v0.5.0` points at `104dc7520b2e5ad39ec1d3c98c1cea94a11922b4`.
-
-Detailed backlog: [`docs/backlog/v0.5.md`](backlog/v0.5.md). Release QA: [`docs/demos/v0.5.0.md`](demos/v0.5.0.md). Release notes: [`docs/releases/v0.5.0.md`](releases/v0.5.0.md).
-
----
+Causal Event Cards, Focused Story Trail, Watchlist, Chronicle lenses and one canonical browser story path.
 
 ## v0.6.0 — Living Ecology
-**Status: shipped.** Primary fantasy: “I can watch animal populations and vegetation affect each other, and see predation change that living system.”
+**Status: shipped.**
 
-Supported Living Ecology preset, Grazer + Wolf surface, deterministic Wolf predation, ecology readability and canonical seed45 pressure→recovery→predation gate.
-
-Release identity:
-- release commit `2fa4ce8d131f55d84c59f4bdfbae088cd222486f`;
-- annotated tag object `ae558bb91912e383d153317ae0fdb0a77e8c10eb` → exact release commit;
-- release workflow #10, CI #748, Pages #50/public `/play/`, visual-qa #247 green.
-
-Detailed backlog: [`docs/backlog/v0.6.md`](backlog/v0.6.md). Release QA: [`docs/demos/v0.6.0.md`](demos/v0.6.0.md). Release notes: [`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
-
----
+Supported Living Ecology preset, Grazer + Wolf surface, deterministic Wolf predation, ecology readability and canonical pressure→recovery→predation path.
 
 ## v0.7.0 — Scenario Builder & Sharing
-**Status: shipped.** Primary fantasy: “I can assemble a world setup, send it to someone else, and we both start from exactly the same world before running, replaying or forking different histories.”
+**Status: shipped.**
 
-v0.7 deliberately ships a deterministic **Scenario Recipe**, not a full map painter.
+Deterministic Scenario Recipe v1, visible Setup, portable share/import, Replay/Fork and one canonical compose→share→diverge→Replay→Fork journey.
 
-### Shipped scope
-
-1. **Recipe v1 core** — strict `worldboxsr-scenario` startup input, current seed/preset ready base, ordered Human/Grazer/Wolf placements, bounded validation, canonical serialization and one deterministic materializer.
-2. **Scenario Setup workspace** — visible paused composition using the existing Phaser pointer/command path; Clear rematerializes; Run freezes the Recipe.
-3. **Portable Recipe** — canonical JSON export/import plus unpadded-base64url `scenario=` links; fresh browser reconstruction is exact and invalid imports are atomic.
-4. **Replay + Fork** — Replay rematerializes the frozen Recipe start; Fork creates an independent editable copy while retaining immutable source identity.
-5. **Canonical Scenario Builder gate** — one headless + real Chromium journey proves compose → share/fresh open → Run/diverge → Replay exact source → Fork/Edit → deterministic fork → Replay exact fork.
-
-Canonical source `Portable trio`: seed45 Sandbox; Human `(12,8)`, Grazer `(16,12)`, Wolf `(14,7)`; paused fingerprint `7f07ed67`. Canonical fork adds a fourth Human `(12,8)`, fingerprint `67543ff4`.
-
-### Immutable release identity
-
-- implementation freeze `1043a63375fee4ccaa72141da7f1e026a550b989`;
+Immutable release identity:
 - release commit `1d5931a650f64765286e155c0e821bfe6d63a299`;
-- annotated tag `v0.7.0` / tag object `236eef64cf5090ff1a65bfee264f193078e79606` → exact release commit;
-- release workflow #11, CI #817, Pages #58/public `/play/`, full visual-qa #312 green;
-- docs-only closeout `f14b6194a76a57ba77ff4867d95d0ff44b4c6d6e`; CI #819, Pages #59/public `/play/`, visual #313 green.
-
-Detailed backlog: [`docs/backlog/v0.7.md`](backlog/v0.7.md). Release QA: [`docs/demos/v0.7.0.md`](demos/v0.7.0.md). Release notes: [`docs/releases/v0.7.0.md`](releases/v0.7.0.md).
-
-### Deliberate stop
-
-No terrain/elevation/moisture/biome/water/resource painter, arbitrary tile editor, live snapshot savegame UI, Setup undo/remove stack, timeline rewind/event replay, rules DSL/scripts/objectives/scoring, cloud/workshop backend, short-link/compression service, custom map size or new simulation mechanics.
+- annotated tag `v0.7.0` / tag object `236eef64cf5090ff1a65bfee264f193078e79606`;
+- release workflow #11, CI #817, Pages #58/public `/play/`, full visual-qa #312 green.
 
 ---
 
 ## v0.8.0 — Ruling Lines & Succession
-**Status: planning gate active. Release gate #255.**
+**Status: release candidate / publication pending.** Release gate #255; release handoff #267.
 
-**Primary fantasy: “I can watch a ruling bloodline inherit power across generations, see when that bloodline loses the throne, and follow the new ruling line in the same causal world history.”**
+Primary fantasy:
 
-v0.8 selects one narrow Civilization Depth seam instead of implementing the whole candidate pool.
+> **I can watch a ruling bloodline inherit power across generations, see when that bloodline loses the throne, and follow the new ruling line in the same causal world history.**
 
-### Planned finite scope
+### Frozen shipped behavior
 
-1. **Genealogical succession resolver + trajectory audit** — pure descendant graph over explicit parent/child/parental-union records; RNG-neutral ranking; freeze a real bounded seed45 canonical succession opportunity before behavior changes.
-2. **Authoritative ruling-line succession** — descendant-first succession inside the current polity, with current oldest-eligible-adult selection preserved as deterministic fallback; minimal ruling-line political identity and snapshot migration.
-3. **Ruling-line readability** — compact current ruler/founder/line-sequence/reign context in existing inspection; no politics dashboard or family-tree editor.
-4. **Dynastic World Stories** — ruler succession presentation distinguishes recorded bloodline continuation from a new ruling line through existing Event Card / Rule-lens / polity-human references.
-5. **Canonical Ruling Lines gate** — one deterministic headless + production Chromium path proves a real descendant succession and a truthful line-change fallback while prior releases stay green.
-6. release-only `v0.8.0` handoff after merged-main delivery verification.
+1. **Genealogical resolver** — pure explicit parent→child descendant graph; cycle-safe; no mutation/RNG; deterministic nearest-generation → age → stable-ID ranking.
+2. **Authoritative succession** — descendant-first continuation of the current ruling-line founder; existing oldest-adult open-selection fallback starts a new line when no eligible descendant exists; snapshot v16 migration.
+3. **Ruling-line readability** — compact founder/sequence/reign/transition facts in existing ruler + settlement Inspector.
+4. **Dynastic World Stories** — recorded descendant continuation vs new-line fallback rendered through existing Event Card / Rule lens / event-map references.
+5. **Canonical Ruling Lines gate** — duplicate + save/load exactness plus production Chromium read-only Inspector/story evidence, while v0.4–v0.7 browser regressions stay green.
 
-Detailed finite backlog: [`docs/backlog/v0.8.md`](backlog/v0.8.md).
+Implementation freeze: `1556a8a8e1e058db54a1ac93a2eed1a69020c191`.
 
-### Architecture boundary
+Frozen merged-main delivery:
+- CI #863 green (396/396 + smoke + Pages build/check);
+- Pages #65/public `/play/` green;
+- full visual-qa #356 green.
 
-- `parental_union` remains historical co-parent identity, not marriage/household;
-- existing maternal `lineage` remains a lineage primitive, not a noble house/dynasty;
-- ruling-line continuation is derived from explicit parent→child descent and stored only as minimal political identity where persistence is required;
-- no second ancestry database and no succession RNG;
-- no eligible descendant = current oldest-adult open-selection fallback, not a manufactured heir;
-- natural ruling-line failure is valid emergence.
+Release-only next step: merge the exact seven-file #267 candidate, create immutable annotated `v0.8.0` tag + GitHub Release through the existing workflow, then verify release-commit CI/Pages/full Chromium.
 
-### Why economy is deferred
+### Semantic boundary
 
-Prior storage/scarcity/demographic experiments show that settlement resource interventions can cause broad indirect population/spatial feedback and that settlement decline has heterogeneous causes. v0.8 therefore does not reopen storage/economy tuning as a generic “civilization depth” shortcut.
+`parental_union` remains historical co-parent identity; maternal `lineage` remains its existing primitive; a political ruling line is derived only from explicit descent + recorded succession. No marriage, noble-house, legitimacy, claim, primogeniture, election or inferred political motive is implied.
 
 ### Deliberate stop
 
-No economy/trade/currency/storage, professions/classes, marriage diplomacy/household semantics, noble titles/claims/legitimacy, configurable succession laws/elections, claimant civil-war system, religion/culture/technology, boats/naval warfare, broad diplomacy rewrite, fertility/migration rescue or unrelated simulation mechanics.
+No economy/trade/storage/currency, professions/classes, marriage/household, noble titles/claims, configurable succession laws/elections, claimant civil wars, religion/culture/technology, boats/naval warfare, broad diplomacy rewrite, terrain/editor work, AI-authored political facts or fertility/migration rescue.
 
 ---
 
-## v0.9.0 — Public Alpha Polish
+## v0.9.0 — World Feel & Public Alpha Polish
 
-Onboarding, settings/keybinds/accessibility, performance budgets, audio/art consistency, save compatibility, error/recovery UX, platform/touch decisions, contributor extension points and release hardening.
+**Primary fantasy: “the first screen already feels like a living god-game world.”**
+
+This is a deliberate correction toward visible product value. v0.9 must not become another mostly invisible simulation-depth sprint.
+
+### Priority order
+
+1. **World-first viewport** — make the map occupy much more of ordinary 1440×900 play; remove large dead regions; keep information panels contextual, collapsible or overlay-based where practical.
+2. **Coherent visual language** — stronger terrain/biome contrast, buildings, units, settlement/polity identity and hierarchy without replacing the authoritative world model.
+3. **Visible civilization change** — construction/growth, territorial change, conflict/warbands, destruction/recovery and other already-authoritative systems should read from the map before opening a panel.
+4. **Motion, FX and sound feedback** — births/deaths, combat, building, fires, powers, weather and major state changes get bounded animation/particle/audio treatment where it improves observation.
+5. **Public-alpha usability** — onboarding, settings/keybinds/accessibility, performance budgets, save compatibility, error/recovery UX, touch/platform decisions and contributor extension points.
+
+### Development allocation target
+
+For this stage, aim roughly for:
+- **60–65%** player-visible world/game-feel/content work;
+- **25–30%** simulation correctness, reliability, performance and regression work;
+- **≤10%** docs/process/governance unless a concrete blocker requires more.
+
+Hard invariants remain: deterministic authority, save/load continuity, no hidden second world model. But the default proof for an ordinary v0.9 slice is focused regression + one real-browser smoke/visual check; full historical/canonical browser proof is batched at meaningful milestone/release gates.
+
+### Early success measures
+
+Before adding another deep civilization subsystem, v0.9 should demonstrate:
+- clearly higher world viewport utilization on the standard 1440×900 surface;
+- less empty UI/dead space;
+- stronger visual distinction among terrain, buildings, entities and polities;
+- at least one civilization lifecycle/change that is understandable from the world view without reading raw data;
+- intervention feedback that feels immediate and game-like.
 
 ---
 
@@ -150,8 +132,8 @@ A stable product/compatibility contract: reproducible worlds, dependable browser
 
 ## Current decision
 
-1. merge the v0.8 planning-only backlog/ROADMAP/STATUS PR after normal CI;
-2. only then open capability 1: **Genealogical succession resolver + trajectory audit**;
-3. do not start succession behavior, economy, professions, religion, technology, boats or broader diplomacy in parallel;
-4. if the audit cannot find a credible bounded real descendant-succession path, reconcile #255 rather than adding fertility/migration/rescue or injected heirs;
-5. no implementation is accepted unless it advances `ruler → explicit bloodline succession or line failure → readable political history`.
+1. publish v0.8.0 from the frozen implementation without behavior changes;
+2. close #255/#267 only after immutable tag/release + release-commit delivery proof;
+3. then open a bounded v0.9 visual/world-feel planning gate;
+4. do not start economy/religion/technology/naval breadth in parallel merely to increase feature-count optics;
+5. judge the next checkpoint first by what a player can **see and feel in the public demo**.
