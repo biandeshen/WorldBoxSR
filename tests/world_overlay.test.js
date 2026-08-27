@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createWorld } from '../engine/core/world.js';
 import { worldView } from '../client/presentation/world_adapter.js';
 import { polityColor } from '../client/presentation/polity_style.js';
-import { targetFootprint, targetStyle, toolTargetRadius, territoryCells, territorySignature } from '../client/presentation/world_overlay.js';
+import { targetFootprint, targetStyle, toolTargetRadius, territoryCells, territoryRenderStyle, territorySignature } from '../client/presentation/world_overlay.js';
 
 const runtimePath = fileURLToPath(new URL('../client/presentation/world_overlay_runtime.js', import.meta.url));
 const indexPath = fileURLToPath(new URL('../client/index.html', import.meta.url));
@@ -55,6 +55,17 @@ test('territory boundaries compare polity ownership rather than settlement ids',
   assert.notEqual(territorySignature(view), territorySignature(changed));
 });
 
+test('territory rendering stays terrain-transparent while making borders visually dominant', () => {
+  const style = territoryRenderStyle(28);
+  assert.ok(style.fillAlpha >= 0.1 && style.fillAlpha <= 0.16, `unexpected territory fill alpha ${style.fillAlpha}`);
+  assert.ok(style.accentAlpha > style.fillAlpha, 'inside-edge accent should read above the interior wash');
+  assert.ok(style.borderAlpha >= 0.9, `border alpha too weak: ${style.borderAlpha}`);
+  assert.ok(style.shadowWidth > style.borderWidth, 'dark under-stroke should be wider than polity-color border');
+  assert.ok(style.accentWidth > style.borderWidth, 'inside-edge polity band should be wider than the border line');
+  assert.ok(style.borderWidth >= 1.7 && style.borderWidth <= 2.5);
+  assert.ok(style.shadowWidth >= 3.2 && style.shadowWidth <= 4.5);
+});
+
 test('spawn targeting reports ocean as invalid while direct world powers remain valid', () => {
   const ocean = { passable: false };
   assert.equal(targetStyle('spawn_human', ocean).invalid, true);
@@ -82,7 +93,7 @@ test('Meteor and Rain share the exact clipped Chebyshev radius-2 footprint while
   const meteorCorner = targetFootprint('meteor', 0, 0, 9, 9);
   const rainCorner = targetFootprint('rain', 0, 0, 9, 9);
   assert.equal(meteorCorner.length, 9);
-  assert.deepEqual(rainCorner, meteorCorner);
+  assert.deepEqual(rainCorner, meteorCenter.filter((cell) => cell.x <= 2 && cell.y <= 2));
   assert.deepEqual(meteorCorner.at(-1), { x: 2, y: 2, center: false });
   assert.deepEqual(targetFootprint('lightning', 4, 4, 9, 9), [{ x: 4, y: 4, center: true }]);
 });
