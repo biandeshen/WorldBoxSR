@@ -26,6 +26,7 @@ function attachWhenReady() {
   }
   if (scene.localWorldPersistence?.attached) return;
 
+  guardStaleShowcaseWarmup(scene);
   const state = {
     attached: true,
     armed: false,
@@ -49,6 +50,17 @@ function attachWhenReady() {
   renderPersistenceState(scene, state);
   window.setTimeout(() => renderPersistenceState(scene, state), 120);
   state.timer = window.setInterval(() => saveCurrentWorld(scene, state, { announce: false }), AUTOSAVE_INTERVAL_MS);
+}
+
+function guardStaleShowcaseWarmup(scene) {
+  if (scene.__localWorldPersistenceWarmupGuard) return;
+  const originalFinishShowcaseWarmup = scene.finishShowcaseWarmup?.bind(scene);
+  if (!originalFinishShowcaseWarmup) return;
+  scene.__localWorldPersistenceWarmupGuard = true;
+  scene.finishShowcaseWarmup = (token, seed) => {
+    if (token !== scene.worldGeneration) return Promise.resolve();
+    return originalFinishShowcaseWarmup(token, seed);
+  };
 }
 
 function attemptStartupRestore(scene, state) {
