@@ -4,24 +4,24 @@ Last updated: 2026-08-28
 
 ## Management state
 
+**v1.0.0 — Stable Sandbox Identity is shipped and closed.**
+
+Immutable release identity:
+- implementation freeze `efecf1e91ac88177ce82917c1312577927e26af6`;
+- release commit `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
+- annotated tag `v1.0.0` / tag object `75e89c559e91cb0128fb35a79bd32c6fa84f02cf` → exact release commit;
+- GitHub Release `WorldBoxSR v1.0.0` published by release workflow #14;
+- release-commit CI #948 green;
+- Pages #96 green including final public `/play/` verification;
+- full historical visual-qa #436 green, including v0.4–v0.9 regressions, mobile touch/pinch, renderer recovery and final stable-sandbox composition;
+- tagged-release visual artifact records `stableSandboxGateComplete: true`.
+
+The v1.0 implementation and release identities are immutable. Any later docs cleanup must not move the tag.
+
 **v0.9.0 — World Feel & Public Alpha Polish remains shipped and immutable.**
-- implementation freeze `d167caa1ac5af3ef9214546693e34f255cdca687`;
 - release commit `6901923ac1a059599a3ce701fa5060054cffd15d`;
-- annotated tag object `6992bba5f45366fa7d3832a981cb590cf5090554` → exact release commit;
+- annotated tag object `6992bba5f45366fa7d3832a981cb590cf5090554`;
 - release workflow #13, CI #929, Pages #88/public `/play/`, full visual #422 green.
-
-**v1.0.0 — Stable Sandbox Identity implementation is complete and frozen. Release candidate publication is active under #323.**
-
-Implementation freeze:
-`efecf1e91ac88177ce82917c1312577927e26af6`
-
-Exact freeze delivery:
-- CI **#946** green;
-- Pages **#95** green including final public `/play/` verification;
-- full historical visual-qa **#434** green;
-- full artifact includes `stable-sandbox-evidence.json` with `stableSandboxGateComplete: true`.
-
-No v1.0 product behavior may change in the release handoff.
 
 ## v1.0 delivered promise
 
@@ -29,129 +29,121 @@ No v1.0 product behavior may change in the release handoff.
 
 ## Capability 1 — Portable Compatibility Contract — COMPLETE
 
-Issue #315 / PR #316 froze existing migration capability as a supported contract.
-
-- current engine schema stays v16;
-- `SUPPORTED_SNAPSHOT_VERSIONS = [10,11,12,13,14,15,16]` drives acceptance;
-- independent v10–v16 matrix normalizes every supported historical schema to current;
-- every migrated case remains exact against a current-normalized equivalent after the same 12-tick continuation;
-- local envelope v1 accepts every supported engine case;
+- current engine schema remains snapshot v16;
+- frozen supported engine inputs v10–v16;
+- independent v10–v16 migration matrix;
+- local ordinary-world envelope v1 restores all supported historical engine snapshots through normal engine migration;
 - Scenario Recipe v1 remains canonical;
-- future/unsupported versions reject explicitly;
-- no migration defect was exposed and no migration branch/simulation behavior changed.
+- unsupported/future engine, local-envelope and Scenario Recipe versions reject explicitly;
+- historical provenance remains truthful: public v0.3/v0.4/v0.7 used v15; public v0.8/v0.9 use v16; v10–v14 are older accepted prototype/internal schemas.
 
-Evidence:
-- merge `c611401e81ad262c9eb76a55151c1261178fae15`;
-- PR CI #934 + visual #425;
-- main CI #935, Pages #91, full visual #426 green.
-
-Historical provenance:
-- public v0.3/v0.4/v0.7 used v15;
-- public v0.8/v0.9 use v16;
-- v10–v14 are older accepted prototype/internal schemas.
+Delivery evidence:
+- #315/#316 merge `c611401e81ad262c9eb76a55151c1261178fae15`;
+- PR CI #934 + visual #425 green;
+- merged-main CI #935, Pages #91, full visual #426 green;
+- no migration defect exposed and no migration branch/simulation behavior changed.
 
 ## Capability 2 — Certified Runtime & Recovery Envelope — COMPLETE
 
-Canonical contract: `docs/SUPPORT.md`.
+Canonical public contract: `docs/SUPPORT.md`.
 
 Certified:
-- Chrome/Chromium-class production Phaser at 1440×900 desktop;
-- Chrome/Chromium-class production Phaser at 430×820 coarse touch;
+- Chrome/Chromium-class Phaser at 1440×900 desktop;
+- Chrome/Chromium-class Phaser at 430×820 coarse touch;
 - Legacy Canvas ordinary-world compatibility fallback;
-- public 24×24 showcase as initial product performance envelope;
-- exactly one Phaser vendor/app split and app chunk ≤300,000 B.
+- public 24×24 showcase as initial performance envelope;
+- `phaser_main` ≤300,000 B minified with one dedicated Phaser vendor chunk.
 
 Explicit limitations:
 - Scenario remains Phaser-only;
 - Firefox/Gecko and Safari/WebKit remain uncertified/best effort;
-- arbitrary mobile/device surfaces outside the certified evidence surface are not claimed;
+- arbitrary mobile/device combinations outside the certified surface are not claimed;
 - no cloud/cross-device save;
-- 64×64 1k/10k Node benchmark remains diagnostic, not an SLA.
+- 64×64 1k/10k benchmark remains diagnostic, not an SLA.
 
-Evidence:
-- merge `2f40d850673831270463d61480d64842e8771727`;
-- PR CI #938;
-- main CI #939, Pages #93, full visual #428 green.
+Delivery evidence:
+- #318/#319 merge `2f40d850673831270463d61480d64842e8771727`;
+- PR CI #938 green;
+- merged-main CI #939, Pages #93, full visual #428 green;
+- no runtime behavior changed.
 
 ## Capability 3 — Cross-System Stable Sandbox Gate — COMPLETE
 
-Issue #321 / PR #322 owns the final implementation freeze.
+Final implementation freeze: `efecf1e91ac88177ce82917c1312577927e26af6`.
 
 ### Causal history
 Existing unchanged World Stories evidence remains authoritative for real intervention→death/succession→causal Event Card/cause/map/Inspector navigation and read-only world neutrality.
 
-Frozen full evidence:
+Frozen events:
 - Lightning #175;
 - death #176;
 - succession #181.
 
-### Ordinary local persistence composition
-New focused production-browser proof uses the existing Session UI only:
-- Save now ordinary Sandbox at day 14400;
+### Ordinary persistence composition
+Production UI proof:
+- Save now at day 14400;
 - real Time/Play mutation to day 14401;
 - exact Restore to day 14400;
 - saved/restored fingerprint `22296cba`;
-- mutated fingerprint `be4daf1e`;
-- restored world paused;
-- entering Scenario Setup disables Save/Restore;
+- divergent mutation fingerprint `be4daf1e`;
+- Restore installs paused;
+- Scenario Setup disables ordinary Save/Restore;
 - exact status `Scenario active · use Recipe / Replay / Fork`;
-- ordinary local save remains unchanged during Scenario identity.
+- ordinary local save remains unchanged while Scenario identity is active.
 
-### Scenario identity
+### Canonical Scenario identity
 Existing canonical Scenario Builder evidence remains unchanged:
 - Recipe v1;
 - source fingerprint `b411c106`;
 - distinct fork fingerprint `0f28ca42`;
-- exact source/share/Run/Replay/Fork journey complete.
+- exact source/share/Run/diverge/Replay/Fork/fork-Replay journey complete.
 
 ### Full composition
-`verify-stable-sandbox-evidence.mjs` composes Story + ordinary persistence + canonical Scenario artifacts and writes `stable-sandbox-evidence.json` only when all are complete.
+`stable-sandbox-evidence.json` combines Story + ordinary persistence + canonical Scenario evidence and records `stableSandboxGateComplete: true`.
 
-Frozen full #434 artifact records `stableSandboxGateComplete: true`.
+### Proven readiness correction
+The final gate found a real integration defect: initial manual `Save now` stayed disabled until the first 30-second autosave because persistence availability did not refresh when showcase warmup became ready.
 
-### Proven persistence readiness fix
-The final gate found a real integration defect: after initial showcase warmup, manual `Save now` stayed disabled until the first 30-second autosave because Session availability was not re-rendered at boot→ready.
+v1.0 fixes only that boot→ready UI readiness seam. Save envelope, engine snapshot schema, autosave interval, Restore authority, Scenario identity and simulation behavior remain unchanged.
 
-v1.0 fixes only that readiness seam. Save format, engine snapshot schema, autosave interval, restore authority and Scenario identity remain unchanged.
-
-Evidence:
-- PR head `a6b4e0f14617b699a155d560a1cd635d433ea14d`;
+Delivery evidence:
+- PR #322 final head `a6b4e0f14617b699a155d560a1cd635d433ea14d`;
 - PR CI #945 + visual #433 green;
 - squash merge `efecf1e91ac88177ce82917c1312577927e26af6`;
-- main CI #946;
-- Pages #95/public `/play/`;
-- full historical visual #434 green.
+- main CI #946, Pages #95, full visual #434 green.
 
-## Release handoff — active
+## Publication proof
 
-Issue #323 allows exactly seven release/package/doc paths:
-- `package.json` → `1.0.0`;
-- `docs/releases/v1.0.0.md`;
-- `docs/demos/v1.0.0.md`;
-- `README.md`;
-- `docs/ROADMAP.md`;
-- `docs/STATUS.md`;
-- `docs/backlog/v1.0.md`.
+Release handoff #323 / PR #324 used exactly seven release/package/doc files and no behavior changes.
 
-`docs/SUPPORT.md` and all product/test/tool/workflow behavior are frozen.
+Publication evidence:
+- release candidate `19863a7571c189ab746a68b50fd8e74572144c02`;
+- candidate CI #947 + visual #435 green;
+- release PR #324 squash-merged as `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
+- release workflow #14 created annotated tag object `75e89c559e91cb0128fb35a79bd32c6fa84f02cf` and GitHub Release `WorldBoxSR v1.0.0`;
+- tag resolves exactly to release commit `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
+- release-commit CI #948 green;
+- Pages #96/public `/play/` green;
+- full historical visual #436 green;
+- release visual artifact includes complete stable-sandbox composition.
 
-After release PR merge require:
-1. release workflow succeeds;
-2. annotated tag `v1.0.0` resolves exactly to the release merge commit;
-3. GitHub Release `WorldBoxSR v1.0.0` exists from checked-in notes;
-4. release-commit CI green;
-5. release-commit Pages/public `/play/` green;
-6. release-commit full historical visual-qa green including stable-sandbox composition.
+## Authority/support guards after 1.0
 
-## Explicit v1.0 non-goals
+- one authoritative deterministic world model;
+- snapshot v10–v16 historical support baseline is now a public compatibility contract;
+- local ordinary-world envelope v1 and Scenario Recipe v1 remain separate portable identities;
+- certified browser/device claims stay bounded by `docs/SUPPORT.md` evidence;
+- presentation never invents political/ecological/pathfinding facts;
+- published v1.0.0 and older tags never move;
+- public `/play/` remains product truth.
 
-No economy/trade/currency, religion/culture/technology, naval warfare, professions/classes, broad diplomacy rewrite, multiplayer/cloud sync, public mod marketplace/API, procedural AI-authored history, new renderer, uncertified Firefox/Safari claim or uncalibrated large-world SLA.
+## Post-1.0 decision gate
 
-## Current decision gate
+No post-1.0 feature/version theme is committed yet.
 
-1. finish exact seven-file release candidate #323 with no behavior changes;
-2. require candidate CI + PR browser smoke;
-3. squash merge and let existing release workflow create immutable `v1.0.0`;
-4. verify release-commit CI + Pages/public `/play/` + full historical Visual + stable-sandbox artifact;
-5. only then mark v1.0 shipped and close #323/#321;
-6. no post-1.0 feature work begins during publication.
+Next steps:
+1. merge this docs-only shipped closeout;
+2. re-read `v1.0.0` tag and prove it still points to `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
+3. close #323 and #321 completed;
+4. open exactly one post-1.0 evidence-based product-direction planning gate;
+5. do not start parallel feature breadth before that gate freezes the next finite problem.

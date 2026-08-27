@@ -62,92 +62,62 @@ Immutable identity:
 ---
 
 ## v1.0.0 — Stable Sandbox Identity
-**Status: release candidate / publication pending.** Release handoff #323.
+**Status: shipped.**
 
 Primary promise:
 
 > **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported public surfaces, and coherent creation/intervention/civilization/ecology/story workflows.**
 
-v1.0 deliberately contains only three completed product-contract capabilities.
+### Shipped product contract
 
-### 1. Portable Compatibility Contract — COMPLETE
+1. **Portable Compatibility Contract** — current snapshot schema v16; supported engine inputs v10–v16; local ordinary-world envelope v1; Scenario Recipe v1; explicit future/unsupported rejection.
+2. **Certified Runtime & Recovery Envelope** — `docs/SUPPORT.md` certifies Chrome/Chromium-class Phaser at 1440×900 desktop and 430×820 coarse touch, plus Legacy Canvas ordinary-world compatibility fallback; Firefox/Safari remain uncertified/best effort; `phaser_main` remains ≤300,000 B with a dedicated Phaser vendor chunk.
+3. **Cross-System Stable Sandbox Gate** — unchanged causal World Stories + real UI Save→diverge→exact paused Restore→Scenario persistence isolation + unchanged canonical Scenario share/Run/Replay/Fork evidence, composed into `stable-sandbox-evidence.json`.
 
-- engine current schema remains snapshot v16;
-- frozen supported engine input baseline v10–v16;
-- independent migration matrix for all seven versions;
-- local ordinary-world envelope v1 restored through the same engine migration path;
-- Scenario Recipe v1 remains canonical;
-- unsupported/future versions reject explicitly;
-- no migration behavior or simulation policy changed.
+The final gate also fixed one proven integration defect: initial manual `Save now` could remain disabled until the first 30-second autosave. v1.0 refreshes Session availability at the real initial boot→ready boundary without changing save formats or simulation authority.
 
-Delivery: #315/#316 → `c611401e81ad262c9eb76a55151c1261178fae15`; main CI #935, Pages #91, full visual #426 green.
+### Immutable release identity
 
-### 2. Certified Runtime & Recovery Envelope — COMPLETE
+- implementation freeze `efecf1e91ac88177ce82917c1312577927e26af6`;
+- release commit `631ca77903ab6046fe5142cf937460d3b5cf5ae2`;
+- annotated tag `v1.0.0` / tag object `75e89c559e91cb0128fb35a79bd32c6fa84f02cf` → exact release commit;
+- GitHub Release `WorldBoxSR v1.0.0` published by release workflow #14;
+- release-commit CI #948 green;
+- Pages #96/public `/play/` green;
+- full historical visual-qa #436 green, including mobile touch/pinch, renderer recovery and stable-sandbox composition;
+- tagged-release artifact records `stableSandboxGateComplete: true`.
 
-Canonical public contract: `docs/SUPPORT.md`.
+The v1.0 implementation and release identities are immutable. Later docs cleanup must never move the tag.
+
+### Support boundary
 
 Certified:
-- Chrome/Chromium-class Phaser desktop 1440×900;
-- Chrome/Chromium-class Phaser coarse touch 430×820;
-- Legacy Canvas ordinary-world compatibility fallback;
-- `phaser_main` ≤300,000 B + dedicated Phaser vendor chunk.
+- Chrome/Chromium-class production Phaser · 1440×900 desktop;
+- Chrome/Chromium-class production Phaser · 430×820 coarse touch;
+- Legacy Canvas ordinary-world compatibility fallback.
 
-Explicitly uncertified/best effort until real gates exist: Firefox/Gecko, Safari/WebKit and arbitrary other device/browser surfaces. Large Node benchmark remains diagnostic, not an SLA.
+Scenario remains Phaser-only. Firefox/Gecko, Safari/WebKit and arbitrary other browser/device surfaces remain uncertified/best effort until real evidence exists. See `docs/SUPPORT.md`.
 
-Delivery: #318/#319 → `2f40d850673831270463d61480d64842e8771727`; main CI #939, Pages #93, full visual #428 green.
+### Deliberate stop
 
-### 3. Cross-System Stable Sandbox Gate — COMPLETE / implementation freeze
-
-Final production evidence composes:
-- unchanged causal World Stories evidence;
-- ordinary real UI Save now → authoritative divergence → exact paused Restore;
-- ordinary→Scenario transition disabling Save/Restore without overwriting ordinary local save;
-- unchanged canonical Scenario Recipe v1 share/Run/Replay/Fork evidence;
-- full-scope verifier producing `stable-sandbox-evidence.json`.
-
-The final gate discovered and fixed one real integration defect: initial `Save now` did not unlock until the first 30-second autosave. v1.0 now re-renders persistence availability at the real initial boot→ready boundary without changing save formats or simulation authority.
-
-Implementation freeze:
-`efecf1e91ac88177ce82917c1312577927e26af6`
-
-Frozen delivery:
-- CI #946 green;
-- Pages #95/public `/play/` green;
-- full historical visual-qa #434 green;
-- `stable-sandbox-evidence.json` records `stableSandboxGateComplete: true`.
-
-## v1.0 release-only next step
-
-#323 may change exactly:
-- `package.json` → 1.0.0;
-- `docs/releases/v1.0.0.md`;
-- `docs/demos/v1.0.0.md`;
-- README;
-- this ROADMAP;
-- STATUS;
-- `docs/backlog/v1.0.md`.
-
-No behavior changes are allowed after the freeze.
-
-Publication requires:
-1. release candidate CI + PR browser smoke green;
-2. squash merge of exact release-only files;
-3. existing release workflow creates annotated tag `v1.0.0` and GitHub Release;
-4. tag resolves exactly to the release merge commit;
-5. release-commit CI, Pages/public `/play/`, and full historical Visual all green including stable-sandbox composition.
+v1.0 does not add economy/trade/currency, religion/culture/technology, naval warfare, professions/classes, broad diplomacy rewrite, multiplayer/cloud sync, public mod marketplace/API, procedural AI-authored history, a new renderer, uncertified browser claims or an uncalibrated large-world SLA.
 
 ---
 
 ## Post-1.0 direction
 
-Do not infer a new breadth roadmap merely because 1.0 is reached. After immutable v1.0 publication, open one new evidence-based planning gate and decide the next product problem from the shipped public demo and user/developer evidence.
+**Status: not yet committed to a feature/version theme.**
 
-Possible future domains such as economy, religion, technology, naval systems, multiplayer, cloud sync or public mod APIs remain **uncommitted** until separately justified.
+Do not automatically turn 1.0 into a breadth backlog. The next step is one evidence-based planning gate using the shipped public demo, current user-visible gaps, technical constraints and comparable sandbox products.
+
+Candidate future domains such as deeper economy, religion/culture/technology, naval systems, multiplayer/cloud sync or public mod APIs remain **uncommitted** until separately justified.
+
+The next planning gate should prefer a finite, visibly valuable product problem over subsystem-count optics and should preserve the v1.0 compatibility/support contracts unless explicitly versioned.
 
 ## Current decision
 
-1. publish v1.0.0 from frozen implementation `efecf1e9…` with no behavior changes;
-2. close #323/#321 only after immutable tag/release + release-commit delivery proof;
-3. never move v1.0.0 or older release tags;
-4. do not start post-1.0 feature work in parallel with publication;
-5. keep public `/play/` plus deterministic authority evidence as product truth.
+1. v1.0.0 is shipped and immutable; never move its tag or rewrite its published contract;
+2. close release #323 and final capability #321 after this docs-only closeout is merged and the tag target is re-verified;
+3. open exactly one post-1.0 evidence-based product-direction planning gate;
+4. do not start parallel post-1.0 feature branches before that planning gate freezes a finite direction;
+5. keep public `/play/`, deterministic authority and the certified support contract as product truth.
