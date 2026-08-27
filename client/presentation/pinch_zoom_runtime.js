@@ -10,7 +10,6 @@ import {
 } from './pinch_zoom.js';
 
 const TILE_SIZE = 28;
-const hint = document.querySelector('#hint');
 
 if (document.documentElement.dataset.renderer === 'phaser') attachWhenReady();
 
@@ -39,10 +38,6 @@ function attachWhenReady() {
   scene.input.on('pointermove', (pointer) => pointerMove(scene, state, pointer));
   scene.input.on('pointerup', (pointer) => pointerUp(scene, state, pointer));
   scene.input.on('pointerupoutside', (pointer) => pointerUp(scene, state, pointer));
-
-  if (globalThis.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches && hint) {
-    hint.textContent = 'Tap: tool · Hold: inspect · Drag: pan · Pinch: zoom';
-  }
 }
 
 function pointerDown(scene, state, pointer) {
