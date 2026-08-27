@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./event_card.css" />
   <link rel="stylesheet" href="./bookmarks.css" />
   <link rel="stylesheet" href="./chronicle_lenses.css" />
+  <link rel="stylesheet" href="./world_persistence.css" />
 </head>
 <body>
   <div id="phaser-root" aria-label="WorldBoxSR world view"></div>
@@ -57,6 +58,16 @@
     <div id="boot-status">Starting renderer…</div>
     <div id="scenario-startup-error" role="alert" hidden></div>
     <div id="inspector">Alt-click a tile or entity to inspect it.</div>
+
+    <details id="session-persistence">
+      <summary>Session</summary>
+      <div id="session-persistence-actions">
+        <button id="session-save-now" type="button">Save now</button>
+        <button id="session-restore" type="button" disabled>Restore</button>
+        <button id="session-clear" type="button" disabled>Clear</button>
+      </div>
+      <div id="session-persistence-status" role="status" aria-live="polite">Autosave initializing…</div>
+    </details>
 
     <details id="timeline">
       <summary>Chronicle</summary>
@@ -183,6 +194,7 @@
   <script type="module" src="./presentation/ui_controls.js"></script>
   <script type="module" src="./bootstrap.js"></script>
   <script type="module" src="./presentation/scenario_setup_runtime.js"></script>
+  <script type="module" src="./presentation/world_persistence_runtime.js"></script>
   <script type="module" src="./presentation/scenario_portability_runtime.js"></script>
   <script type="module" src="./presentation/camera_runtime.js"></script>
   <script type="module" src="./presentation/world_overlay_runtime.js"></script>
