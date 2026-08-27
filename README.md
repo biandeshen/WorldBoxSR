@@ -15,6 +15,7 @@ Deterministic simulation is a strategic asset, not a substitute for visible game
 - [Product constitution](docs/product/product-constitution.md)
 - [Master product blueprint](docs/product/master-blueprint.md)
 - [Benchmark and competitor research](docs/product/benchmark-research.md)
+- [Certified runtime & support](docs/SUPPORT.md)
 - [Release roadmap](docs/ROADMAP.md)
 
 ## Current shipped release: v0.9.0 — World Feel & Public Alpha Polish
@@ -75,7 +76,7 @@ Primary direction:
 
 > **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported performance, and coherent creation/intervention/civilization/ecology/story workflows.**
 
-Planning should bound save/version compatibility, supported browser/device/performance targets, onboarding/recovery expectations, extension/content contracts and cross-system release standards before adding economy/religion/technology/naval breadth.
+The finite v1.0 backlog now owns portable compatibility, a certified runtime/recovery envelope and one final cross-system stable-sandbox gate. See [v1.0 backlog](docs/backlog/v1.0.md) and the [certified runtime & support contract](docs/SUPPORT.md).
 
 ## Public playable demo
 
