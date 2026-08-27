@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./bookmarks.css" />
   <link rel="stylesheet" href="./chronicle_lenses.css" />
   <link rel="stylesheet" href="./world_persistence.css" />
+  <link rel="stylesheet" href="./accessibility_preferences.css" />
   <link rel="stylesheet" href="./mobile_hud.css" />
 </head>
 <body>
@@ -68,6 +69,21 @@
         <button id="session-clear" type="button" disabled>Clear</button>
       </div>
       <div id="session-persistence-status" role="status" aria-live="polite">Autosave initializing…</div>
+    </details>
+
+    <details id="accessibility-preferences">
+      <summary>Accessibility</summary>
+      <div id="accessibility-preferences-controls">
+        <label class="accessibility-preference">
+          <input id="accessibility-reduce-motion" type="checkbox" />
+          <span>Reduce motion</span>
+        </label>
+        <label class="accessibility-preference">
+          <input id="accessibility-mute-sound" type="checkbox" />
+          <span>Mute sound</span>
+        </label>
+        <div id="accessibility-preferences-status" role="status" aria-live="polite">Loading preferences…</div>
+      </div>
     </details>
 
     <details id="timeline">
@@ -196,6 +212,7 @@
   <script type="module" src="./bootstrap.js"></script>
   <script type="module" src="./presentation/scenario_setup_runtime.js"></script>
   <script type="module" src="./presentation/world_persistence_runtime.js"></script>
+  <script type="module" src="./presentation/accessibility_preferences_runtime.js"></script>
   <script type="module" src="./presentation/touch_inspect_runtime.js"></script>
   <script type="module" src="./presentation/scenario_portability_runtime.js"></script>
   <script type="module" src="./presentation/camera_runtime.js"></script>
