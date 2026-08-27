@@ -1,4 +1,3 @@
-const DESKTOP_INSPECTOR_RESERVE = 308;
 const TOPBAR_RESERVE = 58;
 const COMPACT_TOPBAR_RESERVE = 96;
 const POWER_DOCK_RESERVE = 88;
@@ -13,17 +12,24 @@ export function computeCameraComposition({ screenWidth, screenHeight, worldWidth
 
   const desktop = screenWidth >= 900;
   const compact = screenWidth < 650;
-  const viewport = {
-    x: 0,
-    y: compact ? COMPACT_TOPBAR_RESERVE : TOPBAR_RESERVE,
-    width: Math.max(280, screenWidth - (desktop ? DESKTOP_INSPECTOR_RESERVE : 0)),
-    height: Math.max(
-      220,
-      screenHeight
-        - (compact ? COMPACT_TOPBAR_RESERVE : TOPBAR_RESERVE)
-        - (compact ? COMPACT_POWER_DOCK_RESERVE : POWER_DOCK_RESERVE)
-    )
-  };
+  const viewport = desktop
+    ? {
+        x: 0,
+        y: 0,
+        width: screenWidth,
+        height: screenHeight
+      }
+    : {
+        x: 0,
+        y: compact ? COMPACT_TOPBAR_RESERVE : TOPBAR_RESERVE,
+        width: Math.max(280, screenWidth),
+        height: Math.max(
+          220,
+          screenHeight
+            - (compact ? COMPACT_TOPBAR_RESERVE : TOPBAR_RESERVE)
+            - (compact ? COMPACT_POWER_DOCK_RESERVE : POWER_DOCK_RESERVE)
+        )
+      };
 
   const fitX = Math.max(0.1, (viewport.width - WORLD_MARGIN * 2) / worldWidth);
   const fitY = Math.max(0.1, (viewport.height - WORLD_MARGIN * 2) / worldHeight);
