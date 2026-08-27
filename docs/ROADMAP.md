@@ -12,7 +12,7 @@ WorldBoxSR is an open-ended sandbox, but development must not be open-ended. The
 6. Infrastructure is subordinate to the playable loop.
 7. Every version owns a canonical showcase path and explicit non-goals.
 8. Implementation freezes before release packaging; published release tags never move.
-9. Ordinary feature slices reuse focused tests/browser smoke; bespoke release-grade canonical gates belong at authority-changing or milestone boundaries, not every micro-change.
+9. Ordinary feature slices reuse focused tests/browser smoke; full historical proof belongs at meaningful milestone/release boundaries.
 
 ---
 
@@ -61,79 +61,83 @@ Immutable release identity:
 ## v0.8.0 — Ruling Lines & Succession
 **Status: shipped.**
 
-Primary fantasy:
-
-> **I can watch a ruling bloodline inherit power across generations, see when that bloodline loses the throne, and follow the new ruling line in the same causal world history.**
-
-### Shipped behavior
-
-1. **Genealogical resolver** — pure explicit parent→child descendant graph; cycle-safe; no mutation/RNG; deterministic nearest-generation → age → stable-ID ranking.
-2. **Authoritative succession** — descendant-first continuation of the current ruling-line founder; existing oldest-adult open-selection fallback starts a new line when no eligible descendant exists; snapshot v16 migration.
-3. **Ruling-line readability** — compact founder/sequence/reign/transition facts in existing ruler + settlement Inspector.
-4. **Dynastic World Stories** — recorded descendant continuation vs new-line fallback rendered through existing Event Card / Rule lens / event-map references.
-5. **Canonical Ruling Lines gate** — duplicate + save/load exactness plus production Chromium read-only Inspector/story evidence, while v0.4–v0.7 browser regressions stay green.
+Descendant-first ruling-line succession, deterministic open-selection fallback, persistent line identity, ruling-line Inspector readability, Dynastic World Stories and exact canonical save/load proof.
 
 Immutable release identity:
 - implementation freeze `1556a8a8e1e058db54a1ac93a2eed1a69020c191`;
 - release commit `0233cd6923717c3d277d6a35f2e6460e43814d60`;
 - annotated tag `v0.8.0` / tag object `04f5ea6b489ca37ff53fa444c8dce9461e5949c5` → exact release commit;
-- GitHub Release `WorldBoxSR v0.8.0` published by release workflow #12;
-- release-commit CI #865 green;
-- Pages #66/public `/play/` green;
-- full visual-qa #358 green.
-
-### Semantic boundary
-
-`parental_union` remains historical co-parent identity; maternal `lineage` remains its existing primitive; a political ruling line is derived only from explicit descent + recorded succession. No marriage, noble-house, legitimacy, claim, primogeniture, election or inferred political motive is implied.
-
-### Deliberate stop
-
-No economy/trade/storage/currency, professions/classes, marriage/household, noble titles/claims, configurable succession laws/elections, claimant civil wars, religion/culture/technology, boats/naval warfare, broad diplomacy rewrite, terrain/editor work, AI-authored political facts or fertility/migration rescue.
+- release workflow #12, CI #865, Pages #66/public `/play/`, full visual-qa #358 green.
 
 ---
 
 ## v0.9.0 — World Feel & Public Alpha Polish
+**Status: release candidate / publication pending.** Release handoff #310; parent #269.
 
-**Primary fantasy: “the first screen already feels like a living god-game world.”**
+Primary promise:
 
-This is a deliberate correction toward visible product value. v0.9 must not become another mostly invisible simulation-depth sprint.
+> **Opening WorldBoxSR feels like looking at a living god-game world first: larger, more readable, visibly changing, recoverable, and usable across desktop and touch.**
 
-### Priority order
+v0.9 is intentionally a world-feel / presentation / public-alpha reliability stage rather than a new hidden simulation-depth subsystem.
 
-1. **World-first viewport** — make the map occupy much more of ordinary 1440×900 play; remove large dead regions; keep information panels contextual, collapsible or overlay-based where practical.
-2. **Coherent visual language** — stronger terrain/biome contrast, buildings, units, settlement/polity identity and hierarchy without replacing the authoritative world model.
-3. **Visible civilization change** — construction/growth, territorial change, conflict/warbands, destruction/recovery and other already-authoritative systems should read from the map before opening a panel.
-4. **Motion, FX and sound feedback** — births/deaths, combat, building, fires, powers, weather and major state changes get bounded animation/particle/audio treatment where it improves observation.
-5. **Public-alpha usability** — onboarding, settings/keybinds/accessibility, performance budgets, save compatibility, error/recovery UX, touch/platform decisions and contributor extension points.
+### Delivered implementation
 
-### Development allocation target
+1. **World-first viewport** — desktop camera uses the full render surface beneath floating HUD chrome; canonical 1440×900 world grows from roughly 718×718 to 864×864 while compact/mobile composition remains bounded.
+2. **Visual hierarchy** — population-scaled settlement footprints, stronger capital emphasis and clearer authoritative polity borders.
+3. **Living motion** — movement-derived Human/Grazer/Wolf gait plus subtle inhabited-settlement banner/hearth ambience, with no new simulation action state.
+4. **Civilization readability** — warband formations, objective cues, recent recorded battle traces, truthful ruins, and occupation/rebellion identity from existing authority.
+5. **Intervention memory** — recent Meteor footprint presentation fades with the current real vegetation recovery ratio and disappears after real Rain restoration.
+6. **Ordinary-world persistence** — one browser-local slot backed by the existing engine snapshot; automatic/manual paused restore; explicit atomic errors; Scenario Recipe authority remains separate.
+7. **Touch/public-alpha navigation** — compact 430px HUD; tap tool, hold inspect, drag pan, two-finger pinch zoom; real mobile Chromium authority proofs.
+8. **Recovery/accessibility** — explicit renderer failure recovery actions plus local Reduce Motion and Mute preferences that never alter world authority.
+9. **Performance/throughput** — stable Phaser vendor chunk, checked <300 KB minified app-chunk budget, fast PR Chromium smoke while `main` retains the full historical denominator.
 
-For this stage, aim roughly for:
-- **60–65%** player-visible world/game-feel/content work;
-- **25–30%** simulation correctness, reliability, performance and regression work;
-- **≤10%** docs/process/governance unless a concrete blocker requires more.
+### Implementation freeze
 
-Hard invariants remain: deterministic authority, save/load continuity, no hidden second world model. But the default proof for an ordinary v0.9 slice is focused regression + one real-browser smoke/visual check; full historical/canonical browser proof is batched at meaningful milestone/release gates.
+`d167caa1ac5af3ef9214546693e34f255cdca687`
 
-### Early success measures
+Freeze-commit evidence:
+- CI #927 green;
+- Pages #87/public `/play/` green;
+- full visual-qa #420 green, including v0.4–v0.8 history plus v0.9 mobile touch/pinch and renderer recovery.
 
-Before adding another deep civilization subsystem, v0.9 should demonstrate:
-- clearly higher world viewport utilization on the standard 1440×900 surface;
-- less empty UI/dead space;
-- stronger visual distinction among terrain, buildings, entities and polities;
-- at least one civilization lifecycle/change that is understandable from the world view without reading raw data;
-- intervention feedback that feels immediate and game-like.
+No v0.9 behavior changes are allowed during release packaging.
+
+### Authority boundary
+
+v0.9 does not intentionally change authoritative simulation rules or the engine snapshot schema from v0.8. Presentation reads existing world/history facts. Local ordinary-world saves embed the existing engine snapshot rather than inventing a second world format. Scenario Recipe / Replay / Fork remain a distinct deterministic creation identity.
+
+### Deliberate stop
+
+No economy/trade/storage/currency, religion/culture/technology, new diplomacy/war-resolution rules, new conquest/destruction/rebuilding/loyalty mechanics, boats/naval warfare, cloud saves, multiple local save slots, or a second mobile renderer/camera authority.
+
+Release-only next step: merge the exact seven-file v0.9.0 candidate, let the existing release workflow create immutable `v0.9.0`, then verify release-commit CI, Pages/public `/play/` and full historical Chromium.
 
 ---
 
 ## v1.0 — Stable sandbox identity
 
-A stable product/compatibility contract: reproducible worlds, dependable browser play, creation/intervention + civilizations + stories + supported ecology + deterministic Scenario creation/sharing working together, usable causal history, save/version policy and credible supported performance.
+**Status: planning only after v0.9 immutable publication.**
+
+The next stage should stabilize the product/compatibility contract rather than immediately start another breadth sprint.
+
+Primary target:
+
+> **WorldBoxSR behaves like one dependable sandbox product: reproducible worlds, stable browser play, recoverable saves, understandable history, supported performance, and coherent creation/intervention/civilization/ecology/story workflows.**
+
+Planning after v0.9 publication should bound:
+- supported save/version compatibility and migration policy;
+- supported browser/device/performance envelope;
+- public-alpha onboarding and error/recovery contract;
+- extension/content contracts for creatures, powers and civilizations;
+- final cross-system coherence and regression/release standards.
+
+Do not start economy/religion/technology/naval breadth merely to make a v1.0 feature list look larger.
 
 ## Current decision
 
-1. v0.8.0 is shipped and immutable; do not move its tag or reopen behavior under that version;
-2. open a bounded v0.9 World Feel/Public Alpha planning gate;
-3. first implementation target should be a visibly larger, denser world surface rather than another hidden simulation subsystem;
-4. do not start economy/religion/technology/naval breadth in parallel merely to increase feature-count optics;
-5. judge the next checkpoint first by what a player can **see and feel in the public demo**.
+1. keep v0.9 implementation frozen at `d167caa1...`;
+2. publish v0.9.0 through release-only #310 with no behavior changes;
+3. verify immutable tag/release plus release-commit CI/Pages/full Chromium;
+4. close #310/#269 only after publication proof;
+5. only then open bounded v1.0 planning.
