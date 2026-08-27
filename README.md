@@ -17,68 +17,59 @@ Deterministic simulation is a strategic asset, not a substitute for visible game
 - [Benchmark and competitor research](docs/product/benchmark-research.md)
 - [Release roadmap](docs/ROADMAP.md)
 
+## Release candidate: v0.9.0 — World Feel & Public Alpha Polish
+
+v0.9 is a deliberate world-first pass over the already-deep deterministic sandbox:
+
+> **Opening WorldBoxSR feels like looking at a living god-game world first: larger, more readable, visibly changing, recoverable, and usable across desktop and touch.**
+
+Release-candidate scope:
+- full desktop world surface beneath floating HUD chrome, with much less dead screen space;
+- population-scaled settlement footprints and stronger polity borders;
+- movement-driven Human/Grazer/Wolf gait plus subtle inhabited-settlement ambience;
+- readable warband formations/objectives, recent battle traces, ruins and occupation/rebellion identity;
+- Meteor impact memory that disappears through real vegetation recovery;
+- one browser-local ordinary-world save slot using the existing engine snapshot, with paused restore and Scenario separation;
+- compact 430px HUD and production touch controls: tap tool, hold inspect, drag pan, pinch zoom;
+- explicit renderer failure recovery actions;
+- local Reduce Motion + Mute accessibility preferences;
+- isolated Phaser vendor chunk and a checked <300 KB minified app-chunk budget;
+- faster PR browser smoke while `main` retains the full historical browser denominator.
+
+Implementation behavior is frozen at `d167caa1ac5af3ef9214546693e34f255cdca687`.
+
+Freeze-commit delivery is green:
+- CI #927;
+- Pages #87 including final public `/play/` verification;
+- full visual-qa #420, including v0.4–v0.8 regressions plus current mobile touch/pinch and renderer-recovery checks.
+
+Publication is still pending until this release candidate merges, immutable annotated tag `v0.9.0` + GitHub Release are created, and the release commit passes CI, Pages and full Chromium.
+
+- [v0.9 canonical browser demo / QA](docs/demos/v0.9.0.md)
+- [v0.9.0 release notes](docs/releases/v0.9.0.md)
+- [v0.9 finite backlog / publication audit](docs/backlog/v0.9.md)
+
+### Authority boundary
+
+v0.9 is primarily presentation, input, accessibility and reliability work. It does not intentionally change the authoritative simulation rules or engine snapshot schema from v0.8. Local ordinary-world persistence stores the existing `snapshotWorld(world)` result; Scenario Recipe / Replay / Fork remain the separate Scenario identity path.
+
 ## Current shipped release: v0.8.0 — Ruling Lines & Succession
 
-v0.8 turns existing ruler/genealogy facts into one bounded, deterministic political-history loop:
-
-> **Watch a ruling bloodline inherit power, see when descent fails and a new ruling line begins, then follow those transitions through Inspector + World Stories.**
-
-Shipped scope:
-- pure RNG-neutral descendant resolver over explicit parent/child records;
-- descendant-first polity succession with the existing oldest-adult open-selection fallback preserved;
-- minimal persistent ruling-line identity and deterministic snapshot-v16 migration;
-- compact ruling-line context in existing ruler/settlement Inspector;
-- factual descendant-continuation vs new-line wording in existing Event Cards / Rule Chronicle lens;
-- one canonical release gate proving duplicate/save-load exactness and read-only presentation.
+v0.8 ships deterministic descendant-first ruling-line succession, compact ruling-line Inspector context, truthful Dynastic World Stories and one canonical exactness gate.
 
 Immutable release identity:
 - implementation freeze `1556a8a8e1e058db54a1ac93a2eed1a69020c191`;
 - release commit `0233cd6923717c3d277d6a35f2e6460e43814d60`;
 - annotated tag `v0.8.0` / tag object `04f5ea6b489ca37ff53fa444c8dce9461e5949c5` → exact release commit;
-- release workflow #12 green;
-- release-commit CI #865 green;
-- Pages #66 green with final public `/play/` verification;
-- full visual-qa #358 green.
+- release workflow #12, CI #865, Pages #66/public `/play/`, full visual-qa #358 green.
 
-- [v0.8 canonical browser demo / QA](docs/demos/v0.8.0.md)
-- [v0.8.0 release notes](docs/releases/v0.8.0.md)
-- [v0.8 finite backlog](docs/backlog/v0.8.md)
+[v0.8.0 release notes](docs/releases/v0.8.0.md) · [v0.8 demo](docs/demos/v0.8.0.md)
 
-### Semantic boundary
+v0.7 Scenario Builder, v0.6 Living Ecology, v0.5 World Stories, v0.4 God Power Sandbox and v0.3 Civilizations Rise remain full release regressions.
 
-A **ruling line** is political identity derived from explicit parent→child descent. It is not a marriage system, noble house, legitimacy/claim model, primogeniture rule, election system or inferred political motive. Existing `parental_union` and maternal `lineage` keep their prior meanings.
+## Next stage after v0.9 publication: v1.0 — Stable sandbox identity
 
-## Previous shipped release: v0.7.0 — Scenario Builder & Sharing
-
-v0.7 ships the deterministic creation loop:
-
-> **Compose a Scenario → share/import the exact same authoritative start → Run → Replay or Fork.**
-
-Immutable release identity:
-- release commit `1d5931a650f64765286e155c0e821bfe6d63a299`;
-- annotated tag `v0.7.0` / tag object `236eef64cf5090ff1a65bfee264f193078e79606`;
-- release workflow #11, CI #817, Pages #58/public `/play/`, full visual-qa #312 green.
-
-[v0.7.0 release notes](docs/releases/v0.7.0.md) · [v0.7 demo](docs/demos/v0.7.0.md)
-
-v0.6 Living Ecology, v0.5 World Stories, v0.4 God Power Sandbox and v0.3 Civilizations Rise remain full release regressions.
-
-## Next stage: v0.9 — World Feel & Public Alpha Polish
-
-The next stage is deliberately **world-first**, not another hidden-system depth sprint.
-
-Primary goal:
-
-> **Opening the game should immediately feel like looking at a living god-game world, not a simulation dashboard with a small map inside it.**
-
-Planning priorities, in order:
-1. make the world use far more of the viewport; reduce dead screen space and keep panels contextual/collapsible;
-2. strengthen one coherent visual language for terrain, buildings, units, settlements and polity state;
-3. make civilization growth and conflict more visible on the map — construction, territory, roads/settlement form, war activity and destruction/recovery;
-4. add high-feedback animation/FX/audio where it materially improves observation and intervention;
-5. then finish onboarding, settings/keybinds/accessibility, performance, save/error recovery and platform/touch hardening.
-
-Process target for this stage: roughly **60–65% visible player/world value, 25–30% simulation/reliability, ≤10% docs/process**. Determinism, save/load and sole-authority boundaries remain hard invariants, but ordinary micro-slices should not each receive a bespoke release-grade canonical gate.
+No v1.0 implementation is included in this release candidate. After immutable v0.9 publication, planning should focus on the stable product/compatibility contract: dependable browser play, reproducible worlds, supported performance, save/version policy, creation/intervention + civilizations + stories + ecology + Scenario workflows operating together as one credible sandbox.
 
 ## Public playable demo
 
@@ -102,6 +93,7 @@ For real-browser release evidence:
 
 ```bash
 bash tools/capture-visual-evidence.sh
+bash tools/run-touch-inspect-smoke.sh
 ```
 
 ## Repository map
