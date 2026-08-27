@@ -31,6 +31,14 @@ test('startup restore guards a not-yet-entered stale showcase warmup before it c
   assert.match(source, /return originalFinishShowcaseWarmup\(token, seed\)/);
 });
 
+test('manual Save readiness refreshes as soon as the initial world finishes preparing', () => {
+  const source = readFileSync(runtimePath, 'utf8');
+  assert.match(source, /renderWhenWorldReady\(scene, state\)/, 'persistence UI must watch the initial boot-to-ready boundary');
+  assert.match(source, /function renderWhenWorldReady\(scene, state\)/);
+  assert.match(source, /if \(!scene\.booting\) \{\s*renderPersistenceState\(scene, state\);\s*return;/s, 'ready world must immediately re-render Save availability');
+  assert.match(source, /window\.setTimeout\(\(\) => renderWhenWorldReady\(scene, state\), 120\)/, 'pre-ready state may poll only the presentation readiness boundary');
+});
+
 test('page-hide final flush cannot create the first local checkpoint on a short visit', () => {
   const source = readFileSync(runtimePath, 'utf8');
   assert.match(source, /armed: false/, 'fresh visit must begin unarmed');
