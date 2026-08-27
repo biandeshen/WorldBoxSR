@@ -157,6 +157,7 @@ export function worldView(world) {
   return {
     width: world.width,
     height: world.height,
+    day: world.day,
     waterLevel: world.config.waterLevel,
     daysPerYear: world.config.daysPerYear,
     tiles: world.tiles.map((tile) => ({ x: tile.x, y: tile.y, biome: tile.biome, passable: tile.passable, elevation: tile.elevation, moisture: tile.moisture, fertility: tile.fertility, ownerSettlementId: tile.ownerSettlementId ?? null, foodRatio: tile.foodCapacity ? tile.food / tile.foodCapacity : 0, vegetationRatio: tile.vegetationCapacity ? tile.vegetation / tile.vegetationCapacity : 0 })),
@@ -184,6 +185,7 @@ export function worldView(world) {
       const counterpart = Number.isInteger(counterpartId) ? polityById.get(counterpartId) : null;
       return {
         id: settlement.id, name: settlement.name, x: settlement.x, y: settlement.y, active: settlement.active, population: settlement.population, foundedDay: settlement.foundedDay,
+        abandonedDay: Number.isInteger(settlement.abandonedDay) ? settlement.abandonedDay : null,
         polityId: polity?.id ?? null, polityName: polity?.name ?? null, polityColorIndex: polity?.colorIndex ?? null, polityBannerStyle: polity?.bannerStyle ?? null,
         rulerId: polity?.rulerId ?? null, isCapital: polity?.capitalSettlementId === settlement.id,
         relationStance: relation?.stance ?? null, relationScore: relation?.score ?? null, relationCounterpartId: counterpartId, relationCounterpartName: counterpart?.name ?? null,
