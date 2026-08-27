@@ -1,3 +1,4 @@
+import './renderer_recovery_runtime.js';
 import { godPowerForShortcut, godPowerMeta } from './god_power_catalog.js';
 
 const toolSelect = document.querySelector('#tool');
