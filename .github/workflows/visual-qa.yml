@@ -52,9 +52,14 @@ permissions:
 
 jobs:
   screenshot:
+    # Never execute untrusted fork code on the project-owned runner. External
+    # PRs still receive GitHub-hosted CI; browser evidence can be run only after
+    # the change is brought onto a trusted repository branch.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     # Browser-heavy evidence runs on the reusable project runner. Keep ordinary
     # ci.yml on GitHub-hosted Ubuntu as an independent clean-room baseline.
     runs-on: self-hosted
+    timeout-minutes: 45
     env:
       VISUAL_QA_SCOPE: ${{ github.event_name == 'pull_request' && 'smoke' || 'full' }}
     steps:
@@ -116,6 +121,7 @@ jobs:
             echo "- Scope: \`${VISUAL_QA_SCOPE}\`."
             echo '- Browser-heavy evidence executed on the reusable self-hosted project runner after an explicit environment preflight.'
             echo '- Stale Visual QA runs for the same PR are cancelled so the project runner validates only the newest revision.'
+            echo '- Fork PR code is never executed directly on the project-owned runner.'
             echo '- GitHub-hosted `ci.yml` remains the independent clean-room unit/build baseline.'
             echo '- Production Vite build served through the real project-site base path.'
             echo '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.'
