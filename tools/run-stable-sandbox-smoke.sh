@@ -3,7 +3,7 @@ set -euo pipefail
 
 port="${STABLE_SANDBOX_QA_PORT:-4176}"
 out_dir="${VISUAL_QA_OUT:-artifacts/visual}"
-log_file="${STABLE_SANDBOX_QA_LOG:-/tmp/worldboxsr-stable-sandbox-qa.log}"
+log_file="${STABLE_SANDBOX_QA_LOG:-${RUNNER_TEMP:-/tmp}/worldboxsr-stable-sandbox-qa.log}"
 base_url="http://127.0.0.1:${port}/WorldBoxSR/"
 scope="${VISUAL_QA_SCOPE:-full}"
 
@@ -12,11 +12,13 @@ case "$scope" in
   *) echo "VISUAL_QA_SCOPE must be smoke or full, got: $scope" >&2; exit 2 ;;
 esac
 
-browser=""
-for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
-  if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
-done
-if [[ -z "$browser" ]]; then echo "Stable Sandbox QA requires Chrome/Chromium on PATH" >&2; exit 2; fi
+browser="${WORLDBOXSR_BROWSER:-}"
+if [[ -z "$browser" ]]; then
+  for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
+    if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
+  done
+fi
+if [[ -z "$browser" ]]; then echo "Stable Sandbox QA requires Chrome/Chromium; configure WORLDBOXSR_BROWSER on self-hosted runners" >&2; exit 2; fi
 
 mkdir -p "$out_dir"
 rm -f "$log_file"
