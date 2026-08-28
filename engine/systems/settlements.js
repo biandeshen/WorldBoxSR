@@ -1,4 +1,10 @@
 import { createSettlement } from '../model/settlement.js';
+import {
+  SETTLEMENT_FOOD_RESERVE_HARVEST_FLOOR_RATIO,
+  SETTLEMENT_FOOD_RESERVE_HARVEST_PER_RESIDENT,
+  normalizedSettlementFoodStored,
+  settlementFoodReserveCapacity
+} from '../model/settlement_food_reserve.js';
 import { entityRef, pushEvent } from '../model/events.js';
 import { tileAt } from '../core/world.js';
 
@@ -54,6 +60,7 @@ export function updateSettlements(world) {
   updateSettlementMembership(world);
   updateSettlementLifecycle(world, interval);
   updateSettlementTerritory(world);
+  updateSettlementFoodReserves(world);
 }
 
 export function updateSettlementMembership(world) {
@@ -88,6 +95,7 @@ export function updateSettlementLifecycle(world, interval = world.config.settlem
     settlement.abandonedDay = world.day;
     settlement.population = 0;
     settlement.memberIds = [];
+    settlement.foodStored = 0;
     pushEvent(world, {
       type: 'settlement.abandoned',
       subject: entityRef('settlement', settlement.id),
@@ -130,6 +138,44 @@ export function updateSettlementTerritory(world) {
         }
       }
     }
+  }
+}
+
+export function updateSettlementFoodReserves(world) {
+  const active = world.settlements
+    .filter((settlement) => settlement.active)
+    .sort((a, b) => a.id - b.id);
+
+  for (const settlement of world.settlements) {
+    if (settlement.active) continue;
+    settlement.foodStored = 0;
+  }
+
+  for (const settlement of active) {
+    const capacity = settlementFoodReserveCapacity(settlement);
+    settlement.foodStored = Math.min(normalizedSettlementFoodStored(settlement.foodStored), capacity);
+
+    let remainingBudget = Math.max(0, settlement.population * SETTLEMENT_FOOD_RESERVE_HARVEST_PER_RESIDENT);
+    let remainingCapacity = Math.max(0, capacity - settlement.foodStored);
+    if (remainingBudget <= 0 || remainingCapacity <= 0) continue;
+
+    for (const tile of world.tiles) {
+      if (tile.ownerSettlementId !== settlement.id || !tile.passable) continue;
+      const protectedFloor = tile.foodCapacity * SETTLEMENT_FOOD_RESERVE_HARVEST_FLOOR_RATIO;
+      const surplus = Math.max(0, tile.food - protectedFloor);
+      if (surplus <= 0) continue;
+
+      const transfer = Math.min(surplus, remainingBudget, remainingCapacity);
+      if (transfer <= 0) continue;
+
+      tile.food -= transfer;
+      settlement.foodStored += transfer;
+      remainingBudget -= transfer;
+      remainingCapacity -= transfer;
+      if (remainingBudget <= 1e-12 || remainingCapacity <= 1e-12) break;
+    }
+
+    settlement.foodStored = Math.min(capacity, Math.max(0, settlement.foodStored));
   }
 }
 
