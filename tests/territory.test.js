@@ -72,7 +72,7 @@ test('territory survives deterministic save/load continuation exactly', () => {
   assert.deepEqual(snapshotWorld(restored), snapshotWorld(world));
 });
 
-test('territory remains neutral to human and RNG behavior while political history may respond to borders', () => {
+test('territory remains deterministic while v1.1 reserve access may intentionally change later human and RNG trajectory', () => {
   const make = (radius) => createWorld({
     seed: 42,
     width: 24,
@@ -80,44 +80,26 @@ test('territory remains neutral to human and RNG behavior while political histor
     population: 30,
     config: { settlementTerritoryRadius: radius }
   });
-  const a = make(0);
-  const b = make(5);
-  tickWorld(a, 60 * a.config.daysPerYear);
-  tickWorld(b, 60 * b.config.daysPerYear);
+  const radius0A = make(0);
+  const radius0B = make(0);
+  const radius5A = make(5);
+  const radius5B = make(5);
+  const days = 60 * radius0A.config.daysPerYear;
+  tickWorld(radius0A, days);
+  tickWorld(radius0B, days);
+  tickWorld(radius5A, days);
+  tickWorld(radius5B, days);
 
-  assert.deepEqual(a.rng.snapshot(), b.rng.snapshot());
-  assert.deepEqual(a.counters, b.counters);
-  assert.deepEqual(a.entities, b.entities);
-  assert.deepEqual(nonPoliticalHistory(a), nonPoliticalHistory(b));
+  assert.deepEqual(snapshotWorld(radius0A), snapshotWorld(radius0B), 'same seed + same territory policy must remain byte-deterministic');
+  assert.deepEqual(snapshotWorld(radius5A), snapshotWorld(radius5B), 'same seed + same territory policy must remain byte-deterministic');
+
+  // v1.1 makes owned territory a deliberate material-life input: reserve harvest and
+  // reserve draw themselves consume no RNG, but they can change whether a hungry
+  // Human moves and therefore which later sequential RNG branches execute.
+  assert.notDeepEqual(radius0A.rng.snapshot(), radius5A.rng.snapshot());
+  assert.notDeepEqual(radius0A.entities, radius5A.entities);
   assert.notDeepEqual(
-    relationHistory(a),
-    relationHistory(b),
-    'territory borders are an intentional input to authoritative polity relations and their political consequences'
+    radius0A.settlements.map(({ id, population, foodStored }) => ({ id, population, foodStored })),
+    radius5A.settlements.map(({ id, population, foodStored }) => ({ id, population, foodStored }))
   );
 });
-
-function relationHistory(world) {
-  return world.history.filter((event) => event.type === 'polity.war_started' || event.type === 'polity.peace_made');
-}
-
-function nonPoliticalHistory(world) {
-  const events = world.history.filter((event) => !isPoliticalEvent(event));
-  const canonicalIds = new Map(events.map((event, index) => [event.id, index + 1]));
-  return events.map(({ id, ...event }) => normalizeEventRefs(event, canonicalIds));
-}
-
-function isPoliticalEvent(event) {
-  return event.type.startsWith('polity.')
-    || event.type.startsWith('warband.')
-    || event.type === 'settlement.conquered'
-    || event.type === 'settlement.rebelled';
-}
-
-function normalizeEventRefs(value, canonicalIds) {
-  if (Array.isArray(value)) return value.map((item) => normalizeEventRefs(item, canonicalIds));
-  if (!value || typeof value !== 'object') return value;
-  if (value.kind === 'event' && Number.isInteger(value.id)) {
-    return { ...value, id: canonicalIds.get(value.id) ?? `external:${value.id}` };
-  }
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeEventRefs(item, canonicalIds)]));
-}

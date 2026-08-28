@@ -36,15 +36,31 @@ on:
       - 'tools/capture-stable-sandbox-persistence-evidence.mjs'
       - 'tools/run-stable-sandbox-smoke.sh'
       - 'tools/verify-stable-sandbox-evidence.mjs'
+      - 'tools/capture-settlement-food-reserve-evidence.mjs'
+      - 'tools/run-settlement-food-reserve-smoke.sh'
+      - 'tools/self-hosted-runner-preflight.mjs'
       - '.github/workflows/visual-qa.yml'
   workflow_dispatch:
+
+# A single project runner should spend time only on the newest revision of a PR.
+# Pushes to main use their ref as the stable full-gate key.
+concurrency:
+  group: visual-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   screenshot:
-    runs-on: ubuntu-latest
+    # Never execute untrusted fork code on the project-owned runner. External
+    # PRs still receive GitHub-hosted CI; browser evidence can be run only after
+    # the change is brought onto a trusted repository branch.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # The project runner is the Windows/X64 machine registered for WorldBoxSR.
+    # Keep ordinary ci.yml on GitHub-hosted Ubuntu as an independent clean-room baseline.
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 45
     env:
       VISUAL_QA_SCOPE: ${{ github.event_name == 'pull_request' && 'smoke' || 'full' }}
     steps:
@@ -52,16 +68,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Verify reusable self-hosted environment
+        run: node tools/self-hosted-runner-preflight.mjs
       - name: Install browser toolchain
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Capture runtime and screenshots
-        run: bash tools/capture-visual-evidence.sh
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/capture-visual-evidence.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify settlement reserve product surface
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-settlement-food-reserve-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify mobile touch inspection
-        run: bash tools/run-touch-inspect-smoke.sh
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-touch-inspect-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify renderer failure recovery
-        run: bash tools/run-renderer-recovery-smoke.sh
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-renderer-recovery-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify stable sandbox composition
-        run: bash tools/run-stable-sandbox-smoke.sh
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-stable-sandbox-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,27 +107,28 @@ jobs:
           retention-days: 14
       - name: Summarize visual gate
         if: always()
+        shell: powershell
         run: |
-          {
-            echo '## Visual QA'
-            echo ''
-            echo "- Scope: \`${VISUAL_QA_SCOPE}\`."
-            echo '- Production Vite build served through the real project-site base path.'
-            echo '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.'
-            echo '- Mobile-emulated Chromium must prove short tap uses the selected power while long hold inspects without consuming another command, and two-finger pinch preserves authority/focus.'
-            echo '- Fault-injected Chromium must block the built Phaser app chunk, expose explicit Retry + Compatibility actions, and start the existing Legacy renderer from the Compatibility action.'
-            echo '- Stable Sandbox evidence must prove ordinary Save → authoritative divergence → exact paused Restore → Scenario persistence suppression through existing production UI.'
-            if [ "$VISUAL_QA_SCOPE" = 'smoke' ]; then
-              echo '- PR smoke keeps canonical + Legacy 1440×900 screenshots, real Meteor→Rain pointer recovery, causal World Stories navigation, real Scenario Setup interaction, mobile touch/pinch, renderer recovery, and the focused Stable Sandbox persistence journey.'
-              echo '- Full historical v0.4–v0.9 Chromium regression plus final stable-sandbox composition remains mandatory after merge on `main`.'
-            else
-              echo '- v0.4 Meteor→Rain real-pointer damage/recovery regression remains required.'
-              echo '- v0.5 Event Card / Focused Story / Watchlist / Chronicle-lens / canonical one-session story regressions remain required.'
-              echo '- v0.6 natural fauna, multi-species, Wolf predation, ecology readability and canonical trough→recovery→predation gates remain required.'
-              echo '- v0.7 Scenario Setup, portable Scenario, Replay/Fork and canonical Scenario Builder regressions remain required.'
-              echo '- v0.8 ruling-line Inspector, Dynastic World Stories and canonical Ruling Lines regressions remain required.'
-              echo '- v0.9 mobile/recovery public-alpha regressions remain required.'
-              echo '- v1.0 verifier must compose causal Story, exact ordinary Save/Restore and canonical Scenario Builder evidence into `stable-sandbox-evidence.json`.'
-            fi
-            echo '- Artifact `visual-evidence` records the executed scope and reproducible screenshots/JSON evidence.'
-          } >> "$GITHUB_STEP_SUMMARY"
+          $lines = @(
+            '## Visual QA',
+            '',
+            "- Scope: ``$env:VISUAL_QA_SCOPE``.",
+            '- Browser-heavy evidence executed on the reusable Windows/X64 self-hosted project runner after an explicit environment preflight.',
+            '- Stale Visual QA runs for the same PR are cancelled so the project runner validates only the newest revision.',
+            '- Fork PR code is never executed directly on the project-owned runner.',
+            '- GitHub-hosted `ci.yml` remains the independent clean-room unit/build baseline.',
+            '- Production Vite build served through the real project-site base path.',
+            '- Headless Chromium must confirm a fully warmed Phaser showcase; `Renderer failed` must be absent.',
+            '- Settlement Food Reserves must show two naturally different active reserve ratios, distinct map Granary signatures and a matching Inspector line without evidence-time reserve mutation.',
+            '- Mobile-emulated Chromium must prove short tap uses the selected power while long hold inspects without consuming another command, and two-finger pinch preserves authority/focus.',
+            '- Fault-injected Chromium must block the built Phaser app chunk, expose explicit Retry + Compatibility actions, and start the existing Legacy renderer from the Compatibility action.',
+            '- Stable Sandbox evidence must prove ordinary Save → authoritative divergence → exact paused Restore → Scenario persistence suppression through existing production UI.'
+          )
+          if ($env:VISUAL_QA_SCOPE -eq 'smoke') {
+            $lines += '- PR smoke keeps canonical + Legacy 1440×900 screenshots, real Meteor→Rain pointer recovery, causal World Stories navigation, real Scenario Setup interaction, v1.1 reserve evidence, mobile touch/pinch, renderer recovery, and the focused Stable Sandbox persistence journey.'
+            $lines += '- Full historical v0.4–v1.0 Chromium regression plus final stable-sandbox composition remains mandatory after merge on `main`.'
+          } else {
+            $lines += '- Full historical v0.4–v1.0 regression remains mandatory together with the current v1.1 reserve surface.'
+          }
+          $lines += '- Artifact `visual-evidence` records the executed scope and reproducible screenshots/JSON evidence.'
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

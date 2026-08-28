@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { closeSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { SNAPSHOT_VERSION } from '../engine/core/world.js';
 
 const [browser, baseUrl, outDir] = process.argv.slice(2);
 if (!browser || !baseUrl || !outDir) {
@@ -49,7 +50,7 @@ try {
   const saved = await worldSnapshot(cdp);
   if (!saved.paused) throw new Error('ordinary world was not paused after Save now');
   if (saved.envelope?.formatVersion !== 1) throw new Error(`unexpected local save format: ${saved.envelope?.formatVersion}`);
-  if (saved.envelope?.snapshotVersion !== 16) throw new Error(`unexpected embedded snapshot version: ${saved.envelope?.snapshotVersion}`);
+  if (saved.envelope?.snapshotVersion !== SNAPSHOT_VERSION) throw new Error(`unexpected embedded snapshot version: ${saved.envelope?.snapshotVersion}; expected current ${SNAPSHOT_VERSION}`);
   if (saved.envelope?.day !== saved.day) throw new Error(`save envelope day mismatch: ${saved.envelope?.day} != ${saved.day}`);
   if (saved.envelope?.preset !== 'sandbox') throw new Error(`unexpected saved preset: ${saved.envelope?.preset}`);
 

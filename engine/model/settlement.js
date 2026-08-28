@@ -15,6 +15,7 @@ export function createSettlement(world, { x, y }) {
     abandonedDay: null,
     population: 0,
     memberIds: [],
+    foodStored: 0,
     polityId: null,
     conquestCount: 0,
     previousPolityId: null,

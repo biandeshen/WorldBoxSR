@@ -36,19 +36,20 @@ test('desktop certification remains tied to production Chrome/Chromium 1440x900 
   for (const browser of ['google-chrome-stable', 'google-chrome', 'chromium', 'chromium-browser']) {
     assert.match(desktopGate, new RegExp(browser));
   }
+  assert.match(desktopGate, /WORLDBOXSR_BROWSER/);
   assert.match(desktopGate, /--window-size=1440,900/);
   assert.match(desktopGate, /ready_marker="Phaser 4 · authoritative simulation · showcase ready"/);
   assert.match(desktopGate, /Renderer failed:/);
   assert.match(desktopGate, /phaser-seed45-1440x900\.png/);
   assert.match(desktopGate, /legacy-seed45-1440x900\.png/);
-  assert.match(visualWorkflow, /bash tools\/capture-visual-evidence\.sh/);
+  assert.match(visualWorkflow, /WORLDBOXSR_BASH.*tools\/capture-visual-evidence\.sh/);
   assert.match(visualWorkflow, /VISUAL_QA_SCOPE:.*pull_request.*smoke.*full/);
 });
 
 test('coarse-touch certification stays bound to 430x820 tap-hold and two-finger pinch evidence', () => {
   assert.match(touchRunner, /capture-touch-inspect-evidence\.mjs/);
   assert.match(touchRunner, /capture-pinch-zoom-evidence\.mjs/);
-  assert.match(visualWorkflow, /bash tools\/run-touch-inspect-smoke\.sh/);
+  assert.match(visualWorkflow, /WORLDBOXSR_BASH.*tools\/run-touch-inspect-smoke\.sh/);
 
   assert.match(touchGate, /--window-size=430,820/);
   assert.match(touchGate, /width: 430/);
@@ -66,7 +67,7 @@ test('coarse-touch certification stays bound to 430x820 tap-hold and two-finger 
 });
 
 test('renderer recovery certification remains explicit Retry plus existing Legacy compatibility fallback', () => {
-  assert.match(visualWorkflow, /bash tools\/run-renderer-recovery-smoke\.sh/);
+  assert.match(visualWorkflow, /WORLDBOXSR_BASH.*tools\/run-renderer-recovery-smoke\.sh/);
   assert.match(recoveryGate, /Network\.setBlockedURLs/);
   assert.match(recoveryGate, /\*phaser_main-\*/);
   assert.match(recoveryGate, /Retry Phaser/);

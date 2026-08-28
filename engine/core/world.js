@@ -1,6 +1,7 @@
 import { SeededRng } from './rng.js';
 import { mergeConfig } from '../model/config.js';
 import { createHuman } from '../model/human.js';
+import { normalizedSettlementFoodStored } from '../model/settlement_food_reserve.js';
 import { pushEvent, worldSubject } from '../model/events.js';
 import { regenerateFood, regenerateVegetation } from '../systems/environment.js';
 import { updateGrazerOldAgeMortality, updateGrazerReproduction, updateGrazers } from '../systems/grazers.js';
@@ -16,8 +17,8 @@ import { updateRulers } from '../systems/rulers.js';
 import { updatePolityRelations } from '../systems/polity_relations.js';
 import { updateWarbands } from '../systems/warbands.js';
 
-export const SNAPSHOT_VERSION = 16;
-export const SUPPORTED_SNAPSHOT_VERSIONS = Object.freeze([10, 11, 12, 13, 14, 15, 16]);
+export const SNAPSHOT_VERSION = 17;
+export const SUPPORTED_SNAPSHOT_VERSIONS = Object.freeze([10, 11, 12, 13, 14, 15, 16, 17]);
 
 export function createWorld({ seed = 1, width = 32, height = 32, population = 20, config = {} } = {}) {
   assertWorldSize(width, height);
@@ -173,7 +174,8 @@ export function worldFromSnapshot(snapshot) {
   const migratingPreV12 = version === 10 || version === 11;
   const migratingPreV13 = version === 10 || version === 11 || version === 12;
   const migratingPreV14 = version === 10 || version === 11 || version === 12 || version === 13;
-  const migratingPreV16 = version !== SNAPSHOT_VERSION;
+  const migratingPreV16 = version < 16;
+  const migratingPreV17 = version < 17;
   return {
     snapshotVersion: SNAPSHOT_VERSION,
     seed: snapshot.seed,
@@ -197,6 +199,7 @@ export function worldFromSnapshot(snapshot) {
     settlements: snapshot.settlements.map((settlement) => normalizeSettlementPoliticalFields({
       ...settlement,
       memberIds: [...settlement.memberIds],
+      foodStored: migratingPreV17 ? 0 : normalizedSettlementFoodStored(settlement.foodStored),
       polityId: migratingPreV12 ? null : (settlement.polityId ?? null)
     })),
     polities: migratingPreV12 ? [] : (snapshot.polities ?? []).map((polity) => normalizePolitySnapshot(polity, { migratingPreV16 })),

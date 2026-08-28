@@ -13,11 +13,21 @@ case "$scope" in
   *) echo "VISUAL_QA_SCOPE must be smoke or full, got: $scope" >&2; exit 2 ;;
 esac
 
-browser=""
-for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
-  if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
-done
-if [[ -z "$browser" ]]; then echo "Visual QA requires Chrome/Chromium on PATH" >&2; exit 2; fi
+browser="${WORLDBOXSR_BROWSER:-}"
+if [[ -z "$browser" ]]; then
+  for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
+    if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
+  done
+fi
+if [[ -z "$browser" ]]; then echo "Visual QA requires Chrome/Chromium; configure WORLDBOXSR_BROWSER on self-hosted runners" >&2; exit 2; fi
+
+# Node evidence must receive the native executable path (for example Chrome.exe
+# on Windows), while Git Bash may need the same path translated for direct
+# shell execution. Never replace the native path with a Unix shim.
+browser_shell="$browser"
+if command -v cygpath >/dev/null 2>&1 && [[ "$browser" =~ ^[A-Za-z]:\\ ]]; then
+  browser_shell="$(cygpath -u "$browser")"
+fi
 
 mkdir -p "$out_dir"
 rm -f "$log_file"
@@ -42,7 +52,7 @@ chrome_flags=(
 )
 
 candidate_dom="$out_dir/candidate-dom.html"
-"$browser" "${chrome_flags[@]}" --dump-dom "$base_url" >"$candidate_dom" 2>"$out_dir/chrome-runtime.log"
+"$browser_shell" "${chrome_flags[@]}" --dump-dom "$base_url" >"$candidate_dom" 2>"$out_dir/chrome-runtime.log"
 if ! grep -q "$ready_marker" "$candidate_dom"; then
   echo "Fully warmed Phaser showcase marker not found in rendered DOM" >&2
   grep -oE '<div id="boot-status"[^>]*>[^<]*' "$candidate_dom" | head -1 >&2 || true
@@ -56,8 +66,8 @@ if grep -q "Renderer failed:" "$candidate_dom"; then
   exit 1
 fi
 
-"$browser" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
-"$browser" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
+"$browser_shell" "${chrome_flags[@]}" --screenshot="$out_dir/phaser-seed45-1440x900.png" "$base_url" >/dev/null 2>>"$out_dir/chrome-runtime.log"
+"$browser_shell" "${chrome_flags[@]}" --screenshot="$out_dir/legacy-seed45-1440x900.png" "${base_url}?renderer=legacy" >/dev/null 2>>"$out_dir/chrome-runtime.log"
 
 # Every scope keeps a real God Power pointer journey and causal story navigation.
 node tools/capture-meteor-evidence.mjs "$browser" "$base_url" "$out_dir"

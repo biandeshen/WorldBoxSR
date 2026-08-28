@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorld, snapshotWorld, worldFromSnapshot } from '../engine/core/world.js';
+import { createWorld, SNAPSHOT_VERSION, snapshotWorld, worldFromSnapshot } from '../engine/core/world.js';
 import { createHuman } from '../engine/model/human.js';
 import { createSettlement } from '../engine/model/settlement.js';
 import { updatePoliticalOutcomes, REBELLION_DELAY_YEARS } from '../engine/systems/political_outcomes.js';
@@ -152,18 +152,19 @@ test('a captured viable non-capital settlement can seed exactly one deterministi
   assert.equal(world.history.filter((event) => event.type === 'settlement.rebelled' && event.settlementId === settlementB.id).length, 1);
 });
 
-test('snapshot v16 preserves political outcomes exactly and v14 snapshots migrate with neutral settlement political fields', () => {
+test('current snapshot preserves political outcomes exactly and v14 snapshots migrate with neutral settlement political fields', () => {
   const { world, settlementB } = controlledOutcomeWorld(904);
   assert.ok(advanceUntilConquest(world));
 
   const snapshot = snapshotWorld(world);
-  assert.equal(snapshot.snapshotVersion, 16);
+  assert.equal(snapshot.snapshotVersion, SNAPSHOT_VERSION);
   const restored = worldFromSnapshot(structuredClone(snapshot));
   assert.deepEqual(snapshotWorld(restored), snapshot);
 
   const legacy = structuredClone(snapshot);
   legacy.snapshotVersion = 14;
   for (const settlement of legacy.settlements) {
+    delete settlement.foodStored;
     delete settlement.conquestCount;
     delete settlement.previousPolityId;
     delete settlement.lastConqueredDay;
@@ -177,7 +178,8 @@ test('snapshot v16 preserves political outcomes exactly and v14 snapshots migrat
   }
   const migrated = worldFromSnapshot(legacy);
   const migratedSettlement = migrated.settlements.find((settlement) => settlement.id === settlementB.id);
-  assert.equal(migrated.snapshotVersion, 16);
+  assert.equal(migrated.snapshotVersion, SNAPSHOT_VERSION);
+  assert.equal(migratedSettlement.foodStored, 0);
   assert.equal(migratedSettlement.conquestCount, 0);
   assert.equal(migratedSettlement.rebellionCount, 0);
   assert.equal(migratedSettlement.lastConqueredDay, null);
