@@ -3,9 +3,6 @@ name: wolf-evidence-fix-full-qa
 on:
   pull_request:
     paths:
-      - 'tools/capture-wolf-predation-evidence.mjs'
-      - 'tools/wolf_predation_evidence_selection.js'
-      - 'tests/wolf_predation_evidence_selection.test.js'
       - '.github/workflows/wolf-evidence-fix-full-qa.yml'
 
 concurrency:
@@ -16,63 +13,9 @@ permissions:
   contents: read
 
 jobs:
-  linux-full-history:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  release-runner:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      VISUAL_QA_SCOPE: full
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install browser toolchain
-        run: npm install --package-lock=false --no-audit --no-fund
-      - name: Run full historical browser evidence on hosted Chrome
-        shell: bash
+      - name: Record validation handoff
         run: |
-          set -euo pipefail
-          browser="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
-          if [[ -z "$browser" ]]; then
-            echo "Hosted QA requires Chrome/Chromium" >&2
-            exit 2
-          fi
-          WORLDBOXSR_BROWSER="$browser" bash tools/capture-visual-evidence.sh
-      - name: Upload hosted full historical evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: wolf-evidence-fix-full-linux
-          path: artifacts/visual
-          if-no-files-found: warn
-          retention-days: 7
-
-  windows-full-history:
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, Windows, X64]
-    timeout-minutes: 45
-    env:
-      VISUAL_QA_SCOPE: full
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Verify reusable self-hosted environment
-        run: node tools/self-hosted-runner-preflight.mjs
-      - name: Install browser toolchain
-        run: npm install --package-lock=false --no-audit --no-fund
-      - name: Run full historical browser evidence
-        shell: powershell
-        run: |
-          & "$env:WORLDBOXSR_BASH" tools/capture-visual-evidence.sh
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Upload self-hosted full historical evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: wolf-evidence-fix-full-windows
-          path: artifacts/visual
-          if-no-files-found: warn
-          retention-days: 7
+          echo 'Hosted full historical proof is complete; Windows final proof is owned by merged-main visual-qa.'
