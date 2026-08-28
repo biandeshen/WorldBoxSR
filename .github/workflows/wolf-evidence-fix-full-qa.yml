@@ -1,0 +1,46 @@
+name: wolf-evidence-fix-full-qa
+
+on:
+  pull_request:
+    paths:
+      - 'tools/capture-wolf-predation-evidence.mjs'
+      - 'tools/wolf_predation_evidence_selection.js'
+      - 'tests/wolf_predation_evidence_selection.test.js'
+      - '.github/workflows/wolf-evidence-fix-full-qa.yml'
+
+concurrency:
+  group: wolf-evidence-fix-full-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  full-history:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 45
+    env:
+      VISUAL_QA_SCOPE: full
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify reusable self-hosted environment
+        run: node tools/self-hosted-runner-preflight.mjs
+      - name: Install browser toolchain
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Run full historical browser evidence
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/capture-visual-evidence.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload full historical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wolf-evidence-fix-full
+          path: artifacts/visual
+          if-no-files-found: warn
+          retention-days: 7
