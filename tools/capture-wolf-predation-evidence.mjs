@@ -2,8 +2,8 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { wolfPredationEvidenceStartCandidates } from './wolf_predation_evidence_selection.js';
 
-const WOLF_SPAWN_TILE = Object.freeze({ x: 11, y: 0 });
 const [browser, baseUrl, outDir] = process.argv.slice(2);
 if (!browser || !baseUrl || !outDir) {
   console.error('usage: node tools/capture-wolf-predation-evidence.mjs <browser> <base-url> <out-dir>');
@@ -30,6 +30,10 @@ try {
   await cdp.send('Runtime.enable');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
 
+  // Freeze the player clock before switching presets so the incremental gate
+  // starts from exact authoritative Y40. The v0.6 canonical release gate below
+  // remains separately frozen at Y50 tile (0,8); this script is not that gate.
+  await clickPauseTo(cdp, true);
   const selected = await evaluate(cdp, `(() => {
     const preset = document.querySelector('#world-preset');
     if (!preset) return null;
@@ -41,11 +45,10 @@ try {
   await clickSelector(cdp, '#reset');
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('evolving showcase') === true`, 3_000);
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 25_000);
-  await pauseWorld(cdp);
+  await waitForExpression(cdp, `document.querySelector('#pause')?.dataset?.active === 'true'`, 1_500);
 
   const setup = await evaluate(cdp, `(() => {
-    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world;
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     return world ? {
       preset: document.querySelector('#world-preset')?.value ?? '',
       day: world.day,
@@ -59,18 +62,25 @@ try {
   if (!setup || setup.preset !== 'living_ecology' || !setup.paused || setup.wolves !== 0 || setup.grazers < 1) {
     throw new Error(`unexpected Wolf predation setup: ${JSON.stringify(setup)}`);
   }
-
-  let spawnPoint = await fixedWolfSpawnPoint(cdp);
-  if (!spawnPoint) throw new Error(`canonical Wolf spawn tile ${WOLF_SPAWN_TILE.x},${WOLF_SPAWN_TILE.y} is no longer a clear passable Y40 start near living Grazer authority`);
-  if (!spawnPoint.clickable) {
-    // The world-first desktop camera intentionally renders the top rows beneath
-    // the translucent topbar. Use the shipped wheel-zoom input to expose the
-    // same v0.6 Y40 canonical Wolf start for a real pointer click instead of
-    // changing world state or choosing a different ecology trajectory.
-    await wheelAt(cdp, { x: 720, y: 450 }, 180);
-    spawnPoint = await fixedWolfSpawnPoint(cdp);
+  if (setup.day !== 40 * setup.daysPerYear) {
+    throw new Error(`incremental Wolf predation setup must stay at exact Y40, got day ${setup.day}`);
   }
-  if (!spawnPoint?.clickable) throw new Error(`canonical Wolf spawn tile ${WOLF_SPAWN_TILE.x},${WOLF_SPAWN_TILE.y} could not be exposed through ordinary camera zoom`);
+
+  const selectorInput = await selectionWorld(cdp);
+  const candidates = wolfPredationEvidenceStartCandidates(selectorInput);
+  if (candidates.length === 0) {
+    throw new Error('deterministic Y40 Wolf evidence selector found no clear passable start that requires movement toward authoritative prey');
+  }
+
+  let spawnPoint = await firstClickableCandidate(cdp, candidates);
+  if (!spawnPoint) {
+    // Camera-only fallback: expose more of the same authoritative candidate list
+    // through the shipped wheel interaction. Candidate ordering/world state does
+    // not change, and no simulation authority is written by evidence code.
+    await wheelAt(cdp, { x: 720, y: 450 }, 180);
+    spawnPoint = await firstClickableCandidate(cdp, candidates, true);
+  }
+  if (!spawnPoint) throw new Error('deterministic Y40 Wolf evidence candidates could not be exposed through ordinary camera zoom');
 
   const toolResult = await evaluate(cdp, `(() => {
     const tool = document.querySelector('#tool');
@@ -86,8 +96,7 @@ try {
   })()`, 2_000);
 
   const spawned = await evaluate(cdp, `(() => {
-    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world;
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     const wolf = world?.creatures?.find((creature) => creature.alive && creature.species === 'wolf' && creature.x === ${spawnPoint.tileX} && creature.y === ${spawnPoint.tileY});
     const event = world?.history?.findLast((entry) => entry.type === 'god.spawn_creature' && entry.species === 'wolf');
     return wolf && event ? {
@@ -120,14 +129,12 @@ try {
   let previous = { ...origin };
   let firstMove = null;
   let predation = null;
-  const unpaused = await clickPauseTo(cdp, false);
-  if (!unpaused) throw new Error('failed to unpause Wolf predation world');
+  if (!(await clickPauseTo(cdp, false))) throw new Error('failed to unpause Wolf predation world');
 
   const deadline = Date.now() + 22_000;
   while (Date.now() < deadline) {
     const state = await evaluate(cdp, `(() => {
-      const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-      const world = scene?.world;
+      const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
       const wolf = world?.creatures?.find((creature) => creature.alive && creature.species === 'wolf' && creature.id === ${spawned.wolfId});
       const predation = world?.history?.findLast((event) => event.type === 'creature.predated' && event.predatorCreatureId === ${spawned.wolfId});
       const death = predation ? world?.history?.find((event) => event.id > predation.id && event.type === 'creature.died' && event.creatureId === predation.preyCreatureId && event.cause === 'predation') : null;
@@ -172,13 +179,11 @@ try {
     throw new Error('hidden creature reseed/spawn occurred after explicit Wolf setup');
   }
 
-  const pausedAfter = await clickPauseTo(cdp, true);
-  if (!pausedAfter) throw new Error('failed to pause after Wolf predation');
+  if (!(await clickPauseTo(cdp, true))) throw new Error('failed to pause after Wolf predation');
   await waitForExpression(cdp, `document.querySelector('#stats')?.textContent?.includes('🐺 1') === true`, 2_000);
 
   const postKill = await evaluate(cdp, `(() => {
-    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world;
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
     const wolf = world?.creatures?.find((creature) => creature.alive && creature.id === ${spawned.wolfId});
     return wolf ? {
       wolf: { id: wolf.id, x: wolf.x, y: wolf.y, ageDays: wolf.ageDays, health: wolf.health, hunger: wolf.hunger },
@@ -190,7 +195,11 @@ try {
   if (!postKill?.paused) throw new Error(`post-predation pause/state mismatch: ${JSON.stringify(postKill)}`);
 
   const frozenFingerprint = await fingerprint(cdp);
-  const wolfPoint = await creatureScreenPoint(cdp, spawned.wolfId);
+  let wolfPoint = await creatureScreenPoint(cdp, spawned.wolfId);
+  if (!wolfPoint) {
+    await clickSelector(cdp, '#reset-camera');
+    wolfPoint = await creatureScreenPoint(cdp, spawned.wolfId);
+  }
   if (!wolfPoint) throw new Error('surviving Wolf is not visible for real post-predation inspection');
   await altClickPoint(cdp, wolfPoint);
   await waitForExpression(cdp, `document.querySelector('#inspector')?.textContent?.startsWith('Wolf #${spawned.wolfId}') === true`, 2_000);
@@ -207,17 +216,21 @@ try {
       wolves: setup.wolves,
       godCreatureSpawns: setup.godCreatureSpawns
     },
+    incrementalEvidenceStart: {
+      strategy: 'deterministic read-only Y40 selector; v0.6 canonical Y50 tile (0,8) remains unchanged',
+      rank: spawnPoint.rank,
+      tile: [spawnPoint.tileX, spawnPoint.tileY],
+      nearestGrazerId: spawnPoint.nearestGrazerId,
+      nearestGrazerDistance: spawnPoint.nearestGrazerDistance,
+      firstCloserStep: spawnPoint.firstCloserStep,
+      wheelZoomUsed: Boolean(spawnPoint.cameraAdjusted)
+    },
     explicitWolfSpawn: {
       wolfId: spawned.wolfId,
       eventId: spawned.spawnEventId,
       origin,
-      nearestGrazerDistanceAtSetup: spawnPoint.nearestGrazerDistance,
       hunger: spawned.hunger,
       grazers: spawned.grazers
-    },
-    ordinaryCameraExposure: {
-      wheelZoomUsed: spawnPoint.cameraAdjusted,
-      canonicalTile: [WOLF_SPAWN_TILE.x, WOLF_SPAWN_TILE.y]
     },
     ordinaryTimeControl: { daysPerStep: 1 },
     firstMovement: firstMove,
@@ -242,7 +255,7 @@ try {
     }
   };
   writeFileSync(join(outDir, 'wolf-predation-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
-  console.log(`Wolf predation evidence: Wolf #${spawned.wolfId} moved ${firstMove.from.x},${firstMove.from.y}→${firstMove.to.x},${firstMove.to.y}; predated Grazer #${predation.predation.preyCreatureId} in Event #${predation.predation.id} / death #${predation.death.id}; hunger ${predation.predation.predatorHungerBefore.toFixed(2)}→${predation.predation.predatorHungerAfter.toFixed(2)}; paused inspection authority unchanged`);
+  console.log(`Wolf predation evidence: Y40 selector rank ${spawnPoint.rank} tile ${spawnPoint.tileX},${spawnPoint.tileY}; Wolf #${spawned.wolfId} moved ${firstMove.from.x},${firstMove.from.y}→${firstMove.to.x},${firstMove.to.y}; predated Grazer #${predation.predation.preyCreatureId} in Event #${predation.predation.id} / death #${predation.death.id}; hunger ${predation.predation.predatorHungerBefore.toFixed(2)}→${predation.predation.predatorHungerAfter.toFixed(2)}; paused inspection authority unchanged`);
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
@@ -251,37 +264,52 @@ try {
   catch (error) { console.warn(`Could not fully remove temporary Chrome profile ${userDataDir}: ${error?.message || error}`); }
 }
 
-async function fixedWolfSpawnPoint(cdpClient) {
-  return evaluate(cdpClient, `(() => {
-    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    const world = scene?.world;
-    const camera = scene?.cameras?.main;
-    if (!world || !camera) return null;
-    const tileSize = 28;
-    const tile = world.tiles.find((candidate) => candidate.x === ${WOLF_SPAWN_TILE.x} && candidate.y === ${WOLF_SPAWN_TILE.y});
-    if (!tile?.passable) return null;
-    const occupied = [
-      ...world.entities.filter((entity) => entity.kind === 'human' && entity.alive),
-      ...world.creatures.filter((creature) => creature.alive),
-      ...(world.warbands ?? []).filter((band) => band.active)
-    ].some((entry) => entry.x === tile.x && entry.y === tile.y);
-    if (occupied) return null;
-    const grazers = world.creatures.filter((creature) => creature.alive && creature.species === 'grazer');
-    const nearestGrazerDistance = grazers.reduce((min, grazer) => Math.min(min, Math.max(Math.abs(tile.x - grazer.x), Math.abs(tile.y - grazer.y))), Infinity);
-    if (!(nearestGrazerDistance >= 2 && nearestGrazerDistance <= world.config.wolfPreySearchRadius)) return null;
-    const worldX = (tile.x + 0.5) * tileSize;
-    const worldY = (tile.y + 0.5) * tileSize;
-    const x = camera.x + (worldX - camera.worldView.x) * camera.zoom;
-    const y = camera.y + (worldY - camera.worldView.y) * camera.zoom;
-    return {
-      x,
-      y,
-      tileX: tile.x,
-      tileY: tile.y,
-      nearestGrazerDistance,
-      clickable: x >= 30 && x <= 1120 && y >= 75 && y <= 790
-    };
+async function selectionWorld(cdpClient) {
+  const world = await evaluate(cdpClient, `(() => {
+    const world = globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world;
+    return world ? {
+      config: { wolfPreySearchRadius: world.config.wolfPreySearchRadius },
+      tiles: world.tiles.map((tile) => ({ x: tile.x, y: tile.y, passable: tile.passable })),
+      entities: world.entities
+        .filter((entity) => entity.kind === 'human' && entity.alive)
+        .map((entity) => ({ kind: entity.kind, alive: entity.alive, x: entity.x, y: entity.y })),
+      creatures: world.creatures
+        .filter((creature) => creature.alive)
+        .map((creature) => ({ id: creature.id, species: creature.species, alive: creature.alive, x: creature.x, y: creature.y })),
+      warbands: (world.warbands ?? [])
+        .filter((band) => band.active)
+        .map((band) => ({ active: band.active, x: band.x, y: band.y }))
+    } : null;
   })()`);
+  if (!world) throw new Error('world unavailable for deterministic Wolf evidence selection');
+  return world;
+}
+
+async function firstClickableCandidate(cdpClient, candidates, cameraAdjusted = false) {
+  const points = await evaluate(cdpClient, `(() => {
+    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
+    const camera = scene?.cameras?.main;
+    if (!camera) return [];
+    const tileSize = 28;
+    return ${JSON.stringify(candidates)}.map((candidate, rank) => {
+      const worldX = (candidate.x + 0.5) * tileSize;
+      const worldY = (candidate.y + 0.5) * tileSize;
+      const x = camera.x + (worldX - camera.worldView.x) * camera.zoom;
+      const y = camera.y + (worldY - camera.worldView.y) * camera.zoom;
+      return {
+        ...candidate,
+        rank,
+        x,
+        y,
+        tileX: candidate.x,
+        tileY: candidate.y,
+        clickable: x >= 30 && x <= 1120 && y >= 75 && y <= 790
+      };
+    });
+  })()`);
+  const chosen = points.find((point) => point.clickable) ?? null;
+  if (chosen) chosen.cameraAdjusted = cameraAdjusted;
+  return chosen;
 }
 
 async function creatureScreenPoint(cdpClient, creatureId) {
@@ -301,10 +329,6 @@ async function creatureScreenPoint(cdpClient, creatureId) {
     if (humanOverlap) return null;
     return { x, y, tileX: creature.x, tileY: creature.y };
   })()`);
-}
-
-async function pauseWorld(cdpClient) {
-  if (!(await clickPauseTo(cdpClient, true))) throw new Error('failed to pause Wolf predation world');
 }
 
 async function clickPauseTo(cdpClient, paused) {
@@ -340,9 +364,6 @@ async function wheelAt(cdpClient, point, deltaY) {
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y });
   await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: point.x, y: point.y, deltaX: 0, deltaY });
   await delay(180);
-  const adjusted = await fixedWolfSpawnPoint(cdpClient);
-  if (adjusted) adjusted.cameraAdjusted = true;
-  return adjusted;
 }
 
 async function elementCenter(cdpClient, selector) {

@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { SNAPSHOT_VERSION } from '../engine/core/world.js';
 
 const [outDir] = process.argv.slice(2);
 if (!outDir) {
@@ -20,7 +21,7 @@ assert(String(story.inspector ?? '').length > 0, 'World Stories evidence must re
 assert(persistence.stableSandboxPersistenceComplete === true, 'ordinary persistence composition did not complete');
 assert(persistence.localSaveKey === 'worldboxsr:local-world:v1', `unexpected local save key: ${persistence.localSaveKey}`);
 assert(persistence.ordinary?.formatVersion === 1, `unexpected local envelope version: ${persistence.ordinary?.formatVersion}`);
-assert(persistence.ordinary?.snapshotVersion === 16, `unexpected engine snapshot version: ${persistence.ordinary?.snapshotVersion}`);
+assert(persistence.ordinary?.snapshotVersion === SNAPSHOT_VERSION, `unexpected engine snapshot version: ${persistence.ordinary?.snapshotVersion}; expected current ${SNAPSHOT_VERSION}`);
 assert(persistence.ordinary?.mutatedDay > persistence.ordinary?.savedDay, 'ordinary world did not diverge after save');
 assert(persistence.ordinary?.restoredDay === persistence.ordinary?.savedDay, 'ordinary restore did not return to saved day');
 assert(persistence.ordinary?.exactRestore === true, 'ordinary Restore did not return exact saved authority');
