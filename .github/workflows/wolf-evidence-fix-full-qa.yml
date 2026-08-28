@@ -5,20 +5,78 @@ on:
     branches:
       - 'fix/wolf-predation-evidence-anchor-pr'
 
-# TEMPORARY CLOSED QA BRANCH ONLY. Join the stale #331 visual concurrency
-# group from a real GitHub-hosted job so GitHub can preempt the last queued
-# PR smoke without allocating the project Windows runner. Never merge.
+# TEMPORARY CLOSED QA BRANCH ONLY. This hosted-Windows proof never merges and
+# never allocates the project self-hosted runner. Merged-main visual-qa remains
+# the authoritative delivery gate for #328.
 concurrency:
-  group: visual-qa-331
+  group: hosted-windows-v11-cap1-proof
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  release-runner:
-    runs-on: ubuntu-latest
+  windows-full-proof:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      VISUAL_QA_SCOPE: full
     steps:
-      - name: Release stale PR runner lane
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve Git Bash and Chrome
+        shell: powershell
         run: |
-          echo 'Preempt stale visual-qa-331; merged-main visual-qa owns the Windows gate.'
+          $bashCandidates = @(
+            "$env:ProgramFiles\Git\bin\bash.exe",
+            "${env:ProgramFiles(x86)}\Git\bin\bash.exe"
+          )
+          $bash = $bashCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          if (-not $bash) { throw 'Git Bash not found on hosted Windows runner' }
+          $chromeCandidates = @(
+            "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+          )
+          $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          if (-not $chrome) { throw 'Google Chrome not found on hosted Windows runner' }
+          "WORLDBOXSR_BASH=$bash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WORLDBOXSR_BROWSER=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Git Bash: $bash"
+          Write-Host "Chrome: $chrome"
+      - name: Install browser toolchain
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Full historical browser evidence
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/capture-visual-evidence.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Settlement reserve surface
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-settlement-food-reserve-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Mobile touch and pinch
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-touch-inspect-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Renderer failure recovery
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-renderer-recovery-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Stable Sandbox composition
+        shell: powershell
+        run: |
+          & "$env:WORLDBOXSR_BASH" tools/run-stable-sandbox-smoke.sh
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload hosted Windows evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosted-windows-v11-cap1-proof
+          path: artifacts/visual
+          if-no-files-found: warn
+          retention-days: 7
