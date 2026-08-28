@@ -1,10 +1,20 @@
-import { accessSync, appendFileSync, chmodSync, constants, mkdirSync, writeFileSync } from 'node:fs';
-import { platform, arch, homedir } from 'node:os';
+import {
+  accessSync,
+  appendFileSync,
+  chmodSync,
+  constants,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { platform, arch, homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const REQUIRED_COMMANDS = ['bash', 'curl', 'npm', 'node'];
 const PROBE_TIMEOUT_MS = 3_000;
+const BROWSER_SMOKE_TIMEOUT_MS = 12_000;
 const MIN_NODE_MAJOR = 22;
 const browserCandidates = process.platform === 'win32'
   ? [
@@ -38,14 +48,18 @@ const browser = browserCandidates.filter(Boolean).find(isExecutableFile)
   ?? commandPath('google-chrome')
   ?? commandPath('chromium')
   ?? commandPath('chromium-browser');
-const browserProbe = browser ? executableVersion(browser) : null;
-if (!browser) failures.push('Chrome/Chromium not found. Install a reusable system browser or set WORLDBOXSR_BROWSER.');
-else if (!browserProbe?.available) failures.push(`Chrome/Chromium version probe failed for ${browser}: ${browserProbe?.error ?? 'unknown error'}`);
+const browserSmoke = browser ? probeHeadlessBrowser(browser) : null;
+const browserVersion = browser ? optionalBrowserVersion(browser) : null;
+if (!browser) {
+  failures.push('Chrome/Chromium not found. Install a reusable system browser or set WORLDBOXSR_BROWSER.');
+} else if (!browserSmoke?.available) {
+  failures.push(`Chrome/Chromium could not complete a bounded headless smoke for ${browser}: ${browserSmoke?.error ?? 'unknown error'}`);
+}
 
 let browserShim = null;
-if (browser && browserProbe?.available) {
+if (browser && browserSmoke?.available) {
   if (process.env.GITHUB_ENV) appendFileSync(process.env.GITHUB_ENV, `WORLDBOXSR_BROWSER=${browser}\n`);
-  browserShim = installBrowserShim(browser);
+  browserShim = installBrowserShim();
 }
 
 const report = {
@@ -60,12 +74,17 @@ const report = {
   },
   contract: {
     minimumNodeMajor: MIN_NODE_MAJOR,
-    probeTimeoutMs: PROBE_TIMEOUT_MS,
-    browserEnvExported: Boolean(browser && process.env.GITHUB_ENV),
+    commandProbeTimeoutMs: PROBE_TIMEOUT_MS,
+    browserSmokeTimeoutMs: BROWSER_SMOKE_TIMEOUT_MS,
+    browserEnvExported: Boolean(browser && browserSmoke?.available && process.env.GITHUB_ENV),
     browserShim
   },
   commands,
-  browser: browser ? { path: browser, ...browserProbe } : null,
+  browser: browser ? {
+    path: browser,
+    headlessSmoke: browserSmoke,
+    versionProbe: browserVersion
+  } : null,
   cache: {
     npm: process.env.npm_config_cache ?? null,
     githubWorkspace: process.env.GITHUB_WORKSPACE ?? null
@@ -85,7 +104,7 @@ function commandVersion(command) {
     available: probe.status === 0 && !probe.error,
     version: firstLine(probe.stdout || probe.stderr),
     path: commandPath(command),
-    error: probeError(probe)
+    error: probeError(probe, PROBE_TIMEOUT_MS)
   };
 }
 
@@ -96,21 +115,57 @@ function commandPath(command) {
   return firstLine(result.stdout) || null;
 }
 
-function executableVersion(file) {
+function optionalBrowserVersion(file) {
+  // `chrome.exe --version` is not a reliable lifecycle contract on Windows: on
+  // some installations it starts/forwards to a browser process instead of
+  // returning a CLI version. Version is diagnostic only; the bounded headless
+  // smoke below is the actual capability gate.
+  if (process.platform === 'win32') {
+    return { available: false, version: null, error: 'not required on Windows; headless smoke is authoritative' };
+  }
   const result = runProbe(file, ['--version']);
   return {
     available: result.status === 0 && !result.error,
-    version: firstLine(result.stdout || result.stderr),
-    error: probeError(result)
+    version: firstLine(result.stdout || result.stderr) || null,
+    error: probeError(result, PROBE_TIMEOUT_MS)
   };
 }
 
-function installBrowserShim(file) {
+function probeHeadlessBrowser(file) {
+  const profile = mkdtempSync(join(tmpdir(), 'worldboxsr-runner-browser-probe-'));
+  try {
+    const result = spawnSync(file, [
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--hide-scrollbars',
+      `--user-data-dir=${profile}`,
+      '--dump-dom',
+      'data:text/html,<title>WorldBoxSRRunnerProbe</title><main>ok</main>'
+    ], {
+      encoding: 'utf8',
+      timeout: BROWSER_SMOKE_TIMEOUT_MS,
+      windowsHide: true
+    });
+    const output = String(result.stdout ?? '');
+    const available = result.status === 0 && !result.error && output.includes('WorldBoxSRRunnerProbe');
+    return {
+      available,
+      exitCode: result.status,
+      markerFound: output.includes('WorldBoxSRRunnerProbe'),
+      error: available ? null : probeError(result, BROWSER_SMOKE_TIMEOUT_MS) ?? firstLine(result.stderr) ?? 'headless marker missing'
+    };
+  } finally {
+    try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {}
+  }
+}
+
+function installBrowserShim() {
   if (!process.env.RUNNER_TEMP || !process.env.GITHUB_PATH) return null;
   const shimDir = join(process.env.RUNNER_TEMP, 'worldboxsr-bin');
   const shimPath = join(shimDir, 'google-chrome-stable');
   mkdirSync(shimDir, { recursive: true });
-  writeFileSync(shimPath, `#!/usr/bin/env node\nconst { spawnSync } = require('node:child_process');\nconst result = spawnSync(${JSON.stringify(file)}, process.argv.slice(2), { stdio: 'inherit', windowsHide: true });\nif (result.error) { console.error(result.error); process.exit(1); }\nprocess.exit(result.status ?? 1);\n`);
+  writeFileSync(shimPath, '#!/usr/bin/env bash\nexec "$WORLDBOXSR_BROWSER" "$@"\n');
   try { chmodSync(shimPath, 0o755); } catch {}
   appendFileSync(process.env.GITHUB_PATH, `${shimDir}\n`);
   return shimPath;
@@ -124,9 +179,9 @@ function runProbe(command, args) {
   });
 }
 
-function probeError(result) {
+function probeError(result, timeoutMs) {
   if (!result.error) return null;
-  if (result.error.code === 'ETIMEDOUT') return `timed out after ${PROBE_TIMEOUT_MS}ms`;
+  if (result.error.code === 'ETIMEDOUT') return `timed out after ${timeoutMs}ms`;
   return result.error.code || result.error.message || String(result.error);
 }
 
