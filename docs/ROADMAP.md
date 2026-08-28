@@ -2,6 +2,8 @@
 
 WorldBoxSR is an open-ended sandbox, but development must not be open-ended. The project ships **coherent, visible, playable slices** and freezes public contracts at release boundaries.
 
+Product-interface north star: `docs/product/ui-ux-north-star.md`.
+
 ## Permanent release discipline
 
 1. Visible progress is required; green tests alone do not complete a player-facing version.
@@ -12,6 +14,7 @@ WorldBoxSR is an open-ended sandbox, but development must not be open-ended. The
 6. Implementation freezes before release packaging; published tags never move.
 7. Ordinary feature slices use focused tests/browser smoke; full historical proof belongs at capability/release boundaries.
 8. Public support claims require real evidence; uncertified surfaces stay explicitly uncertified.
+9. UI/UX evolves with player-visible capability: the world remains primary, shared presentation projections must stay truthful, and concept art never authorizes nonexistent mechanics.
 
 ---
 
@@ -63,7 +66,7 @@ v1.0 freezes:
 ---
 
 ## v1.1 — Settlement Life & Food Reserves
-**Status: planned; implementation next.** Direction gate #326. Finite backlog: `docs/backlog/v1.1.md`.
+**Status: implementation ready.** Direction gate #326. Capability 1: #328. Finite backlog: `docs/backlog/v1.1.md`.
 
 Primary fantasy:
 
@@ -85,20 +88,49 @@ Post-1.0 evidence scoring selected this direction over conflict-depth, terrain s
 - Rain/Meteor environmental effects;
 - settlement rendering, Inspector and World Stories surfaces.
 
+### UI/UX integration
+
+v1.1 is also the first bounded implementation step toward the v1.x UI/UX north star:
+
+- map-visible Granary/reserve cue;
+- Settlement Inspector `Food reserve X / Y` + concise state;
+- one pure reserve presentation projection shared by map and Inspector;
+- no economy dashboard, management controls or labels for mechanics that do not exist.
+
 ### Explicit non-goals
 
 No currency, prices, markets, trade routes, professions/classes, taxes/wages/ownership, crafting/production chains, tech tree, religion/culture, merchant AI or general multi-resource economy framework.
 
 ### Versioning guard
 
-A persistent settlement reserve may require the current engine snapshot version to advance. If so, v1.0’s historical v10–v16 support floor remains mandatory and the new current version joins the compatibility matrix.
+The authoritative reserve in #328 advances the current engine snapshot schema to v17. v1.0’s historical v10–v16 support floor remains mandatory and v17 joins the compatibility matrix.
+
+---
+
+## V1.x north star after v1.1 — provisional, not frozen
+
+The project now keeps a long-range direction so development does not become “finish one version, then improvise.” **Only v1.1 is currently an implementation commitment.** Every later direction must still pass a fresh evidence gate before it receives a version number, backlog or parallel implementation work.
+
+| Direction | Player-facing outcome |
+| --- | --- |
+| World shaping / biome agency | the player changes the physical world and existing life/civilizations visibly react |
+| Migration / settlement dynamics | population and settlement geography move, grow, abandon and re-form coherently |
+| Civilization identity | civilizations become meaningfully distinguishable through small causal identity systems |
+| Production / exchange | material differences create bounded specialization/exchange only after a truthful local-resource base exists |
+| Politics / conflict consequences | diplomacy and war create clearer long-lived territorial/social consequences |
+| Deep history | ecology, settlement, civilization and conflict events become a readable long-duration causal history |
+| Creator / Scenario 2.0 | deeper authoring, reproducible experiments, sharing and replay composition |
+| V1 final scale/polish | performance, long-run stability, desktop/touch coherence and UI consistency converge before a new major architecture stage |
+
+The exact order and numbering after v1.1 are deliberately **not frozen**. Player evidence, technical leverage and marginal visible value decide the next gate.
 
 ---
 
 ## Current decision
 
 1. v1.0.0 remains immutable; never move or rewrite its tag/release contract;
-2. merge the finite v1.1 planning sync and close #326;
-3. open exactly one Capability-1 implementation issue for Settlement Food Reserves + visible Granary;
-4. first v1.1 implementation PR must produce a player-visible public-demo difference, not another infrastructure-only slice;
-5. do not open Capability 2/3 or unrelated breadth in parallel.
+2. v1.x now has an explicit product-interface north star in `docs/product/ui-ux-north-star.md` plus the provisional post-v1.1 direction above;
+3. #328 remains the single open implementation lane: Settlement Food Reserves + visible Granary;
+4. the first v1.1 implementation PR must produce a player-visible public-demo difference and should establish the shared reserve projection/Inspector pattern rather than start a separate UI rewrite;
+5. do not open Capability 2/3 or unrelated V1.x breadth in parallel;
+6. frontend/interaction work participates inside bounded capability slices; presentation may never become a second simulation authority.

@@ -15,7 +15,7 @@ Immutable release identity:
 
 The v1.0 compatibility/support contract remains the baseline for future development. Published v1.0.0 and older tags never move.
 
-**v1.1 — Settlement Life & Food Reserves is the next finite product stage. Planning is complete; Capability 1 is next.**
+**v1.1 — Settlement Life & Food Reserves is the active finite product stage. Planning is complete; Capability 1/#328 is the single implementation lane.**
 
 Primary fantasy:
 
@@ -23,6 +23,31 @@ Primary fantasy:
 
 Finite backlog: `docs/backlog/v1.1.md`.
 Direction gate: #326.
+Capability 1: #328.
+UI/UX owning direction: `docs/product/ui-ux-north-star.md`.
+
+## Product/UI direction now explicit
+
+The project now has two distinct planning horizons:
+
+1. **Frozen near-term execution:** v1.1 remains exactly three ordered capabilities, with #328 first.
+2. **Provisional V1.x north star:** later directions cover world shaping, migration/settlement dynamics, civilization identity, bounded production/exchange, politics/conflict consequences, deep history, Creator/Scenario 2.0 and final V1 scale/polish. These are directional hypotheses only; none is an open implementation lane until a future evidence gate selects it.
+
+The UI/UX north star does not authorize a standalone visual rewrite. Frontend/interaction improvements should land through bounded player-visible slices unless evidence shows the shell itself is the bottleneck.
+
+### Runtime interface target
+
+The long-term shell is:
+
+- compact **Top HUD** for world identity/time/global facts;
+- **Left Tool Dock** for Inspect/God Powers/spawn/world actions;
+- world-first central canvas;
+- contextual **Right Inspector** using truthful shared projections;
+- compact/collapsible **Chronicle tray** for recent meaningful history;
+- navigation/mini-map/layers when scale/readability justifies them;
+- touch composition using drawers/bottom sheets rather than squeezing desktop panels into 430×820.
+
+Primary product navigation target: World, Settlements, Civilizations, Stories, Scenarios, Encyclopedia, Settings. Empty future pages are explicitly disallowed.
 
 ## Post-1.0 audit decision
 
@@ -51,18 +76,30 @@ The missing material layer is one settlement-level food reserve. This has high v
 
 ## v1.1 capability order
 
-### 1. Settlement Food Reserves + visible Granary — NEXT
+### 1. Settlement Food Reserves + visible Granary — ACTIVE / #328
 
-One authoritative conserved food reserve:
-- deterministic capacity derived from existing settlement state;
-- harvest transfers bounded surplus from settlement-owned tile food into reserve;
-- protected local tile-food floor prevents free ecological vacuuming;
-- hungry local settlement members may draw reserve before seeking wild tile food;
-- no new RNG;
-- map-visible Granary/fill state plus matching Settlement Inspector facts;
-- first implementation PR must visibly change the public demo.
+Frozen mechanics in #328:
+- authoritative settlement `foodStored`;
+- capacity = base `2` + `2 × population`;
+- deterministic settlement-check harvest from owned passable tiles only;
+- protect `65%` of each source tile’s `foodCapacity` as local ecological floor;
+- harvest budget `0.5 × population` per cadence;
+- hungry local members consume reserve only after direct current-tile food and only while on territory owned by their own active settlement;
+- abandonment clears reserve;
+- no harvest/draw RNG or remote/trade semantics.
 
-A persistent reserve may require a new snapshot version. If so, v1.0’s historical v10–v16 support floor remains mandatory and the new current version joins the compatibility matrix.
+Persistence contract:
+- current snapshot schema advances v16 → v17;
+- `SUPPORTED_SNAPSHOT_VERSIONS` becomes v10–v17;
+- pre-v17 settlements migrate `foodStored = 0` deterministically;
+- local envelope v1 and historical v10–v16 support remain intact.
+
+Player-visible/UI contract:
+- compact map Granary/reserve cue from authoritative stored/capacity ratio;
+- Settlement Inspector displays `Food reserve X / Y` plus concise ratio-derived state;
+- one pure presentation projection feeds map + Inspector so they cannot disagree;
+- focused production Chromium evidence shows materially different reserve states without injecting reserve values;
+- no economy dashboard, tax/trade/jobs/production labels or controls.
 
 ### 2. Scarcity & recovery readability/history — BLOCKED on Capability 1
 
@@ -78,8 +115,9 @@ No currency, prices, market/trade routes, professions/classes, taxes/wages/owner
 
 ## Current decision gate
 
-1. merge the 3-file v1.1 planning sync;
-2. close #326 completed;
-3. open exactly one Capability-1 implementation issue;
-4. implement Food Reserves + visible Granary as the first player-visible slice;
-5. keep Capability 2/3 and unrelated breadth closed until Capability 1 is delivered.
+1. publish the UI/UX north-star documentation without changing v1.0 identity or opening another implementation lane;
+2. merge that bounded documentation sync after review;
+3. continue #328 as the only active implementation issue;
+4. first #328 PR must include authoritative reserve mechanics **and** a visible Granary/Inspector difference in the public product surface;
+5. frontend/interaction participates in #328 via shared reserve projection and bounded UI integration, not a broad rewrite;
+6. keep Capability 2/3 and unrelated V1.x breadth closed until Capability 1 is delivered.
