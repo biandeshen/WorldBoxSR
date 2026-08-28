@@ -31,15 +31,14 @@ function updateNeeds(world, human) {
 function chooseAndPerformAction(world, human) {
   const current = tileAt(world, human.x, human.y);
 
-  if (human.hunger >= world.config.hungryThreshold && current.food >= 0.2) {
-    eat(world, human, current);
-    return;
-  }
-
   if (human.hunger >= world.config.hungryThreshold) {
-    moveTowardFood(world, human);
-    const destination = tileAt(world, human.x, human.y);
-    if (destination.food >= 0.2) eat(world, human, destination);
+    if (current.food >= 0.2) eat(world, human, current);
+    if (human.hunger >= world.config.hungryThreshold) eatFromSettlementReserve(world, human, current);
+    if (human.hunger >= world.config.hungryThreshold) {
+      moveTowardFood(world, human);
+      const destination = tileAt(world, human.x, human.y);
+      if (destination.food >= 0.2) eat(world, human, destination);
+    }
     return;
   }
 
@@ -51,6 +50,21 @@ function eat(world, human, tile) {
   tile.food -= requested;
   human.hunger = clamp01(human.hunger - world.config.eatAmount * (requested / world.config.foodPerMeal));
   world.counters.meals += 1;
+}
+
+export function eatFromSettlementReserve(world, human, currentTile = tileAt(world, human.x, human.y)) {
+  if (!Number.isInteger(human.settlementId)) return 0;
+  const settlement = world.settlements.find((candidate) => candidate.id === human.settlementId && candidate.active);
+  if (!settlement || currentTile.ownerSettlementId !== settlement.id) return 0;
+
+  const available = Number.isFinite(settlement.foodStored) ? Math.max(0, settlement.foodStored) : 0;
+  if (available <= 0) return 0;
+
+  const consumed = Math.min(world.config.foodPerMeal, available);
+  settlement.foodStored = Math.max(0, available - consumed);
+  human.hunger = clamp01(human.hunger - world.config.eatAmount * (consumed / world.config.foodPerMeal));
+  world.counters.meals += 1;
+  return consumed;
 }
 
 function moveTowardFood(world, human) {
