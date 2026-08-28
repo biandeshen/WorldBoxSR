@@ -5,8 +5,12 @@ on:
     paths:
       - '.github/workflows/wolf-evidence-fix-full-qa.yml'
 
+# TEMPORARY QA BRANCH ONLY. Intentionally join the stale PR visual-qa
+# concurrency group from #332 so this hosted job cancels the already-assigned
+# self-hosted smoke without allocating the project Windows runner itself.
+# Never merge this workflow; merged-main visual-qa owns the final Windows gate.
 concurrency:
-  group: wolf-evidence-fix-full-qa-${{ github.event.pull_request.number || github.ref }}
+  group: visual-qa-332
   cancel-in-progress: true
 
 permissions:
