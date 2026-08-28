@@ -62,7 +62,7 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 45
     env:
-      VISUAL_QA_SCOPE: ${{ github.event_name == 'pull_request' && 'smoke' || 'full' }}
+      VISUAL_QA_SCOPE: full # validation-only branch; never merge this workflow change
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

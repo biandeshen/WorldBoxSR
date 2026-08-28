@@ -10,13 +10,14 @@ import {
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
-const [browser, baseUrl, outDir] = process.argv.slice(2);
-if (!browser || !baseUrl || !outDir) {
+const [browser, baseUrl, outDirArgument] = process.argv.slice(2);
+if (!browser || !baseUrl || !outDirArgument) {
   console.error('usage: node tools/capture-scenario-portability-evidence.mjs <browser> <base-url> <out-dir>');
   process.exit(2);
 }
+const outDir = resolve(outDirArgument);
 
 const TILE_SIZE = 28;
 const NAME = 'Portable trio';
@@ -89,7 +90,7 @@ try {
   await author.cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: outDir });
   await clickSelector(author.cdp, '#scenario-export-json');
   await waitForExpression(author.cdp, `document.querySelector('#scenario-recipe-text')?.value === ${JSON.stringify(canonical)}`, 2_000);
-  await waitForFile(downloadPath, 3_000);
+  await waitForFile(downloadPath, 10_000);
   const exportedJson = readFileSync(downloadPath, 'utf8');
   if (exportedJson !== canonical) throw new Error('downloaded Scenario JSON is not the canonical Recipe string');
   if ((await fingerprint(author.cdp)) !== startFingerprint) throw new Error('Copy/Export mutated authored Scenario authority');
@@ -160,7 +161,7 @@ try {
       tokenUnpaddedBase64Url: true,
       independentlyDecodedExactRecipe: true,
       exportedJsonExactRecipe: true,
-      exportFile: downloadPath.split('/').pop()
+      exportFile: basename(downloadPath)
     },
     freshSharedLink: {
       paused: sharedState.paused,
