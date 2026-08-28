@@ -125,13 +125,20 @@ function commandVersion(name, executable) {
   if (!executable) {
     return { available: false, version: '', path: null, error: 'not found' };
   }
-  const probe = runProbe(executable, ['--version']);
+  const probe = runCommandProbe(executable, ['--version']);
   return {
     available: probe.status === 0 && !probe.error,
     version: firstLine(probe.stdout || probe.stderr),
     path: isExecutableFile(executable) ? executable : commandPath(executable),
     error: probeError(probe, PROBE_TIMEOUT_MS)
   };
+}
+
+function runCommandProbe(executable, args) {
+  if (isWindows && /\.(?:cmd|bat)$/iu.test(executable)) {
+    return runProbe(process.env.ComSpec || 'cmd.exe', ['/d', '/c', executable, ...args]);
+  }
+  return runProbe(executable, args);
 }
 
 function commandPath(command) {
