@@ -16,7 +16,39 @@ permissions:
   contents: read
 
 jobs:
-  full-history:
+  linux-full-history:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VISUAL_QA_SCOPE: full
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser toolchain
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Run full historical browser evidence on hosted Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          browser="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [[ -z "$browser" ]]; then
+            echo "Hosted QA requires Chrome/Chromium" >&2
+            exit 2
+          fi
+          WORLDBOXSR_BROWSER="$browser" bash tools/capture-visual-evidence.sh
+      - name: Upload hosted full historical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wolf-evidence-fix-full-linux
+          path: artifacts/visual
+          if-no-files-found: warn
+          retention-days: 7
+
+  windows-full-history:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 45
@@ -36,11 +68,11 @@ jobs:
         run: |
           & "$env:WORLDBOXSR_BASH" tools/capture-visual-evidence.sh
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Upload full historical evidence
+      - name: Upload self-hosted full historical evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wolf-evidence-fix-full
+          name: wolf-evidence-fix-full-windows
           path: artifacts/visual
           if-no-files-found: warn
           retention-days: 7
