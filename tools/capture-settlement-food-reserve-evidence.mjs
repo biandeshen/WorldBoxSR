@@ -32,9 +32,9 @@ try {
   await waitForExpression(cdp, `document.querySelector('#boot-status')?.textContent?.includes('showcase ready') === true`, 30_000);
 
   let pair = await reservePair(cdp);
-  // The public showcase is preferred. If Y40 happens to converge on the same
-  // reserve band, use only the visible Time control to let ordinary simulation
-  // produce a bounded later state; never write foodStored from evidence code.
+  // Prefer the ordinary Y40 showcase. If it does not yet contain two materially
+  // distinct, visibly inspectable reserves, advance only through the visible
+  // Time/Play controls. Evidence code never writes foodStored.
   for (let attempt = 0; !pair && attempt < 5; attempt += 1) {
     const beforeDay = await evaluate(cdp, `globalThis.__PHASER_GAME__?.scene?.getScene?.('world')?.world?.day ?? 0`);
     await setSpeed(cdp, '360');
@@ -43,20 +43,23 @@ try {
     await setPaused(cdp, true);
     pair = await reservePair(cdp);
   }
-  if (!pair) throw new Error('ordinary production simulation did not produce two materially different active settlement reserve ratios');
+  if (!pair) throw new Error('ordinary production simulation did not produce two materially different, visibly inspectable active settlement reserve ratios');
 
   const baseline = await fingerprint(cdp);
-  const target = pair.low;
-  await evaluate(cdp, `(() => {
-    const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
-    scene.inspectTile(${target.x}, ${target.y});
-    return true;
-  })()`);
-  const expectedLine = `Food reserve ${formatAmount(target.stored)} / ${formatAmount(target.capacity)} · ${target.state}`;
-  await waitForExpression(cdp, `document.querySelector('#inspector')?.textContent?.includes(${JSON.stringify(expectedLine)}) === true`, 2_500);
+  const targetSettlement = pair.low;
+  const expectedLine = `Food reserve ${formatAmount(targetSettlement.stored)} / ${formatAmount(targetSettlement.capacity)} · ${targetSettlement.state}`;
+
+  // Use the real player interaction path. Candidate selection deliberately
+  // excludes settlement centers occupied by humans/creatures/warbands so the
+  // existing selection precedence resolves the Alt-click to the settlement.
+  await altClickPoint(cdp, targetSettlement.point);
+  await waitForExpression(cdp, `(() => {
+    const text = document.querySelector('#inspector')?.textContent ?? '';
+    return text.startsWith(${JSON.stringify(targetSettlement.name)}) && text.includes(${JSON.stringify(expectedLine)});
+  })()`, 2_500);
   const inspectorText = await evaluate(cdp, `document.querySelector('#inspector')?.textContent ?? ''`);
   const afterInspection = await fingerprint(cdp);
-  if (afterInspection !== baseline) throw new Error('settlement reserve inspection mutated authoritative world');
+  if (afterInspection !== baseline) throw new Error('settlement reserve Alt-click inspection mutated authoritative world');
 
   const rendered = await reservePair(cdp);
   if (!rendered) throw new Error('reserve pair disappeared after read-only inspection');
@@ -76,17 +79,18 @@ try {
     low: pair.low,
     high: pair.high,
     inspector: {
-      settlementId: target.id,
+      settlementId: targetSettlement.id,
+      interaction: 'real Alt-click on visible clear settlement center',
       expectedLine,
       text: inspectorText,
       matchesSharedFacts: inspectorText.includes(expectedLine)
     },
     mapGranaryDiffers: rendered.low.visualSignature !== rendered.high.visualSignature && rendered.low.fillSegments !== rendered.high.fillSegments,
     readOnlyAuthorityUnchanged: afterInspection === baseline,
-    setup: 'ordinary public simulation + visible Time control only; foodStored never written by evidence code'
+    setup: 'ordinary public simulation + visible Time/Play controls only; foodStored never written by evidence code'
   };
   writeFileSync(join(outDir, 'settlement-food-reserve-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
-  console.log(`Settlement food reserve evidence: day ${pair.day}; ${pair.low.name} ${formatAmount(pair.low.stored)}/${pair.low.capacity} ${pair.low.state} (${pair.low.fillSegments}/5) vs ${pair.high.name} ${formatAmount(pair.high.stored)}/${pair.high.capacity} ${pair.high.state} (${pair.high.fillSegments}/5); Inspector matched; authority unchanged`);
+  console.log(`Settlement food reserve evidence: day ${pair.day}; ${pair.low.name} ${formatAmount(pair.low.stored)}/${pair.low.capacity} ${pair.low.state} (${pair.low.fillSegments}/5) vs ${pair.high.name} ${formatAmount(pair.high.stored)}/${pair.high.capacity} ${pair.high.state} (${pair.high.fillSegments}/5); real Alt-click Inspector matched; authority unchanged`);
 } finally {
   try { cdp?.close(); } catch {}
   await stopChrome(chrome);
@@ -98,20 +102,43 @@ async function reservePair(cdpClient) {
   return evaluate(cdpClient, `(() => {
     const scene = globalThis.__PHASER_GAME__?.scene?.getScene?.('world');
     const world = scene?.world;
-    if (!world || !scene?.settlements?.visuals) return null;
+    const camera = scene?.cameras?.main;
+    if (!world || !camera || !scene?.settlements?.visuals) return null;
+    const tileSize = 28;
+    const activeWarbands = (world.warbands ?? []).filter((band) => band.active);
+    const livingHumans = world.entities.filter((human) => human.kind === 'human' && human.alive);
+    const livingCreatures = (world.creatures ?? []).filter((creature) => creature.alive);
+    const centerClear = (settlement) =>
+      !activeWarbands.some((band) => band.x === settlement.x && band.y === settlement.y) &&
+      !livingHumans.some((human) => human.x === settlement.x && human.y === settlement.y) &&
+      !livingCreatures.some((creature) => creature.x === settlement.x && creature.y === settlement.y);
+    const screenPoint = (settlement) => {
+      const worldX = (settlement.x + 0.5) * tileSize;
+      const worldY = (settlement.y + 0.5) * tileSize;
+      return {
+        x: camera.x + (worldX - camera.worldView.x) * camera.zoom,
+        y: camera.y + (worldY - camera.worldView.y) * camera.zoom
+      };
+    };
+    const visible = (point) => point.x >= 280 && point.x <= 1110 && point.y >= 80 && point.y <= 790;
     const profile = (settlement) => {
       const capacity = 2 + 2 * Math.max(0, Math.floor(Number.isFinite(settlement.population) ? settlement.population : 0));
       const stored = Math.min(capacity, Math.max(0, Number.isFinite(settlement.foodStored) ? settlement.foodStored : 0));
       const ratio = capacity > 0 ? stored / capacity : 0;
       const state = stored <= 1e-9 ? 'depleted' : ratio < 0.4 ? 'low' : ratio < 0.8 ? 'stable' : 'full';
       const fillSegments = stored <= 1e-9 ? 0 : Math.max(1, Math.min(5, Math.round(ratio * 5)));
+      const point = screenPoint(settlement);
       return {
         id: settlement.id, name: settlement.name, x: settlement.x, y: settlement.y,
         population: settlement.population, stored, capacity, ratio, state, fillSegments,
+        point,
         visualSignature: scene.settlements.visuals.get(settlement.id)?.signature ?? null
       };
     };
-    const active = world.settlements.filter((settlement) => settlement.active).map(profile).filter((value) => value.visualSignature);
+    const active = world.settlements
+      .filter((settlement) => settlement.active && centerClear(settlement))
+      .map(profile)
+      .filter((value) => value.visualSignature && visible(value.point));
     let best = null;
     for (let a = 0; a < active.length; a += 1) {
       for (let b = a + 1; b < active.length; b += 1) {
@@ -147,6 +174,13 @@ async function setPaused(cdpClient, paused) {
   })()`);
   if (Boolean(result) !== paused) throw new Error(`failed to set pause=${paused}`);
   await delay(120);
+}
+
+async function altClickPoint(cdpClient, point) {
+  await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, modifiers: 1 });
+  await cdpClient.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers: 1 });
+  await cdpClient.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1, modifiers: 1 });
+  await delay(150);
 }
 
 async function fingerprint(cdpClient) {
