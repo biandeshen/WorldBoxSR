@@ -5,9 +5,16 @@ on:
     branches: [main]
   pull_request:
 
+# PR correctness only needs to certify the newest revision. Keep main pushes
+# independent while cancelling stale PR runs after a newer commit arrives.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
