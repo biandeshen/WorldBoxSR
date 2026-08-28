@@ -1,8 +1,10 @@
-import { accessSync, constants } from 'node:fs';
+import { accessSync, appendFileSync, constants } from 'node:fs';
 import { platform, arch, homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 const REQUIRED_COMMANDS = ['bash', 'curl', 'npm', 'node'];
+const PROBE_TIMEOUT_MS = 3_000;
+const MIN_NODE_MAJOR = 22;
 const browserCandidates = process.platform === 'win32'
   ? [
       process.env.WORLDBOXSR_BROWSER,
@@ -22,11 +24,26 @@ const browserCandidates = process.platform === 'win32'
 const failures = [];
 const commands = Object.fromEntries(REQUIRED_COMMANDS.map((command) => [command, commandVersion(command)]));
 for (const [command, result] of Object.entries(commands)) {
-  if (!result.available) failures.push(`missing required command: ${command}`);
+  if (!result.available) failures.push(`missing or unresponsive required command: ${command}${result.error ? ` (${result.error})` : ''}`);
 }
 
-const browser = browserCandidates.filter(Boolean).find(isExecutableFile) ?? commandPath('google-chrome-stable') ?? commandPath('google-chrome') ?? commandPath('chromium') ?? commandPath('chromium-browser');
-if (!browser) failures.push('Chrome/Chromium not found. Set WORLDBOXSR_BROWSER or install a reusable system browser.');
+const nodeMajor = Number.parseInt(String(commands.node?.version ?? '').match(/v?(\d+)/u)?.[1] ?? '', 10);
+if (!Number.isInteger(nodeMajor) || nodeMajor < MIN_NODE_MAJOR) {
+  failures.push(`Node ${MIN_NODE_MAJOR}+ is required for the reusable runner; detected ${commands.node?.version || 'unknown'}`);
+}
+
+const browser = browserCandidates.filter(Boolean).find(isExecutableFile)
+  ?? commandPath('google-chrome-stable')
+  ?? commandPath('google-chrome')
+  ?? commandPath('chromium')
+  ?? commandPath('chromium-browser');
+const browserProbe = browser ? executableVersion(browser) : null;
+if (!browser) failures.push('Chrome/Chromium not found. Install a reusable system browser or set WORLDBOXSR_BROWSER.');
+else if (!browserProbe?.available) failures.push(`Chrome/Chromium version probe failed for ${browser}: ${browserProbe?.error ?? 'unknown error'}`);
+
+if (browser && process.env.GITHUB_ENV) {
+  appendFileSync(process.env.GITHUB_ENV, `WORLDBOXSR_BROWSER=${browser}\n`);
+}
 
 const report = {
   runner: {
@@ -35,10 +52,16 @@ const report = {
     arch: process.env.RUNNER_ARCH ?? arch(),
     environment: process.env.RUNNER_ENVIRONMENT ?? null,
     workspace: process.env.GITHUB_WORKSPACE ?? process.cwd(),
+    temp: process.env.RUNNER_TEMP ?? null,
     home: homedir()
   },
+  contract: {
+    minimumNodeMajor: MIN_NODE_MAJOR,
+    probeTimeoutMs: PROBE_TIMEOUT_MS,
+    browserEnvExported: Boolean(browser && process.env.GITHUB_ENV)
+  },
   commands,
-  browser: browser ? { path: browser, version: executableVersion(browser) } : null,
+  browser: browser ? { path: browser, ...browserProbe } : null,
   cache: {
     npm: process.env.npm_config_cache ?? null,
     githubWorkspace: process.env.GITHUB_WORKSPACE ?? null
@@ -53,24 +76,43 @@ if (failures.length > 0) {
 }
 
 function commandVersion(command) {
-  const probe = spawnSync(command, ['--version'], { encoding: 'utf8' });
+  const probe = runProbe(command, ['--version']);
   return {
-    available: probe.status === 0,
+    available: probe.status === 0 && !probe.error,
     version: firstLine(probe.stdout || probe.stderr),
-    path: commandPath(command)
+    path: commandPath(command),
+    error: probeError(probe)
   };
 }
 
 function commandPath(command) {
   const locator = process.platform === 'win32' ? 'where' : 'which';
-  const result = spawnSync(locator, [command], { encoding: 'utf8' });
-  if (result.status !== 0) return null;
+  const result = runProbe(locator, [command]);
+  if (result.status !== 0 || result.error) return null;
   return firstLine(result.stdout) || null;
 }
 
 function executableVersion(file) {
-  const result = spawnSync(file, ['--version'], { encoding: 'utf8' });
-  return firstLine(result.stdout || result.stderr) || null;
+  const result = runProbe(file, ['--version']);
+  return {
+    available: result.status === 0 && !result.error,
+    version: firstLine(result.stdout || result.stderr),
+    error: probeError(result)
+  };
+}
+
+function runProbe(command, args) {
+  return spawnSync(command, args, {
+    encoding: 'utf8',
+    timeout: PROBE_TIMEOUT_MS,
+    windowsHide: true
+  });
+}
+
+function probeError(result) {
+  if (!result.error) return null;
+  if (result.error.code === 'ETIMEDOUT') return `timed out after ${PROBE_TIMEOUT_MS}ms`;
+  return result.error.code || result.error.message || String(result.error);
 }
 
 function isExecutableFile(file) {
