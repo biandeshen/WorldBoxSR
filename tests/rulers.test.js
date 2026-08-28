@@ -167,11 +167,11 @@ test('vacancy preserves ruling-line identity and a later eligible descendant con
   assert.equal(world.history.at(-1).descendantDistance, 1);
 });
 
-test('snapshot v16 round-trips ruling-line state and v15 migration anchors current or last ruler without fabricated history date', () => {
+test('current snapshot round-trips ruling-line state and v15 migration anchors current or last ruler without fabricated history date', () => {
   const world = createWorld({ seed: 304, width: 10, height: 10, population: 0 });
   const settlement = createSettlement(world, firstLand(world)); updatePolities(world); const ruler = addAdult(world, settlement, { ageYears: 35 }); updateRulers(world);
   const current = snapshotWorld(world);
-  assert.equal(current.snapshotVersion, 16);
+  assert.equal(current.snapshotVersion, SNAPSHOT_VERSION);
   const restored = worldFromSnapshot(structuredClone(current));
   assert.deepEqual(snapshotWorld(restored), current);
 
@@ -184,8 +184,10 @@ test('snapshot v16 round-trips ruling-line state and v15 migration anchors curre
     delete polity.rulingLineSinceDay;
     delete polity.rulingLineReignCount;
   }
+  for (const settlement of legacyV15.settlements) delete settlement.foodStored;
   const migrated = worldFromSnapshot(legacyV15);
   assert.equal(migrated.snapshotVersion, SNAPSHOT_VERSION);
+  assert.equal(migrated.settlements[0].foodStored, 0);
   assert.equal(migrated.polities[0].rulingLineFounderId, ruler.id);
   assert.equal(migrated.polities[0].rulingLineSequence, 1);
   assert.equal(migrated.polities[0].rulingLineSinceDay, null);
@@ -204,6 +206,7 @@ test('snapshot v16 round-trips ruling-line state and v15 migration anchors curre
     delete polity.rulingLineSinceDay;
     delete polity.rulingLineReignCount;
   }
+  for (const settlement of vacantLegacy.settlements) delete settlement.foodStored;
   const migratedVacancy = worldFromSnapshot(vacantLegacy);
   assert.equal(migratedVacancy.polities[0].rulerId, null);
   assert.equal(migratedVacancy.polities[0].lastRulerId, previous.id);
@@ -226,6 +229,7 @@ test('v12 snapshots without ruler fields restore compatible empty line defaults 
     delete polity.rulingLineSinceDay;
     delete polity.rulingLineReignCount;
   }
+  for (const settlement of legacyV12.settlements) delete settlement.foodStored;
   const migrated = worldFromSnapshot(legacyV12);
   assert.equal(migrated.polities[0].rulerId, null);
   assert.equal(migrated.polities[0].rulerSequence, 0);
