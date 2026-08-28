@@ -49,3 +49,28 @@ test('incremental Wolf browser evidence selects a deterministic valid Y40 start 
   const stepTile = world.tiles.find((candidate) => candidate.x === chosen.firstCloserStep.x && candidate.y === chosen.firstCloserStep.y);
   assert.equal(stepTile?.passable, true);
 });
+
+test('selector rejects a start when authoritative nearest prey is already range-1', () => {
+  const world = {
+    config: { wolfPreySearchRadius: 6 },
+    tiles: [
+      { x: 0, y: 0, passable: true },
+      { x: 1, y: 0, passable: true },
+      { x: 2, y: 0, passable: true },
+      { x: 3, y: 0, passable: true }
+    ],
+    entities: [],
+    warbands: [],
+    creatures: [
+      { id: 1, species: 'grazer', alive: true, x: 1, y: 0 },
+      { id: 2, species: 'grazer', alive: true, x: 3, y: 0 }
+    ]
+  };
+
+  const candidates = wolfPredationEvidenceStartCandidates(world);
+  assert.equal(
+    candidates.some((candidate) => candidate.x === 0 && candidate.y === 0),
+    false,
+    'tile 0,0 must not pretend Grazer #2 at distance 3 is the chosen prey while Grazer #1 is actually range-1'
+  );
+});
