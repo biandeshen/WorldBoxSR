@@ -40,5 +40,6 @@ test('visual workflow owns the final v1.0 composition step and its files trigger
   assert.match(workflow, /tools\/run-stable-sandbox-smoke\.sh/);
   assert.match(workflow, /tools\/verify-stable-sandbox-evidence\.mjs/);
   assert.match(workflow, /name: Verify stable sandbox composition/);
-  assert.match(workflow, /run: bash tools\/run-stable-sandbox-smoke\.sh/);
+  assert.match(workflow, /WORLDBOXSR_BASH/);
+  assert.match(workflow, /& "\$env:WORLDBOXSR_BASH" tools\/run-stable-sandbox-smoke\.sh/);
 });
