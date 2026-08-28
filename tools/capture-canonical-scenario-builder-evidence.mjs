@@ -19,12 +19,13 @@ const SETUP = Object.freeze([
 const FORK_ACTION = Object.freeze({ type: 'spawn_human', x: 12, y: 8, count: 1 });
 const CHROME_STARTUP_TIMEOUT_MS = 30_000;
 // Immutable v0.7.0 release/tag evidence remains source 7f07ed67 / fork 67543ff4.
-// v0.8 intentionally evolves authoritative political history before the Y40
-// Scenario base, so this live regression gate tracks the deterministic
+// Immutable v1.0.0 Stable Sandbox evidence remains source b411c106 / fork 0f28ca42.
+// v1.1 intentionally advances current world authority to snapshot v17 with
+// settlement foodStored, so this live regression gate tracks the deterministic
 // current-main world baselines while preserving every Recipe/share/Replay/Fork
-// exactness assertion below. Never rewrite the historical v0.7 release hashes.
-const EXPECTED_SOURCE_HASH = 'b411c106';
-const EXPECTED_FORK_HASH = '0f28ca42';
+// exactness assertion below. Never rewrite historical release hashes/docs/tags.
+const EXPECTED_SOURCE_HASH = '38c8f729';
+const EXPECTED_FORK_HASH = '9e0cebe7';
 const sessions = [];
 mkdirSync(outDir, { recursive: true });
 
