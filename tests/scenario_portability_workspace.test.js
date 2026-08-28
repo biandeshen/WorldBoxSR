@@ -9,6 +9,7 @@ const bootstrapPath = fileURLToPath(new URL('../client/bootstrap.js', import.met
 const phaserPath = fileURLToPath(new URL('../client/phaser_main.js', import.meta.url));
 const setupPath = fileURLToPath(new URL('../client/presentation/scenario_setup_runtime.js', import.meta.url));
 const portabilityPath = fileURLToPath(new URL('../client/presentation/scenario_portability_runtime.js', import.meta.url));
+const portabilityEvidencePath = fileURLToPath(new URL('../tools/capture-scenario-portability-evidence.mjs', import.meta.url));
 
 test('portable Scenario shell stays compact and exposes only Copy Link, Export JSON and Import JSON', () => {
   const html = readFileSync(indexPath, 'utf8');
@@ -77,4 +78,13 @@ test('portability runtime uses canonical Recipe transport with truthful clipboar
 
   assert.doesNotMatch(source, /snapshotWorld|worldFromSnapshot|entities\.push|creatures\.push|history\.push|pushEvent/);
   assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|history\.replaceState|location\.assign|location\.href\s*=/);
+});
+
+test('Scenario export evidence gives headless Chrome an absolute cross-platform download directory', () => {
+  const source = readFileSync(portabilityEvidencePath, 'utf8');
+
+  assert.match(source, /const outDir = resolve\(outDirArgument\);/);
+  assert.match(source, /Page\.setDownloadBehavior', \{ behavior: 'allow', downloadPath: outDir \}/);
+  assert.match(source, /exportFile: basename\(downloadPath\)/);
+  assert.doesNotMatch(source, /downloadPath\.split\('\/'\)\.pop\(\)/);
 });
