@@ -7,6 +7,7 @@ import { WarbandLayer } from './presentation/warband_layer.js';
 import { materializeScenarioRecipe } from './presentation/scenario_recipe.js';
 import { advanceWorld, applyGodTool, createShowcaseWorld, evolveShowcaseWorld, selectionAt, SHOWCASE, worldSummary, worldView } from './presentation/world_adapter.js';
 import { civilizationChronicle, formatChronicleDetail, formatChronicleLabel, latestCivilizationPulse, latestHistoryEventId } from './presentation/civilization_story.js';
+import { formatSettlementFoodReserveLine } from './presentation/settlement_food_reserve.js';
 
 const TILE_SIZE = 28;
 const STEP_INTERVAL_MS = 110;
@@ -333,9 +334,11 @@ class WorldScene extends Phaser.Scene {
       const conquestYear = Number.isInteger(target.lastConqueredDay) ? (target.lastConqueredDay / this.world.config.daysPerYear).toFixed(1) : null;
       const rebellionYear = Number.isInteger(target.lastRebelledDay) ? (target.lastRebelledDay / this.world.config.daysPerYear).toFixed(1) : null;
       const rebellionEligibleYear = Number.isInteger(target.rebellionEligibleDay) ? (target.rebellionEligibleDay / this.world.config.daysPerYear).toFixed(1) : null;
+      const reserveLine = formatSettlementFoodReserveLine(target);
       inspector.textContent = [
         target.name,
         `${target.active ? 'active settlement' : 'abandoned settlement'} · population ${target.population}`,
+        reserveLine ?? '',
         polity ? `♛ ${polity.name}${polity.capitalSettlementId === target.id ? ' · capital' : ''}` : 'no polity',
         polity ? `♔ ruler ${Number.isInteger(polity.rulerId) ? `Human #${polity.rulerId}` : 'vacant'}` : '',
         conquestYear ? `⚑ conquered Y${conquestYear} from ${previousPolity?.name ?? `Polity #${target.previousPolityId}`} · total ${target.conquestCount ?? 0}` : '',
