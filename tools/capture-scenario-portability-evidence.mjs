@@ -10,13 +10,14 @@ import {
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
-const [browser, baseUrl, outDir] = process.argv.slice(2);
-if (!browser || !baseUrl || !outDir) {
+const [browser, baseUrl, outDirArgument] = process.argv.slice(2);
+if (!browser || !baseUrl || !outDirArgument) {
   console.error('usage: node tools/capture-scenario-portability-evidence.mjs <browser> <base-url> <out-dir>');
   process.exit(2);
 }
+const outDir = resolve(outDirArgument);
 
 const TILE_SIZE = 28;
 const NAME = 'Portable trio';
@@ -160,7 +161,7 @@ try {
       tokenUnpaddedBase64Url: true,
       independentlyDecodedExactRecipe: true,
       exportedJsonExactRecipe: true,
-      exportFile: downloadPath.split('/').pop()
+      exportFile: basename(downloadPath)
     },
     freshSharedLink: {
       paused: sharedState.paused,
