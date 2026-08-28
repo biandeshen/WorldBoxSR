@@ -90,7 +90,7 @@ try {
   await author.cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: outDir });
   await clickSelector(author.cdp, '#scenario-export-json');
   await waitForExpression(author.cdp, `document.querySelector('#scenario-recipe-text')?.value === ${JSON.stringify(canonical)}`, 2_000);
-  await waitForFile(downloadPath, 3_000);
+  await waitForFile(downloadPath, 10_000);
   const exportedJson = readFileSync(downloadPath, 'utf8');
   if (exportedJson !== canonical) throw new Error('downloaded Scenario JSON is not the canonical Recipe string');
   if ((await fingerprint(author.cdp)) !== startFingerprint) throw new Error('Copy/Export mutated authored Scenario authority');
