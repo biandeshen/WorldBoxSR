@@ -6,13 +6,14 @@ test('seed 45 regression records the deliberate recovery caused by settlement co
   const result = runScenario(SCENARIOS.seed45DemographicCollapse);
   const populations = result.checkpoints.map((checkpoint) => checkpoint.population);
   const final = result.checkpoints.at(-1);
+  const actual = JSON.stringify({ populations, ...final });
 
-  // Settlement cohesion intentionally changes the former collapse trajectory.
-  // Update these values only with an experiment note explaining the causal mechanic.
-  assert.deepEqual(populations, [44, 35, 65, 128]);
-  assert.equal(final.births, 184);
-  assert.equal(final.deaths, 86);
-  assert.ok(final.foodUtilization > 0.95, 'seed 45 recovery should not depend on exhausting food capacity');
-  assert.equal(final.settlements, 7);
-  assert.equal(final.settledPopulation, 104);
+  // v1.1 reserves deliberately make owned territory a material-life input. Keep the
+  // checkpoint sentinel pinned, and update the experiment note with every material change.
+  assert.deepEqual(populations, [44, 35, 65, 125]);
+  assert.equal(final.births, 184, `v1.1 seed45 metrics: ${actual}`);
+  assert.equal(final.deaths, 86, `v1.1 seed45 metrics: ${actual}`);
+  assert.ok(final.foodUtilization > 0.95, `v1.1 seed45 metrics: ${actual}`);
+  assert.equal(final.settlements, 7, `v1.1 seed45 metrics: ${actual}`);
+  assert.equal(final.settledPopulation, 104, `v1.1 seed45 metrics: ${actual}`);
 });
