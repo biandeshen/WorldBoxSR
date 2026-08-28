@@ -35,6 +35,12 @@ test('stable sandbox runner always proves focused persistence but composes histo
   assert.match(verifier, /stable-sandbox-evidence\.json/);
 });
 
+test('stable sandbox verifier follows the current engine snapshot version instead of freezing a live schema number', () => {
+  assert.match(verifier, /import \{ SNAPSHOT_VERSION \} from '\.\.\/engine\/core\/world\.js';/);
+  assert.match(verifier, /persistence\.ordinary\?\.snapshotVersion === SNAPSHOT_VERSION/);
+  assert.doesNotMatch(verifier, /snapshotVersion === 16/);
+});
+
 test('visual workflow owns the final v1.0 composition step and its files trigger browser QA', () => {
   assert.match(workflow, /tools\/capture-stable-sandbox-persistence-evidence\.mjs/);
   assert.match(workflow, /tools\/run-stable-sandbox-smoke\.sh/);
