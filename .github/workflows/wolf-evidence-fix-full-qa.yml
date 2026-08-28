@@ -5,11 +5,11 @@ on:
     branches:
       - 'fix/wolf-predation-evidence-anchor-pr'
 
-# TEMPORARY CLOSED QA BRANCH ONLY. Join the stale #332 visual concurrency
-# group from a real GitHub-hosted job so GitHub can preempt the already-assigned
-# self-hosted smoke without allocating the project Windows runner. Never merge.
+# TEMPORARY CLOSED QA BRANCH ONLY. Join the stale #331 visual concurrency
+# group from a real GitHub-hosted job so GitHub can preempt the last queued
+# PR smoke without allocating the project Windows runner. Never merge.
 concurrency:
-  group: visual-qa-332
+  group: visual-qa-331
   cancel-in-progress: true
 
 permissions:
@@ -21,4 +21,4 @@ jobs:
     steps:
       - name: Release stale PR runner lane
         run: |
-          echo 'Preempt stale visual-qa-332; merged-main visual-qa owns the Windows gate.'
+          echo 'Preempt stale visual-qa-331; merged-main visual-qa owns the Windows gate.'
