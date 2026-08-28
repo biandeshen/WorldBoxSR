@@ -3,14 +3,16 @@ set -euo pipefail
 
 port="${RECOVERY_QA_PORT:-4175}"
 out_dir="${VISUAL_QA_OUT:-artifacts/visual}"
-log_file="${RECOVERY_QA_LOG:-/tmp/worldboxsr-renderer-recovery-qa.log}"
+log_file="${RECOVERY_QA_LOG:-${RUNNER_TEMP:-/tmp}/worldboxsr-renderer-recovery-qa.log}"
 base_url="http://127.0.0.1:${port}/WorldBoxSR/"
 
-browser=""
-for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
-  if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
-done
-if [[ -z "$browser" ]]; then echo "Renderer recovery QA requires Chrome/Chromium on PATH" >&2; exit 2; fi
+browser="${WORLDBOXSR_BROWSER:-}"
+if [[ -z "$browser" ]]; then
+  for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
+    if command -v "$candidate" >/dev/null 2>&1; then browser="$(command -v "$candidate")"; break; fi
+  done
+fi
+if [[ -z "$browser" ]]; then echo "Renderer recovery QA requires Chrome/Chromium; configure WORLDBOXSR_BROWSER on self-hosted runners" >&2; exit 2; fi
 
 mkdir -p "$out_dir"
 rm -f "$log_file"
