@@ -45,11 +45,15 @@ export function wolfPredationEvidenceStartCandidates(world) {
   for (const tile of passable) {
     if (occupied.has(key(tile.x, tile.y))) continue;
 
+    // Match the authoritative Wolf choosePrey rule first: nearest living
+    // Grazer inside radius, then lowest creature id. Only after choosing the
+    // actual prey do we require distance >= 2 so the browser can prove movement
+    // before predation instead of silently skipping a range-1 target.
     const prey = grazers
       .map((grazer) => ({ grazer, distance: chebyshevDistance(tile, grazer) }))
-      .filter(({ distance }) => distance >= 2 && distance <= radius)
+      .filter(({ distance }) => distance <= radius)
       .sort((a, b) => a.distance - b.distance || a.grazer.id - b.grazer.id)[0];
-    if (!prey) continue;
+    if (!prey || prey.distance < 2) continue;
 
     const closerStep = neighborCoordinates(tile)
       .filter((neighbor) => passableKeys.has(key(neighbor.x, neighbor.y)))
