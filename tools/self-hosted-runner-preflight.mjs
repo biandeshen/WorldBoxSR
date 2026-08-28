@@ -1,5 +1,6 @@
-import { accessSync, appendFileSync, constants } from 'node:fs';
+import { accessSync, appendFileSync, chmodSync, constants, mkdirSync, writeFileSync } from 'node:fs';
 import { platform, arch, homedir } from 'node:os';
+import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const REQUIRED_COMMANDS = ['bash', 'curl', 'npm', 'node'];
@@ -41,8 +42,10 @@ const browserProbe = browser ? executableVersion(browser) : null;
 if (!browser) failures.push('Chrome/Chromium not found. Install a reusable system browser or set WORLDBOXSR_BROWSER.');
 else if (!browserProbe?.available) failures.push(`Chrome/Chromium version probe failed for ${browser}: ${browserProbe?.error ?? 'unknown error'}`);
 
-if (browser && process.env.GITHUB_ENV) {
-  appendFileSync(process.env.GITHUB_ENV, `WORLDBOXSR_BROWSER=${browser}\n`);
+let browserShim = null;
+if (browser && browserProbe?.available) {
+  if (process.env.GITHUB_ENV) appendFileSync(process.env.GITHUB_ENV, `WORLDBOXSR_BROWSER=${browser}\n`);
+  browserShim = installBrowserShim(browser);
 }
 
 const report = {
@@ -58,7 +61,8 @@ const report = {
   contract: {
     minimumNodeMajor: MIN_NODE_MAJOR,
     probeTimeoutMs: PROBE_TIMEOUT_MS,
-    browserEnvExported: Boolean(browser && process.env.GITHUB_ENV)
+    browserEnvExported: Boolean(browser && process.env.GITHUB_ENV),
+    browserShim
   },
   commands,
   browser: browser ? { path: browser, ...browserProbe } : null,
@@ -99,6 +103,17 @@ function executableVersion(file) {
     version: firstLine(result.stdout || result.stderr),
     error: probeError(result)
   };
+}
+
+function installBrowserShim(file) {
+  if (!process.env.RUNNER_TEMP || !process.env.GITHUB_PATH) return null;
+  const shimDir = join(process.env.RUNNER_TEMP, 'worldboxsr-bin');
+  const shimPath = join(shimDir, 'google-chrome-stable');
+  mkdirSync(shimDir, { recursive: true });
+  writeFileSync(shimPath, `#!/usr/bin/env node\nconst { spawnSync } = require('node:child_process');\nconst result = spawnSync(${JSON.stringify(file)}, process.argv.slice(2), { stdio: 'inherit', windowsHide: true });\nif (result.error) { console.error(result.error); process.exit(1); }\nprocess.exit(result.status ?? 1);\n`);
+  try { chmodSync(shimPath, 0o755); } catch {}
+  appendFileSync(process.env.GITHUB_PATH, `${shimDir}\n`);
+  return shimPath;
 }
 
 function runProbe(command, args) {
