@@ -9,14 +9,31 @@ import {
   writeFileSync
 } from 'node:fs';
 import { platform, arch, homedir, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const REQUIRED_COMMANDS = ['bash', 'curl', 'npm', 'node'];
 const PROBE_TIMEOUT_MS = 3_000;
 const BROWSER_SMOKE_TIMEOUT_MS = 12_000;
 const MIN_NODE_MAJOR = 22;
-const browserCandidates = process.platform === 'win32'
+const isWindows = process.platform === 'win32';
+
+const bashCandidates = isWindows
+  ? [
+      process.env.WORLDBOXSR_BASH,
+      'C:\\Program Files\\Git\\bin\\bash.exe',
+      'C:\\Program Files\\Git\\usr\\bin\\bash.exe'
+    ]
+  : [process.env.WORLDBOXSR_BASH, commandPath('bash')];
+const bash = bashCandidates.filter(Boolean).find(isExecutableFile) ?? null;
+
+const commandExecutables = {
+  bash,
+  curl: isWindows ? 'curl.exe' : 'curl',
+  npm: isWindows ? 'npm.cmd' : 'npm',
+  node: isWindows ? 'node.exe' : 'node'
+};
+
+const browserCandidates = isWindows
   ? [
       process.env.WORLDBOXSR_BROWSER,
       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -33,7 +50,7 @@ const browserCandidates = process.platform === 'win32'
     ];
 
 const failures = [];
-const commands = Object.fromEntries(REQUIRED_COMMANDS.map((command) => [command, commandVersion(command)]));
+const commands = Object.fromEntries(Object.entries(commandExecutables).map(([name, executable]) => [name, commandVersion(name, executable)]));
 for (const [command, result] of Object.entries(commands)) {
   if (!result.available) failures.push(`missing or unresponsive required command: ${command}${result.error ? ` (${result.error})` : ''}`);
 }
@@ -41,6 +58,11 @@ for (const [command, result] of Object.entries(commands)) {
 const nodeMajor = Number.parseInt(String(commands.node?.version ?? '').match(/v?(\d+)/u)?.[1] ?? '', 10);
 if (!Number.isInteger(nodeMajor) || nodeMajor < MIN_NODE_MAJOR) {
   failures.push(`Node ${MIN_NODE_MAJOR}+ is required for the reusable runner; detected ${commands.node?.version || 'unknown'}`);
+}
+
+if (bash && commands.bash?.available) {
+  if (process.env.GITHUB_ENV) appendFileSync(process.env.GITHUB_ENV, `WORLDBOXSR_BASH=${bash}\n`);
+  if (process.env.GITHUB_PATH) appendFileSync(process.env.GITHUB_PATH, `${dirname(bash)}\n`);
 }
 
 const browser = browserCandidates.filter(Boolean).find(isExecutableFile)
@@ -76,6 +98,7 @@ const report = {
     minimumNodeMajor: MIN_NODE_MAJOR,
     commandProbeTimeoutMs: PROBE_TIMEOUT_MS,
     browserSmokeTimeoutMs: BROWSER_SMOKE_TIMEOUT_MS,
+    bashEnvExported: Boolean(bash && commands.bash?.available && process.env.GITHUB_ENV),
     browserEnvExported: Boolean(browser && browserSmoke?.available && process.env.GITHUB_ENV),
     browserShim
   },
@@ -98,29 +121,28 @@ if (failures.length > 0) {
   process.exit(2);
 }
 
-function commandVersion(command) {
-  const probe = runProbe(command, ['--version']);
+function commandVersion(name, executable) {
+  if (!executable) {
+    return { available: false, version: '', path: null, error: 'not found' };
+  }
+  const probe = runProbe(executable, ['--version']);
   return {
     available: probe.status === 0 && !probe.error,
     version: firstLine(probe.stdout || probe.stderr),
-    path: commandPath(command),
+    path: isExecutableFile(executable) ? executable : commandPath(executable),
     error: probeError(probe, PROBE_TIMEOUT_MS)
   };
 }
 
 function commandPath(command) {
-  const locator = process.platform === 'win32' ? 'where' : 'which';
+  const locator = isWindows ? 'where.exe' : 'which';
   const result = runProbe(locator, [command]);
   if (result.status !== 0 || result.error) return null;
   return firstLine(result.stdout) || null;
 }
 
 function optionalBrowserVersion(file) {
-  // `chrome.exe --version` is not a reliable lifecycle contract on Windows: on
-  // some installations it starts/forwards to a browser process instead of
-  // returning a CLI version. Version is diagnostic only; the bounded headless
-  // smoke below is the actual capability gate.
-  if (process.platform === 'win32') {
+  if (isWindows) {
     return { available: false, version: null, error: 'not required on Windows; headless smoke is authoritative' };
   }
   const result = runProbe(file, ['--version']);
@@ -187,7 +209,7 @@ function probeError(result, timeoutMs) {
 
 function isExecutableFile(file) {
   try {
-    accessSync(file, process.platform === 'win32' ? constants.F_OK : constants.X_OK);
+    accessSync(file, isWindows ? constants.F_OK : constants.X_OK);
     return true;
   } catch {
     return false;
