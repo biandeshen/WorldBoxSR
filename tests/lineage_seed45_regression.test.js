@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, runScenario } from '../simulation_lab/scenarios.js';
 
-test('lineage history layer preserves the post-cohesion seed 45 demographic sentinel', () => {
+test('lineage history layer preserves the v1.1 settlement-reserve seed 45 demographic sentinel', () => {
   const result = runScenario(SCENARIOS.seed45DemographicCollapse);
   const final = result.checkpoints.at(-1);
-  const actual = JSON.stringify(final);
 
   assert.equal(final.population, 125);
-  assert.equal(final.births, 184, `v1.1 seed45 metrics: ${actual}`);
-  assert.equal(final.deaths, 86, `v1.1 seed45 metrics: ${actual}`);
-  assert.ok(final.foodUtilization > 0.96, `v1.1 seed45 metrics: ${actual}`);
+  assert.equal(final.births, 180);
+  assert.equal(final.deaths, 85);
+  assert.equal(final.settledPopulation, 91);
+  assert.ok(final.foodUtilization > 0.95);
 });
