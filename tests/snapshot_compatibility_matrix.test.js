@@ -74,6 +74,7 @@ function currentFixtureSnapshot() {
       settlement.memberIds.push(human.id);
     }
     settlement.population = settlement.memberIds.length;
+    settlement.foodStored = 2.5 + settlementIndex * 2;
   });
 
   createGrazer(world, {
@@ -104,9 +105,15 @@ function currentFixtureSnapshot() {
   return snapshotWorld(world);
 }
 
-function snapshotV10Prototype() {
+function preV17Snapshot(version) {
   const snapshot = currentFixtureSnapshot();
-  snapshot.snapshotVersion = 10;
+  snapshot.snapshotVersion = version;
+  for (const settlement of snapshot.settlements) delete settlement.foodStored;
+  return snapshot;
+}
+
+function snapshotV10Prototype() {
+  const snapshot = preV17Snapshot(10);
   delete snapshot.config.grazerBirthChancePerEligiblePairPerDay;
   delete snapshot.counters.creatureBirths;
   for (const creature of snapshot.creatures) delete creature.lastBirthDay;
@@ -115,15 +122,13 @@ function snapshotV10Prototype() {
 }
 
 function snapshotV11Prototype() {
-  const snapshot = currentFixtureSnapshot();
-  snapshot.snapshotVersion = 11;
+  const snapshot = preV17Snapshot(11);
   stripPrePolityState(snapshot);
   return snapshot;
 }
 
 function snapshotV12Prototype() {
-  const snapshot = currentFixtureSnapshot();
-  snapshot.snapshotVersion = 12;
+  const snapshot = preV17Snapshot(12);
   delete snapshot.relations;
   delete snapshot.nextWarbandId;
   delete snapshot.warbands;
@@ -133,8 +138,7 @@ function snapshotV12Prototype() {
 }
 
 function snapshotV13Prototype() {
-  const snapshot = currentFixtureSnapshot();
-  snapshot.snapshotVersion = 13;
+  const snapshot = preV17Snapshot(13);
   delete snapshot.nextWarbandId;
   delete snapshot.warbands;
   stripRulingLineState(snapshot);
@@ -143,20 +147,22 @@ function snapshotV13Prototype() {
 }
 
 function snapshotV14Prototype() {
-  const snapshot = currentFixtureSnapshot();
-  snapshot.snapshotVersion = 14;
+  const snapshot = preV17Snapshot(14);
   stripRulingLineState(snapshot);
   return snapshot;
 }
 
 function snapshotV15PublicRelease() {
-  const snapshot = currentFixtureSnapshot();
-  snapshot.snapshotVersion = 15;
+  const snapshot = preV17Snapshot(15);
   stripRulingLineState(snapshot);
   return snapshot;
 }
 
-function snapshotV16Current() {
+function snapshotV16PublicRelease() {
+  return preV17Snapshot(16);
+}
+
+function snapshotV17Current() {
   return currentFixtureSnapshot();
 }
 
@@ -202,6 +208,9 @@ function assertCompatibilityCase(snapshot, version, assertMigrated) {
   const restored = worldFromSnapshot(snapshot);
   assert.deepEqual(snapshot, inputBefore, `v${version} migration must not mutate the supplied snapshot`);
   assert.equal(restored.snapshotVersion, SNAPSHOT_VERSION);
+  if (version < 17) {
+    assert.ok(restored.settlements.every((settlement) => settlement.foodStored === 0), `v${version} settlements must migrate foodStored=0`);
+  }
 
   const normalized = snapshotWorld(restored);
   assert.equal(normalized.snapshotVersion, SNAPSHOT_VERSION);
@@ -218,13 +227,13 @@ function assertCompatibilityCase(snapshot, version, assertMigrated) {
   );
 }
 
-test('supported engine snapshot baseline is frozen exactly at v10 through v16', () => {
-  assert.equal(SNAPSHOT_VERSION, 16);
+test('supported engine snapshot baseline is frozen at v10 through current v17', () => {
+  assert.equal(SNAPSHOT_VERSION, 17);
   assert.equal(Object.isFrozen(SUPPORTED_SNAPSHOT_VERSIONS), true);
-  assert.deepEqual(SUPPORTED_SNAPSHOT_VERSIONS, [10, 11, 12, 13, 14, 15, 16]);
+  assert.deepEqual(SUPPORTED_SNAPSHOT_VERSIONS, [10, 11, 12, 13, 14, 15, 16, 17]);
 });
 
-test('snapshot v10 accepted prototype schema migrates reproduction and pre-polity defaults', () => {
+test('snapshot v10 accepted prototype schema migrates reproduction, pre-polity defaults and settlement reserve', () => {
   assertCompatibilityCase(snapshotV10Prototype(), 10, (restored) => {
     assert.equal(restored.creatures[0].lastBirthDay, null);
     assert.equal(restored.counters.creatureBirths, 0);
@@ -284,29 +293,40 @@ test('snapshot v15 public v0.3-v0.7 schema normalizes ruling-line identity witho
   });
 });
 
-test('snapshot v16 current v0.8-v0.9 schema round-trips exactly and continues deterministically', () => {
-  const snapshot = snapshotV16Current();
-  assertCompatibilityCase(snapshot, 16, (_restored, normalized) => {
+test('snapshot v16 public v1.0 schema preserves ruling-line fields exactly while adding zero reserve', () => {
+  const snapshot = snapshotV16PublicRelease();
+  const originalLines = snapshot.polities.map((polity) => Object.fromEntries(POLITY_LINE_KEYS.map((key) => [key, polity[key]])));
+  assertCompatibilityCase(snapshot, 16, (restored) => {
+    const restoredLines = restored.polities.map((polity) => Object.fromEntries(POLITY_LINE_KEYS.map((key) => [key, polity[key]])));
+    assert.deepEqual(restoredLines, originalLines, 'v16 ruling-line fields must not be re-migrated when current schema advances');
+    assert.ok(restored.settlements.every((settlement) => settlement.foodStored === 0));
+  });
+});
+
+test('snapshot v17 current schema round-trips exactly and continues deterministically', () => {
+  const snapshot = snapshotV17Current();
+  assertCompatibilityCase(snapshot, 17, (_restored, normalized) => {
     assert.deepEqual(normalized, snapshot);
+    assert.deepEqual(normalized.settlements.map((settlement) => settlement.foodStored), [2.5, 4.5]);
   });
 });
 
 test('unsupported historical gaps, versions below the floor and future engine snapshots reject explicitly', () => {
-  const below = snapshotV16Current();
+  const below = snapshotV17Current();
   below.snapshotVersion = 9;
   assert.throws(() => worldFromSnapshot(below), /Unsupported snapshot version: 9/);
 
-  const gap = snapshotV16Current();
+  const gap = snapshotV17Current();
   gap.snapshotVersion = 12.5;
   assert.throws(() => worldFromSnapshot(gap), /Unsupported snapshot version: 12\.5/);
 
-  const future = snapshotV16Current();
-  future.snapshotVersion = 17;
-  assert.throws(() => worldFromSnapshot(future), /Unsupported snapshot version: 17/);
+  const future = snapshotV17Current();
+  future.snapshotVersion = 18;
+  assert.throws(() => worldFromSnapshot(future), /Unsupported snapshot version: 18/);
 });
 
 test('local save envelope v1 rejects future envelope and unsupported embedded engine versions without yielding a world', () => {
-  const current = snapshotV16Current();
+  const current = snapshotV17Current();
   assert.throws(() => parseLocalWorldSave(JSON.stringify({
     formatVersion: LOCAL_WORLD_SAVE_FORMAT_VERSION + 1,
     savedAt: 1_000,
@@ -315,13 +335,13 @@ test('local save envelope v1 rejects future envelope and unsupported embedded en
   })), /Unsupported local world save format/);
 
   const futureSnapshot = structuredClone(current);
-  futureSnapshot.snapshotVersion = 17;
+  futureSnapshot.snapshotVersion = 18;
   assert.throws(() => parseLocalWorldSave(JSON.stringify({
     formatVersion: LOCAL_WORLD_SAVE_FORMAT_VERSION,
     savedAt: 1_000,
     preset: 'sandbox',
     snapshot: futureSnapshot
-  })), /Unsupported snapshot version: 17/);
+  })), /Unsupported snapshot version: 18/);
 });
 
 test('Scenario Recipe v1 remains canonical and future recipe versions reject explicitly', () => {
