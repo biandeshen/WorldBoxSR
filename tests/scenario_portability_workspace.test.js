@@ -85,6 +85,7 @@ test('Scenario export evidence gives headless Chrome an absolute cross-platform 
 
   assert.match(source, /const outDir = resolve\(outDirArgument\);/);
   assert.match(source, /Page\.setDownloadBehavior', \{ behavior: 'allow', downloadPath: outDir \}/);
+  assert.match(source, /waitForFile\(downloadPath, 10_000\)/);
   assert.match(source, /exportFile: basename\(downloadPath\)/);
   assert.doesNotMatch(source, /downloadPath\.split\('\/'\)\.pop\(\)/);
 });
