@@ -1,0 +1,47 @@
+name: Linux ephemeral runner pilot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/linux-ephemeral-runner-pilot
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle:
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - backup-pc-ephemeral-pilot
+      - worldboxsr-ephemeral
+    timeout-minutes: 10
+    env:
+      EPHEMERAL_CACHE_ROOT: /opt/runner-cache/worldboxsr
+    steps:
+      - name: Prove disposable job state and persistent cache
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          job_marker=/tmp/worldboxsr-ephemeral-job-state
+          if [[ -e "${job_marker}" ]]; then
+            echo "EPHEMERAL_PILOT_DIRTY_JOB_STATE"
+            exit 1
+          fi
+          printf '%s\n' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}" > "${job_marker}"
+
+          mkdir -p "${EPHEMERAL_CACHE_ROOT}"
+          cache_marker="${EPHEMERAL_CACHE_ROOT}/previous-run"
+          if [[ -e "${cache_marker}" ]]; then
+            cache_state=HIT
+            previous_run="$(<"${cache_marker}")"
+          else
+            cache_state=MISS
+            previous_run=NONE
+          fi
+          printf '%s\n' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}" > "${cache_marker}"
+
+          echo "EPHEMERAL_PILOT_GREEN runner=${RUNNER_NAME} cache=${cache_state} previous=${previous_run}"
